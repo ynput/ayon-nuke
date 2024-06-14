@@ -67,6 +67,7 @@ from .workio import (
     current_file
 )
 from .constants import ASSIST
+from . import push_to_project
 
 log = Logger.get_logger(__name__)
 
@@ -331,6 +332,11 @@ def _install_menu():
             "Update Place Holder",
             lambda: update_placeholder()
         )
+
+    menu.addCommand(
+        "Push to Project",
+        lambda: push_to_project.main()
+    )
 
     menu.addSeparator()
     menu.addCommand(
