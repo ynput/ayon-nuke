@@ -330,7 +330,7 @@ class LoadEffectsInputProcess(load.LoaderPlugin):
             for subTrackIndex in range(
                     min(subTrackNums), max(subTrackNums) + 1):
                 item = self.get_item(data, trackIndex, subTrackIndex)
-                if item is not {}:
+                if item:
                     new_order.update(item)
         return new_order
 
