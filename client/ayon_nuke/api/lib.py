@@ -804,13 +804,10 @@ def on_script_load():
 
 
 def check_inventory_versions():
-    """
-    Actual version identifier of Loaded containers
+    """Update loaded container nodes' colors based on version state.
 
-    Any time this function is run it will check all nodes and filter only
-    Loader nodes for its version. It will get all versions from database
-    and check if the node is having actual version. If not then it will color
-    it to red.
+    This will group containers by their version to outdated, not found,
+    invalid or latest and colorize the nodes based on the category.
     """
     host = registered_host()
     containers = host.get_containers()
