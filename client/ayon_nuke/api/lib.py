@@ -33,6 +33,7 @@ from ayon_core.addon import AddonsManager
 from ayon_core.pipeline.template_data import get_template_data_with_names
 from ayon_core.pipeline import (
     Anatomy,
+    registered_host,
     get_current_host_name,
     get_current_project_name,
     get_current_folder_path,
@@ -40,6 +41,7 @@ from ayon_core.pipeline import (
     AYON_INSTANCE_ID,
     AVALON_INSTANCE_ID,
 )
+from ayon_core.pipeline.load import filter_containers
 from ayon_core.pipeline.context_tools import (
     get_current_context_custom_workfile_template
 )
@@ -810,89 +812,24 @@ def check_inventory_versions():
     and check if the node is having actual version. If not then it will color
     it to red.
     """
-    from .pipeline import parse_container
-
-    # get all Loader nodes by avalon attribute metadata
-    node_with_repre_id = []
-    repre_ids = set()
-    # Find all containers and collect it's node and representation ids
-    for node in nuke.allNodes():
-        container = parse_container(node)
-
-        if container:
-            node = nuke.toNode(container["objectName"])
-            avalon_knob_data = read_avalon_data(node)
-            repre_id = avalon_knob_data["representation"]
-
-            repre_ids.add(repre_id)
-            node_with_repre_id.append((node, repre_id))
-
-    # Skip if nothing was found
-    if not repre_ids:
-        return
-
+    host = registered_host()
+    containers = host.get_containers()
     project_name = get_current_project_name()
-    # Find representations based on found containers
-    repre_entities = ayon_api.get_representations(
-        project_name,
-        representation_ids=repre_ids,
-        fields={"id", "versionId"}
-    )
-    # Store representations by id and collect version ids
-    repre_entities_by_id = {}
-    version_ids = set()
-    for repre_entity in repre_entities:
-        # Use stringed representation id to match value in containers
-        repre_id = repre_entity["id"]
-        repre_entities_by_id[repre_id] = repre_entity
-        version_ids.add(repre_entity["versionId"])
 
-    version_entities = ayon_api.get_versions(
-        project_name,
-        version_ids=version_ids,
-        fields={"id", "version", "productId"},
-    )
-    # Store versions by id and collect product ids
-    version_entities_by_id = {}
-    product_ids = set()
-    for version_entity in version_entities:
-        version_entities_by_id[version_entity["id"]] = version_entity
-        product_ids.add(version_entity["productId"])
+    category_colors = {
+        "latest": "0x4ecd25ff",
+        "outdated": "0xd84f20ff",
+        "invalid": "0xff0000ff",
+        "not_found": "0xffff00ff",
+    }
 
-    # Query last versions based on product ids
-    last_versions_by_product_id = ayon_api.get_last_versions(
-        project_name, product_ids=product_ids, fields={"id", "productId"}
-    )
-
-    # Loop through collected container nodes and their representation ids
-    for item in node_with_repre_id:
-        # Some python versions of nuke can't unfold tuple in for loop
-        node, repre_id = item
-        repre_entity = repre_entities_by_id.get(repre_id)
-        # Failsafe for not finding the representation.
-        if not repre_entity:
-            log.warning((
-                "Could not find the representation on node \"{}\""
-            ).format(node.name()))
-            continue
-
-        version_id = repre_entity["versionId"]
-        version_entity = version_entities_by_id.get(version_id)
-        if not version_entity:
-            log.warning((
-                "Could not find the version on node \"{}\""
-            ).format(node.name()))
-            continue
-
-        # Get last version based on product id
-        product_id = version_entity["productId"]
-        last_version = last_versions_by_product_id[product_id]
-        # Check if last version is same as current version
-        if last_version["id"] == version_entity["id"]:
-            color_value = "0x4ecd25ff"
-        else:
-            color_value = "0xd84f20ff"
-        node["tile_color"].setValue(int(color_value, 16))
+    filtered_containers = filter_containers(containers, project_name)
+    for category, containers in filtered_containers._asdict().items():
+        container_color = category_colors.get(category) or category_colors["not_found"]
+        for container in containers:
+            container["node"]["tile_color"].setValue(
+                int(container_color, 16)
+            )
 
 
 def writes_version_sync():
