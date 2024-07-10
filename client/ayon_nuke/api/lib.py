@@ -825,11 +825,12 @@ def check_inventory_versions():
 
     filtered_containers = filter_containers(containers, project_name)
     for category, containers in filtered_containers._asdict().items():
-        container_color = category_colors.get(category) or category_colors["not_found"]
+        if category not in category_colors:
+            continue
+        color = category_colors[category]
+        color = int(color, 16)  # convert hex to nuke tile color int
         for container in containers:
-            container["node"]["tile_color"].setValue(
-                int(container_color, 16)
-            )
+            container["node"]["tile_color"].setValue(color)
 
 
 def writes_version_sync():
