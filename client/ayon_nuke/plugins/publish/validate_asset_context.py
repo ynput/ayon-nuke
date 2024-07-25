@@ -3,7 +3,8 @@
 from __future__ import absolute_import
 
 import pyblish.api
-
+import nuke
+from ayon_core.lib import StringTemplate
 from ayon_core.pipeline.publish import (
     RepairAction,
     ValidateContentsOrder,
@@ -11,6 +12,7 @@ from ayon_core.pipeline.publish import (
     OptionalPyblishPluginMixin
 )
 from ayon_nuke.api import SelectInstanceNodeAction
+from ayon_nuke.api.lib import format_anatomy
 
 
 class ValidateCorrectAssetContext(
@@ -110,5 +112,29 @@ class ValidateCorrectAssetContext(
         )
         for _key in invalid_keys:
             created_instance[_key] = instance.context.data[_key]
-
         create_context.save_changes()
+        if instance.data["productType"] in {"prerender", "render", "image"}:
+            cls.reset_write_node_filepath(instance)
+
+    @classmethod
+    def reset_write_node_filepath(cls, instance):
+        instance_node = instance.data["transientData"]["node"]
+        write_node = nuke.allNodes(group=instance_node, filter="Write")[0]
+        data = dict({
+            "fpath_template": (
+            "{work}/renders/nuke/{subset}/{subset}.{frame}.{ext}"),
+            "ext": write_node["file_type"].value(),
+            "folderPath": instance.context.data["folderPath"],
+            "task": instance.context.data["task"],
+            "productName": instance.data["productName"],
+            "productType": instance.data["productType"]
+        })
+        anatomy_filled = format_anatomy(data)
+
+        # build file path to workfiles
+        fdir = str(
+            anatomy_filled["work"]["default"]["directory"]
+        ).replace("\\", "/")
+        data["work"] = fdir
+        fpath = StringTemplate(data["fpath_template"]).format_strict(data)
+        write_node["file"].setValue(fpath)

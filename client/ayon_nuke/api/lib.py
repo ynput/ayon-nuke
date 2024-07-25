@@ -993,6 +993,7 @@ def format_anatomy(data):
         },
         "frame": "#" * frame_padding,
     })
+    print("data", data)
     return anatomy.format(data)
 
 
