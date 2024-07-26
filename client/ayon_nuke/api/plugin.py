@@ -40,6 +40,7 @@ from .lib import (
     get_node_data,
     get_view_process_node,
     get_filenames_without_hash,
+    reset_write_node_filepath,
     link_knobs
 )
 from .pipeline import (
@@ -308,6 +309,39 @@ class NukeWriteCreator(NukeCreator):
             self.selected_node = selected_nodes[0]
         else:
             self.selected_node = None
+
+    def update_instances(self, update_list):
+        for created_inst, changes in update_list:
+            instance_node = created_inst.transient_data["node"]
+
+            # update instance node name if product name changed
+            if "productName" in changes.changed_keys:
+                changed_data = {
+                    "productName": changes["productName"].new_value or (
+                        created_inst["productName"]),
+                    "folderPath": changes["folderPath"].new_value or (
+                        created_inst["folderPath"]
+                    ),
+                    "task": changes["task"].new_value or (
+                        created_inst["task"]
+                    ),
+                    "productType": changes["productType"].new_value or (
+                        created_inst["productType"]
+                    )
+                }
+                reset_write_node_filepath(instance_node, changed_data)
+            # in case node is not existing anymore (user erased it manually)
+            try:
+                instance_node.fullName()
+            except ValueError:
+                self.remove_instances([created_inst])
+                continue
+
+            set_node_data(
+                instance_node,
+                INSTANCE_DATA_KNOB,
+                created_inst.data_to_store()
+            )
 
     def get_pre_create_attr_defs(self):
         attr_defs = [

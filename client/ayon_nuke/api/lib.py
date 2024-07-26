@@ -2,6 +2,7 @@ import os
 import re
 import json
 import six
+import copy
 import functools
 import warnings
 import platform
@@ -2971,3 +2972,30 @@ def link_knobs(knobs, node, group_node):
             "Write node exposed knobs missing:\n\n{}\n\nPlease review"
             " project settings.".format("\n".join(missing_knobs))
         )
+
+
+def reset_write_node_filepath(instance_node, data):
+    """Reset filepath in the write node when switching folderPath and task
+
+    Args:
+        instance_node (nuke.Nodes): instance node
+        data (dict): instance data
+    """
+    formatting_data = copy.deepcopy(data)
+    write_node = nuke.allNodes(group=instance_node, filter="Write")[0]
+    formatting_data.update({
+        "fpath_template": (
+        "{work}/renders/nuke/{subset}/{subset}.{frame}.{ext}"),
+        "ext": write_node["file_type"].value()
+    })
+    anatomy_filled = format_anatomy(formatting_data)
+
+    # build file path to workfiles
+    fdir = str(
+        anatomy_filled["work"]["default"]["directory"]
+    ).replace("\\", "/")
+    formatting_data["work"] = fdir
+    fpath = StringTemplate(formatting_data["fpath_template"]).format_strict(
+        formatting_data)
+    write_node["file"].setValue(fpath)
+    instance_node["name"].setValue(formatting_data["productName"])
