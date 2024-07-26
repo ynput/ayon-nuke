@@ -113,15 +113,12 @@ class ValidateCorrectAssetContext(
             created_instance[_key] = instance.context.data[_key]
 
         if instance.data["productType"] in {"prerender", "render", "image"}:
-            updated_created_instance = create_context.get_instance_by_id(
-                instance_id
-            )
             instance_node = instance.data["transientData"]["node"]
             data = dict({
-                "folderPath": updated_created_instance["folderPath"],
-                "task": updated_created_instance["task"],
-                "productName": updated_created_instance["productName"],
-                "productType": updated_created_instance["productType"]
+                "folderPath": created_instance["folderPath"],
+                "task": created_instance["task"],
+                "productName": created_instance["productName"],
+                "productType": created_instance["productType"]
             })
 
             reset_write_node_filepath(instance_node, data)
