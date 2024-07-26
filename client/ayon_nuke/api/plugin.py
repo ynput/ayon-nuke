@@ -1248,6 +1248,13 @@ def exposed_write_knobs(settings, plugin_name, instance_node):
 
 
 def update_write_node_filepath(created_inst, changes):
+    """Update instance node on context changes.
+    
+    Whenever any of productName, folderPath, task or productType
+    changes then update:
+    - output filepath of the write node
+    - instance node's name to the product name
+    """
     keys = ("productName", "folderPath", "task", "productType")
     if not any(key in changes.changed_keys for key in keys):
         # No relevant changes, no need to update
