@@ -315,9 +315,7 @@ class NukeWriteCreator(NukeCreator):
         for created_inst, changes in update_list:
             instance_node = created_inst.transient_data["node"]
 
-            # update instance node name if product name changed
-            if "folderPath" or "task" in changes.changed_keys:
-                update_write_node_filepath(created_inst, changes)
+            update_write_node_filepath(created_inst, changes)
             # in case node is not existing anymore (user erased it manually)
             try:
                 instance_node.fullName()
