@@ -315,13 +315,19 @@ class NukeWriteCreator(NukeCreator):
         for created_inst, changes in update_list:
             instance_node = created_inst.transient_data["node"]
 
-            update_write_node_filepath(created_inst, changes)
+            # update instance node name if product name changed
+            if "productName" in changes.changed_keys:
+                instance_node["name"].setValue(
+                    changes["productName"].new_value
+                )
             # in case node is not existing anymore (user erased it manually)
             try:
                 instance_node.fullName()
             except ValueError:
                 self.remove_instances([created_inst])
                 continue
+
+            update_write_node_filepath(created_inst, changes)
 
             set_node_data(
                 instance_node,
@@ -1249,7 +1255,7 @@ def exposed_write_knobs(settings, plugin_name, instance_node):
 
 def update_write_node_filepath(created_inst, changes):
     """Update instance node on context changes.
-    
+
     Whenever any of productName, folderPath, task or productType
     changes then update:
     - output filepath of the write node
@@ -1279,4 +1285,3 @@ def update_write_node_filepath(created_inst, changes):
     fpath = StringTemplate(formatting_data["fpath_template"]).format_strict(
         formatting_data)
     write_node["file"].setValue(fpath)
-    instance_node["name"].setValue(formatting_data["productName"])
