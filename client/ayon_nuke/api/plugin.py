@@ -224,7 +224,9 @@ class NukeCreator(NewCreator):
 
             # update instance node name if product name changed
             if "productName" in changes.changed_keys:
-                update_write_node_filepath(created_inst, changes)
+                instance_node["name"].setValue(
+                    changes["productName"].new_value
+                )
             # in case node is not existing anymore (user erased it manually)
             try:
                 instance_node.fullName()
@@ -312,8 +314,9 @@ class NukeWriteCreator(NukeCreator):
         for created_inst, changes in update_list:
             instance_node = created_inst.transient_data["node"]
 
-            # update instance node data if context data has changed values
-            update_write_node_filepath(created_inst, changes)
+            # update instance node name if product name changed
+            if "productName" in changes.changed_keys:
+                update_write_node_filepath(created_inst, changes)
             # in case node is not existing anymore (user erased it manually)
             try:
                 instance_node.fullName()
