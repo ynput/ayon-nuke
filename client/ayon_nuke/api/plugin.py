@@ -315,17 +315,17 @@ class NukeWriteCreator(NukeCreator):
         for created_inst, changes in update_list:
             instance_node = created_inst.transient_data["node"]
 
-            # update instance node name if product name changed
-            if "productName" in changes.changed_keys:
-                instance_node["name"].setValue(
-                    changes["productName"].new_value
-                )
             # in case node is not existing anymore (user erased it manually)
             try:
                 instance_node.fullName()
             except ValueError:
                 self.remove_instances([created_inst])
                 continue
+            # update instance node name if product name changed
+            if "productName" in changes.changed_keys:
+                instance_node["name"].setValue(
+                    changes["productName"].new_value
+                )
 
             update_write_node_filepath(created_inst, changes)
 
