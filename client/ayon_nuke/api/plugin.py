@@ -3,6 +3,7 @@ import re
 import os
 import sys
 import six
+import copy
 import random
 import string
 from collections import defaultdict
@@ -40,13 +41,13 @@ from .lib import (
     get_node_data,
     get_view_process_node,
     get_filenames_without_hash,
-    reset_write_node_filepath,
     link_knobs
 )
 from .pipeline import (
     list_instances,
     remove_instance
 )
+from ayon_nuke.api.lib import format_anatomy
 
 
 def _collect_and_cache_nodes(creator):
@@ -223,10 +224,7 @@ class NukeCreator(NewCreator):
 
             # update instance node name if product name changed
             if "productName" in changes.changed_keys:
-                instance_node["name"].setValue(
-                    changes["productName"].new_value
-                )
-
+                update_write_node_filepath(created_inst, changes)
             # in case node is not existing anymore (user erased it manually)
             try:
                 instance_node.fullName()
@@ -314,22 +312,8 @@ class NukeWriteCreator(NukeCreator):
         for created_inst, changes in update_list:
             instance_node = created_inst.transient_data["node"]
 
-            # update instance node name if product name changed
-            if "productName" in changes.changed_keys:
-                changed_data = {
-                    "productName": changes["productName"].new_value or (
-                        created_inst["productName"]),
-                    "folderPath": changes["folderPath"].new_value or (
-                        created_inst["folderPath"]
-                    ),
-                    "task": changes["task"].new_value or (
-                        created_inst["task"]
-                    ),
-                    "productType": changes["productType"].new_value or (
-                        created_inst["productType"]
-                    )
-                }
-                reset_write_node_filepath(instance_node, changed_data)
+            # update instance node data if context data has changed values
+            update_write_node_filepath(created_inst, changes)
             # in case node is not existing anymore (user erased it manually)
             try:
                 instance_node.fullName()
@@ -1259,3 +1243,31 @@ def exposed_write_knobs(settings, plugin_name, instance_node):
         instance_node.addKnob(nuke.Text_Knob('', 'Write Knobs'))
     write_node = nuke.allNodes(group=instance_node, filter="Write")[0]
     link_knobs(exposed_knobs, write_node, instance_node)
+
+
+def update_write_node_filepath(created_inst, changes):
+    keys = ("productName", "folderPath", "task", "productType")
+    if not any(key in changes.changed_keys for key in keys):
+        # No relevant changes, no need to update
+        return
+    data = created_inst.data_to_store()
+    # Update values with new formatted path
+    instance_node = created_inst.transient_data["node"]
+    formatting_data = copy.deepcopy(data)
+    write_node = nuke.allNodes(group=instance_node, filter="Write")[0]
+    formatting_data.update({
+        "fpath_template": (
+        "{work}/renders/nuke/{subset}/{subset}.{frame}.{ext}"),
+        "ext": write_node["file_type"].value()
+    })
+    anatomy_filled = format_anatomy(formatting_data)
+
+    # build file path to workfiles
+    fdir = str(
+        anatomy_filled["work"]["default"]["directory"]
+    ).replace("\\", "/")
+    formatting_data["work"] = fdir
+    fpath = StringTemplate(formatting_data["fpath_template"]).format_strict(
+        formatting_data)
+    write_node["file"].setValue(fpath)
+    instance_node["name"].setValue(formatting_data["productName"])

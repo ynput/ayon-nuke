@@ -11,7 +11,6 @@ from ayon_core.pipeline.publish import (
     OptionalPyblishPluginMixin
 )
 from ayon_nuke.api import SelectInstanceNodeAction
-from ayon_nuke.api.lib import reset_write_node_filepath
 
 
 class ValidateCorrectAssetContext(
@@ -111,16 +110,5 @@ class ValidateCorrectAssetContext(
         )
         for _key in invalid_keys:
             created_instance[_key] = instance.context.data[_key]
-
-        if instance.data["productType"] in {"prerender", "render", "image"}:
-            instance_node = instance.data["transientData"]["node"]
-            data = dict({
-                "folderPath": created_instance["folderPath"],
-                "task": created_instance["task"],
-                "productName": created_instance["productName"],
-                "productType": created_instance["productType"]
-            })
-
-            reset_write_node_filepath(instance_node, data)
 
         create_context.save_changes()
