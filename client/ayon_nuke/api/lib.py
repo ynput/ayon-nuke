@@ -50,7 +50,10 @@ from ayon_core.pipeline.colorspace import (
 )
 from ayon_core.pipeline.workfile import BuildWorkfile
 from . import gizmo_menu
-from .constants import ASSIST
+from .constants import (
+    ASSIST,
+    LOADER_CATEGORY_COLORS,
+)
 
 from .workio import save_file
 from .utils import get_node_outputs
@@ -813,18 +816,11 @@ def check_inventory_versions():
     containers = host.get_containers()
     project_name = get_current_project_name()
 
-    category_colors = {
-        "latest": "0x4ecd25ff",
-        "outdated": "0xd84f20ff",
-        "invalid": "0xff0000ff",
-        "not_found": "0xffff00ff",
-    }
-
     filtered_containers = filter_containers(containers, project_name)
     for category, containers in filtered_containers._asdict().items():
-        if category not in category_colors:
+        if category not in LOADER_CATEGORY_COLORS:
             continue
-        color = category_colors[category]
+        color = LOADER_CATEGORY_COLORS[category]
         color = int(color, 16)  # convert hex to nuke tile color int
         for container in containers:
             container["node"]["tile_color"].setValue(color)
