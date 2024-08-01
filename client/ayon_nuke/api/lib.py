@@ -48,7 +48,7 @@ from ayon_core.pipeline.colorspace import (
 )
 from ayon_core.pipeline.workfile import BuildWorkfile
 from . import gizmo_menu
-from .constants import ASSIST
+from .constants import ASSIST, COLOR_VALUE_SEPARATOR
 
 from .workio import save_file
 from .utils import get_node_outputs
@@ -1452,6 +1452,8 @@ class WorkfileSettings(object):
 
     """
 
+    _display_and_view_colorspaces = None
+
     def __init__(self, root_node=None, nodes=None, **kwargs):
         project_entity = kwargs.get("project")
         if project_entity is None:
@@ -1545,7 +1547,12 @@ class WorkfileSettings(object):
                 "It had wrong color profile".format(erased_viewers))
 
     def _display_and_view_formatted(self, view_profile):
-        """ Format display and view profile string
+        """ Format display and view profile.
+
+        Gets all possible display and view colorspaces and tries to set
+        viewerProcess to the one that is found in settings. It is iterating
+        over all possible combinations of display and view colorspaces. Those
+        could be separated by color value separator defined in constants.
 
         Args:
             view_profile (dict): view and display profile
@@ -1553,11 +1560,53 @@ class WorkfileSettings(object):
         Returns:
             str: formatted display and view profile string
         """
-        display_view = create_viewer_profile_string(
-            view_profile["view"], view_profile["display"], path_like=False
-        )
-        # format any template tokens used in the string
-        return StringTemplate(display_view).format_strict(self.formatting_data)
+        # default values
+        views = [view_profile["view"]]
+        displays = [view_profile["display"]]
+
+        # separate all values by path separator
+        if COLOR_VALUE_SEPARATOR in view_profile["view"]:
+            views = view_profile["view"].split(
+                COLOR_VALUE_SEPARATOR)
+        if COLOR_VALUE_SEPARATOR in view_profile["display"]:
+            displays = view_profile["display"].split(
+                COLOR_VALUE_SEPARATOR)
+
+        # generate all possible combination of display/view
+        display_views = []
+        for view in views:
+            for display in displays:
+                display_views.append(
+                    create_viewer_profile_string(
+                        view.strip(), display.strip(), path_like=False
+                    )
+                )
+
+        for dv_item in display_views:
+            log.debug("Trying to set viewerProcess: `{}`".format(dv_item))
+            # format any template tokens used in the string
+            dv_item_resolved = StringTemplate(dv_item).format_strict(
+                self.formatting_data
+            )
+            log.info("Resolved viewerProcess: `{}`".format(dv_item_resolved))
+
+            if dv_item_resolved in self.get_display_and_view_colorspaces():
+                return dv_item_resolved
+
+    def get_display_and_view_colorspaces(self):
+        """ Get all possible display and view colorspaces
+
+        This is stored in class variable to avoid multiple calls.
+
+        Returns:
+            list: all possible display and view colorspaces
+        """
+        if not self._display_and_view_colorspaces:
+            colorspace_knob = self._root_node["monitorLut"]
+            colorspaces = nuke.getColorspaceList(colorspace_knob)
+            self._display_and_view_colorspaces = colorspaces
+
+        return self._display_and_view_colorspaces
 
     def set_root_colorspace(self, imageio_host):
         ''' Adds correct colorspace to root
