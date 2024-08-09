@@ -174,18 +174,14 @@ def get_formatted_display_and_view(
     if not root_node:
         root_node = nuke.root()
 
-    views = [view_profile["view"]]
-    displays = []
+    views = view_profile["view"].split(COLOR_VALUE_SEPARATOR)
+    displays = view_profile["display"].split(COLOR_VALUE_SEPARATOR)
 
     # display could be optional in case nuke_default ocio config is used
     if view_profile["display"]:
-        displays.append(view_profile["display"])
-
-    # separate all values by path separator
-    if COLOR_VALUE_SEPARATOR in view_profile["view"]:
-        views = view_profile["view"].split(COLOR_VALUE_SEPARATOR)
-    if COLOR_VALUE_SEPARATOR in view_profile["display"]:
         displays = view_profile["display"].split(COLOR_VALUE_SEPARATOR)
+    else:
+        displays = []
 
     # generate all possible combination of display/view
     display_views = []
@@ -257,18 +253,14 @@ def get_formatted_display_and_view_as_dict(
     if not root_node:
         root_node = nuke.root()
 
-    views = [view_profile["view"]]
-    displays = []
+    views = view_profile["view"].split(COLOR_VALUE_SEPARATOR)
+    displays = view_profile["display"].split(COLOR_VALUE_SEPARATOR)
 
     # display could be optional in case nuke_default ocio config is used
     if view_profile["display"]:
-        displays.append(view_profile["display"])
-
-    # separate all values by path separator
-    if COLOR_VALUE_SEPARATOR in view_profile["view"]:
-        views = view_profile["view"].split(COLOR_VALUE_SEPARATOR)
-    if COLOR_VALUE_SEPARATOR in view_profile["display"]:
         displays = view_profile["display"].split(COLOR_VALUE_SEPARATOR)
+    else:
+        displays = []
 
     # generate all possible combination of display/view
     display_views = []
@@ -345,11 +337,7 @@ def get_formatted_colorspace(
     if not root_node:
         root_node = nuke.root()
 
-    colorspaces = [colorspace_name]
-
-    # separate all values by path separator
-    if COLOR_VALUE_SEPARATOR in colorspace_name:
-        colorspaces = colorspace_name.split(COLOR_VALUE_SEPARATOR)
+    colorspaces = colorspace_name.split(COLOR_VALUE_SEPARATOR)
 
     # iterate via all found colorspaces
     for citem in colorspaces:
