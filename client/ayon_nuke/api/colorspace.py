@@ -2,7 +2,6 @@
 Nuke Colorspace related methods
 """
 
-from logging import root
 import re
 
 from ayon_core.lib import (
