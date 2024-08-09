@@ -45,7 +45,7 @@ from .lib import (
     create_write_node,
     link_knobs
 )
-from .utils import (
+from .colorspace import (
     colorspace_exists_on_node,
     get_colorspace_list
 )
