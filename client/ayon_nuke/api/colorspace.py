@@ -21,7 +21,7 @@ DISPLAY_AND_VIEW_COLORSPACES_CACHE = {}
 COLORSPACES_CACHE = {}
 
 
-def get_display_and_view_colorspaces(root_node: nuke.Node) -> list:
+def get_display_and_view_colorspaces(root_node):
     """Get all possible display and view colorspaces
 
     This is stored in class variable to avoid multiple calls.
@@ -43,10 +43,7 @@ def get_display_and_view_colorspaces(root_node: nuke.Node) -> list:
     return DISPLAY_AND_VIEW_COLORSPACES_CACHE[script_name]
 
 
-def get_colorspace_list(
-    colorspace_knob: nuke.Knob,
-    node: nuke.Node = None,
-) -> list:
+def get_colorspace_list(colorspace_knob, node=None):
     """Get available colorspace profile names
 
     Args:
@@ -84,7 +81,7 @@ def get_colorspace_list(
     return COLORSPACES_CACHE[identifier_key]
 
 
-def colorspace_exists_on_node(node: nuke.Node, colorspace_name: str) -> bool:
+def colorspace_exists_on_node(node, colorspace_name):
     """ Check if colorspace exists on node
 
     Look through all options in the colorspace knob, and see if we have an
@@ -110,7 +107,7 @@ def colorspace_exists_on_node(node: nuke.Node, colorspace_name: str) -> bool:
     return colorspace_name in get_colorspace_list(colorspace_knob, node)
 
 
-def create_viewer_profile_string(viewer, display=None, path_like=False) -> str:
+def create_viewer_profile_string(viewer, display=None, path_like=False):
     """Convert viewer and display to string
 
     Args:
@@ -130,10 +127,7 @@ def create_viewer_profile_string(viewer, display=None, path_like=False) -> str:
 
 
 def get_formatted_display_and_view(
-    view_profile: dict,
-    formatting_data: dict,
-    root_node: nuke.Node = None,
-) -> str:
+        view_profile, formatting_data, root_node=None):
     """Format display and view profile into string.
 
     This method is formatting a display and view profile. It is iterating
@@ -209,10 +203,7 @@ def get_formatted_display_and_view(
 
 
 def get_formatted_display_and_view_as_dict(
-    view_profile: dict,
-    formatting_data: dict,
-    root_node: nuke.Node = None,
-) -> dict:
+        view_profile, formatting_data, root_node=None):
     """Format display and view profile into dict.
 
     This method is formatting a display and view profile. It is iterating
@@ -296,10 +287,7 @@ def get_formatted_display_and_view_as_dict(
 
 
 def get_formatted_colorspace(
-    colorspace_name: str,
-    formatting_data: dict,
-    root_node: nuke.Node = None,
-) -> str:
+        colorspace_name, formatting_data, root_node=None):
     """Format colorspace profile name into string.
 
     This method is formatting colorspace profile name. It is iterating
