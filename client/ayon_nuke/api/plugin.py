@@ -47,7 +47,7 @@ from .pipeline import (
     list_instances,
     remove_instance
 )
-from ayon_nuke.api.lib import format_anatomy
+from ayon_nuke.api.lib import get_work_default_directory
 
 
 def _collect_and_cache_nodes(creator):
@@ -1275,13 +1275,9 @@ def update_write_node_filepath(created_inst, changes):
         "{work}/renders/nuke/{subset}/{subset}.{frame}.{ext}"),
         "ext": write_node["file_type"].value()
     })
-    anatomy_filled = format_anatomy(formatting_data)
 
     # build file path to workfiles
-    fdir = str(
-        anatomy_filled["work"]["default"]["directory"]
-    ).replace("\\", "/")
-    formatting_data["work"] = fdir
+    formatting_data["work"] = get_work_default_directory(formatting_data)
     fpath = StringTemplate(formatting_data["fpath_template"]).format_strict(
         formatting_data)
     write_node["file"].setValue(fpath)

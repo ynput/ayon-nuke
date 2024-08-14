@@ -887,7 +887,7 @@ def check_product_name_exists(nodes, product_name):
                 False)
 
 
-def format_anatomy(data):
+def get_work_default_directory(data):
     ''' Helping function for formatting of anatomy paths
 
     Arguments:
@@ -924,7 +924,10 @@ def format_anatomy(data):
         },
         "frame": "#" * frame_padding,
     })
-    return anatomy.format(data)
+
+    work_default_dir_template = anatomy.get_template_item("work", "default", "directory")
+    normalized_dir = work_default_dir_template.format_strict(data).normalized()
+    return str(normalized_dir).replace("\\", "/")
 
 
 def script_name():
@@ -1100,13 +1103,9 @@ def create_write_node(
         "imageio_writes": imageio_writes,
         "ext": ext
     })
-    anatomy_filled = format_anatomy(data)
 
     # build file path to workfiles
-    fdir = str(
-        anatomy_filled["work"]["default"]["directory"]
-    ).replace("\\", "/")
-    data["work"] = fdir
+    data["work"] = get_work_default_directory(data)
     fpath = StringTemplate(data["fpath_template"]).format_strict(data)
 
     # create directory
