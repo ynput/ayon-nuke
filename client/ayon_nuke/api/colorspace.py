@@ -16,8 +16,8 @@ import nuke
 log = Logger.get_logger(__name__)
 
 
-DISPLAY_AND_VIEW_COLORSPACES_CACHE = {}
-COLORSPACES_CACHE = {}
+_DISPLAY_AND_VIEW_COLORSPACES_CACHE = {}
+_COLORSPACES_CACHE = {}
 
 
 def get_display_and_view_colorspaces(root_node):
@@ -31,15 +31,13 @@ def get_display_and_view_colorspaces(root_node):
     Returns:
         list: all possible display and view colorspaces
     """
-    global DISPLAY_AND_VIEW_COLORSPACES_CACHE
-
     script_name = nuke.root().name()
-    if not DISPLAY_AND_VIEW_COLORSPACES_CACHE.get(script_name):
+    if _DISPLAY_AND_VIEW_COLORSPACES_CACHE.get(script_name) is None:
         colorspace_knob = root_node["monitorLut"]
         colorspaces = nuke.getColorspaceList(colorspace_knob)
-        DISPLAY_AND_VIEW_COLORSPACES_CACHE[script_name] = colorspaces
+        _DISPLAY_AND_VIEW_COLORSPACES_CACHE[script_name] = colorspaces
 
-    return DISPLAY_AND_VIEW_COLORSPACES_CACHE[script_name]
+    return _DISPLAY_AND_VIEW_COLORSPACES_CACHE[script_name]
 
 
 def get_colorspace_list(colorspace_knob, node=None):
@@ -61,7 +59,7 @@ def get_colorspace_list(colorspace_knob, node=None):
     node_name = node.fullName()
     identifier_key = f"{script_name}_{node_name}"
 
-    if not COLORSPACES_CACHE.get(identifier_key):
+    if _COLORSPACES_CACHE.get(identifier_key) is None:
         # This pattern is to match with roles which uses an indentation and
         # parentheses with original colorspace. The value returned from the
         # colorspace is the string before the indentation, so we'll need to
@@ -75,9 +73,9 @@ def get_colorspace_list(colorspace_knob, node=None):
             else:
                 results.append(colorspace)
 
-        COLORSPACES_CACHE[identifier_key] = results
+        _COLORSPACES_CACHE[identifier_key] = results
 
-    return COLORSPACES_CACHE[identifier_key]
+    return _COLORSPACES_CACHE[identifier_key]
 
 
 def colorspace_exists_on_node(node, colorspace_name):
@@ -168,27 +166,26 @@ def get_formatted_display_and_view(
         root_node = nuke.root()
 
     views = view_profile["view"].split(COLOR_VALUE_SEPARATOR)
-    displays = view_profile["display"].split(COLOR_VALUE_SEPARATOR)
 
     # display could be optional in case nuke_default ocio config is used
+    displays = []
     if view_profile["display"]:
         displays = view_profile["display"].split(COLOR_VALUE_SEPARATOR)
-    else:
-        displays = []
 
     # generate all possible combination of display/view
     display_views = []
     for view in views:
-
-        if displays:
-            for display in displays:
-                display_views.append(
-                    create_viewer_profile_string(
-                        view.strip(), display.strip(), path_like=False
-                    )
-                )
-        else:
+        # display could be optional in case nuke_default ocio config is used
+        if not displays:
             display_views.append(view.strip())
+            continue
+
+        for display in displays:
+            display_views.append(
+                create_viewer_profile_string(
+                    view.strip(), display.strip(), path_like=False
+                )
+            )
 
     for dv_item in display_views:
         # format any template tokens used in the string
@@ -244,24 +241,23 @@ def get_formatted_display_and_view_as_dict(
         root_node = nuke.root()
 
     views = view_profile["view"].split(COLOR_VALUE_SEPARATOR)
-    displays = view_profile["display"].split(COLOR_VALUE_SEPARATOR)
 
     # display could be optional in case nuke_default ocio config is used
+    displays = []
     if view_profile["display"]:
         displays = view_profile["display"].split(COLOR_VALUE_SEPARATOR)
-    else:
-        displays = []
 
     # generate all possible combination of display/view
     display_views = []
     for view in views:
-
-        if displays:
-            for display in displays:
-                display_views.append(
-                    {"view": view.strip(), "display": display.strip()})
-        else:
+        # display could be optional in case nuke_default ocio config is used
+        if not displays:
             display_views.append({"view": view.strip(), "display": None})
+            continue
+
+        for display in displays:
+            display_views.append(
+                {"view": view.strip(), "display": display.strip()})
 
     for dv_item in display_views:
         # format any template tokens used in the string
