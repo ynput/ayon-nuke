@@ -1397,7 +1397,8 @@ class WorkfileSettings(object):
             project_name, self._folder_path
         )
         self._task_name = get_current_task_name()
-        self._context_label = "{} > {}".format(self._folder_path, task_name)
+        self._context_label = "{} > {}".format(self._folder_path,
+                                               self._task_name)
         self._task_entity = ayon_api.get_task_by_name(
             project_name,
             self._folder_entity["id"],
