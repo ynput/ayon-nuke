@@ -31,7 +31,12 @@ class ValidateScriptAttributes(
 
         script_data = deepcopy(instance.context.data["scriptData"])
 
-        src_folder_attributes = instance.data["folderEntity"]["attrib"]
+        # Task may be optional for an instance
+        task_entity = instance.data.get("taskEntity")
+        if task_entity:
+            src_attributes = task_entity["attrib"]
+        else:
+            src_attributes = instance.data["folderEntity"]["attrib"]
 
         # These attributes will be checked
         attributes = [
@@ -44,15 +49,15 @@ class ValidateScriptAttributes(
             "handleEnd"
         ]
 
-        # get only defined attributes from folder data
-        folder_attributes = {
-            attr: src_folder_attributes[attr]
+        # get only defined attributes from folder or task data
+        check_attributes = {
+            attr: src_attributes[attr]
             for attr in attributes
-            if attr in src_folder_attributes
+            if attr in src_attributes
         }
         # fix frame values to include handles
-        folder_attributes["fps"] = float("{0:.4f}".format(
-            folder_attributes["fps"]))
+        check_attributes["fps"] = float("{0:.4f}".format(
+            check_attributes["fps"]))
         script_data["fps"] = float("{0:.4f}".format(
             script_data["fps"]))
 
@@ -60,16 +65,16 @@ class ValidateScriptAttributes(
         not_matching = []
         for attr in attributes:
             self.log.debug(
-                "Folder vs Script attribute \"{}\": {}, {}".format(
+                "Task vs Script attribute \"{}\": {}, {}".format(
                     attr,
-                    folder_attributes[attr],
+                    check_attributes[attr],
                     script_data[attr]
                 )
             )
-            if folder_attributes[attr] != script_data[attr]:
+            if check_attributes[attr] != script_data[attr]:
                 not_matching.append({
                     "name": attr,
-                    "expected": folder_attributes[attr],
+                    "expected": check_attributes[attr],
                     "actual": script_data[attr]
                 })
 
