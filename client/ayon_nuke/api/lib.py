@@ -1393,9 +1393,15 @@ class WorkfileSettings(object):
         Context._project_entity = project_entity
         self._project_name = project_name
         self._folder_path = get_current_folder_path()
-        self._task_name = get_current_task_name()
         self._folder_entity = ayon_api.get_folder_by_path(
             project_name, self._folder_path
+        )
+        self._task_name = get_current_task_name()
+        self._context_label = "{} > {}".format(self._folder_path, task_name)
+        self._task_entity = ayon_api.get_task_by_name(
+            project_name,
+            self._folder_entity["id"],
+            self._task_name
         )
         self._root_node = root_node or nuke.root()
         self._nodes = self.get_nodes(nodes=nodes)
@@ -1907,39 +1913,39 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
     def reset_frame_range_handles(self):
         """Set frame range to current folder."""
 
-        if "attrib" not in self._folder_entity:
-            msg = "Folder {} don't have set any 'attrib'".format(
-                self._folder_path
+        if "attrib" not in self._task_entity:
+            msg = "Task {} doesn't have set any 'attrib'".format(
+                self._context_label
             )
             log.warning(msg)
             nuke.message(msg)
             return
 
-        folder_attributes = self._folder_entity["attrib"]
+        task_attributes = self._task_entity["attrib"]
 
         missing_cols = []
         check_cols = ["fps", "frameStart", "frameEnd",
                       "handleStart", "handleEnd"]
 
         for col in check_cols:
-            if col not in folder_attributes:
+            if col not in task_attributes:
                 missing_cols.append(col)
 
         if len(missing_cols) > 0:
             missing = ", ".join(missing_cols)
-            msg = "'{}' are not set for folder '{}'!".format(
-                missing, self._folder_path)
+            msg = "'{}' are not set for task '{}'!".format(
+                missing, self._context_label)
             log.warning(msg)
             nuke.message(msg)
             return
 
         # get handles values
-        handle_start = folder_attributes["handleStart"]
-        handle_end = folder_attributes["handleEnd"]
-        frame_start = folder_attributes["frameStart"]
-        frame_end = folder_attributes["frameEnd"]
+        handle_start = task_attributes["handleStart"]
+        handle_end = task_attributes["handleEnd"]
+        frame_start = task_attributes["frameStart"]
+        frame_end = task_attributes["frameEnd"]
 
-        fps = float(folder_attributes["fps"])
+        fps = float(task_attributes["fps"])
         frame_start_handle = frame_start - handle_start
         frame_end_handle = frame_end + handle_end
 
@@ -1979,12 +1985,12 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         """Set resolution to project resolution."""
         log.info("Resetting resolution")
         project_name = get_current_project_name()
-        folder_attributes = self._folder_entity["attrib"]
+        task_attributes = self._task_entity["attrib"]
 
         format_data = {
-            "width": folder_attributes["resolutionWidth"],
-            "height": folder_attributes["resolutionHeight"],
-            "pixel_aspect": folder_attributes["pixelAspect"],
+            "width": task_attributes["resolutionWidth"],
+            "height": task_attributes["resolutionHeight"],
+            "pixel_aspect": task_attributes["pixelAspect"],
             "name": project_name
         }
 
