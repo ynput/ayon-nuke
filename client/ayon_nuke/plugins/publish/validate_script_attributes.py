@@ -34,7 +34,7 @@ class ValidateScriptAttributes(
         # Task may be optional for an instance
         task_entity = instance.data.get("taskEntity")
         if task_entity:
-            src_attributes = task_entity["attributes"]
+            src_attributes = task_entity["attrib"]
         else:
             src_attributes = instance.data["folderEntity"]["attrib"]
 
