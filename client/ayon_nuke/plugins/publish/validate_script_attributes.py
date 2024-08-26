@@ -65,7 +65,7 @@ class ValidateScriptAttributes(
         not_matching = []
         for attr in attributes:
             self.log.debug(
-                "Folder vs Script attribute \"{}\": {}, {}".format(
+                "Task vs Script attribute \"{}\": {}, {}".format(
                     attr,
                     check_attributes[attr],
                     script_data[attr]
