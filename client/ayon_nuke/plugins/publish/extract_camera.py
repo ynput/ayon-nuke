@@ -47,7 +47,9 @@ class ExtractCamera(publish.Extractor):
             write_geo_knobs.append(("writeLights", False))            
 
         else:
-            raise ValueError("Invalid Camera export format: %s" % export_format)
+            raise ValueError(
+                "Invalid Camera export format: %s" % export_camera_settings
+            )
 
         return write_geo_knobs
 

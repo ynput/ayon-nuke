@@ -15,7 +15,7 @@ from .plugin import (
     NukeCreatorError,
     get_instance_group_node_childs,
     get_colorspace_from_node,
-    get_publish_config
+    get_publish_config,
 )
 from .pipeline import (
     NukeHost,
@@ -72,6 +72,7 @@ __all__ = (
     "NukeHost",
     "get_instance_group_node_childs",
     "get_colorspace_from_node",
+    "get_publish_config",
 
     "ls",
 
