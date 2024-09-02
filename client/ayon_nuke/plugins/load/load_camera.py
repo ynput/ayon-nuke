@@ -15,18 +15,17 @@ from ayon_nuke.api.lib import (
 )
 
 
-class AlembicCameraLoader(load.LoaderPlugin):
+class _NukeCameraLoader(load.LoaderPlugin):
     """
-    This will load alembic camera into script.
+    This will load a camera into script.
     """
 
     product_types = {"camera"}
     representations = {"*"}
-    extensions = {"abc"}
+    enabled = False
 
     settings_category = "nuke"
 
-    label = "Load Alembic Camera"
     icon = "camera"
     color = "orange"
     node_color = "0x3469ffff"
@@ -57,12 +56,21 @@ class AlembicCameraLoader(load.LoaderPlugin):
         file = self.filepath_from_context(context).replace("\\", "/")
 
         with maintained_selection():
-            camera_node = nuke.createNode(
-                "Camera2",
-                "name {} file {} read_from_file True".format(
-                    object_name, file),
-                inpanel=False
-            )
+
+            try:
+                camera_node = nuke.createNode(
+                    "Camera3",
+                    "name {} file {} read_from_file True".format(
+                        object_name, file),
+                    inpanel=False
+                )
+            except RuntimeError: # older nuke version
+                camera_node = nuke.createNode(
+                    "Camera2",
+                    "name {} file {} read_from_file True".format(
+                        object_name, file),
+                    inpanel=False
+                )                
 
             camera_node.forceValidate()
             camera_node["frame_rate"].setValue(float(fps))
@@ -196,3 +204,52 @@ class AlembicCameraLoader(load.LoaderPlugin):
         node = container["node"]
         with viewer_update_and_undo_stop():
             nuke.delete(node)
+
+
+class AlembicCameraLoader(_NukeCameraLoader):
+    """
+    This will load alembic camera into script.
+    """
+    extensions = {"abc"}
+    label = "Load Alembic Camera"
+    enabled = True
+
+
+class FbxCameraLoader(_NukeCameraLoader):
+    """
+    This will load fbx camera into script.
+    """
+    extensions = {"fbx"}
+    label = "Load FBX Camera"
+    enabled = True
+
+    def load(self, context, name, namespace, data):
+        fbx_camera_node = super().load(context, name, namespace,data)
+
+        # Nuke forces 7 standard FBX cameras
+        # Producer Perspective, Producer Top, Producer Bottom...
+        # https://learn.foundry.com/nuke/11.1/content/comp_environment
+        # /3d_compositing/importing_fbx_cameras.html
+        # The following ensure the camera node is set to exported camera data.
+        fbx_camera_node.forceValidate() 
+
+        try:
+            knob = fbx_camera_node["fbx_take_name"]
+            knob.setValue(0)
+
+        except NameError:
+            # WARNING - Nuke 15: Camera3 validate does not play along
+            # very well when mixing abc + fbx nodes in the same script.
+            # They need to reloaded manually.
+            #
+            # Hopefully this will be fixed by upcoming Camera4            
+            raise RuntimeError(
+                "Could not load incoming FBX camera properly. "
+                "This could be caused by a mix of abc and fbx "
+                "into the script."
+            )
+
+        knob = fbx_camera_node["fbx_node_name"]
+        knob.setValue(knob.values()[-1])
+
+        return fbx_camera_node
