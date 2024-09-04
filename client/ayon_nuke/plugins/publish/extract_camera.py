@@ -26,7 +26,7 @@ class ExtractCamera(publish.Extractor):
             instance (dict): The current instance being published.
 
         Returns:
-            presets (list.): The camera export presets to use.
+            list: The camera export presets to use.
         """
         write_geo_knobs = [
             ("writeGeometries", False),
@@ -48,7 +48,7 @@ class ExtractCamera(publish.Extractor):
 
         else:
             raise ValueError(
-                "Invalid Camera export format: %s" % export_camera_settings
+                f"Invalid Camera export format: {export_camera_settings}"
             )
 
         return write_geo_knobs
