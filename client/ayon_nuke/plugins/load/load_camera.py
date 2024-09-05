@@ -15,14 +15,16 @@ from ayon_nuke.api.lib import (
 )
 
 
-class _NukeCameraLoader(load.LoaderPlugin):
+class AlembicCameraLoader(load.LoaderPlugin):
     """
     This will load a camera into script.
     """
 
     product_types = {"camera"}
     representations = {"*"}
-    enabled = False
+    extensions = {"abc"}
+    label = "Load Alembic Camera"
+    enabled = True
 
     settings_category = "nuke"
 
@@ -206,22 +208,12 @@ class _NukeCameraLoader(load.LoaderPlugin):
             nuke.delete(node)
 
 
-class AlembicCameraLoader(_NukeCameraLoader):
-    """
-    This will load alembic camera into script.
-    """
-    extensions = {"abc"}
-    label = "Load Alembic Camera"
-    enabled = True
-
-
-class FbxCameraLoader(_NukeCameraLoader):
+class FbxCameraLoader(AlembicCameraLoader):
     """
     This will load fbx camera into script.
     """
     extensions = {"fbx"}
     label = "Load FBX Camera"
-    enabled = True
 
     def load(self, context, name, namespace, data):
         fbx_camera_node = super().load(context, name, namespace,data)
