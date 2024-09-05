@@ -7,6 +7,7 @@ import pyblish.api
 
 from ayon_core.pipeline import publish
 from ayon_nuke.api.lib import maintained_selection
+from ayon_nuke.api.plugin import get_publish_config
 
 
 class ExtractCamera(publish.Extractor):
@@ -19,14 +20,39 @@ class ExtractCamera(publish.Extractor):
 
     settings_category = "nuke"
 
-    # presets
-    write_geo_knobs = [
-        ("file_type", "abc"),
-        ("storageFormat", "Ogawa"),
-        ("writeGeometries", False),
-        ("writePointClouds", False),
-        ("writeAxes", False)
-    ]
+    def _get_camera_export_presets(self, instance):
+        """
+        Args:
+            instance (dict): The current instance being published.
+
+        Returns:
+            list: The camera export presets to use.
+        """
+        write_geo_knobs = [
+            ("writeGeometries", False),
+            ("writePointClouds", False),
+            ("writeAxes", False)
+        ]
+
+        publish_settings = get_publish_config()
+        extract_camera_settings = publish_settings.get("ExtractCameraFormat", {})
+        export_camera_settings = extract_camera_settings.get("export_camera_format", "abc")
+
+        if export_camera_settings == "abc":
+            write_geo_knobs.insert(0, ("file_type", "abc"))
+            write_geo_knobs.append((("storageFormat", "Ogawa")))
+
+        elif export_camera_settings == "fbx":
+            write_geo_knobs.insert(0, ("file_type", "fbx"))            
+            write_geo_knobs.append(("writeLights", False))            
+
+        else:
+            raise ValueError(
+                f"Invalid Camera export format: {export_camera_settings}"
+            )
+
+        return write_geo_knobs
+
 
     def process(self, instance):
         camera_node = instance.data["transientData"]["node"]
@@ -43,7 +69,8 @@ class ExtractCamera(publish.Extractor):
         staging_dir = self.staging_dir(instance)
 
         # get extension form preset
-        extension = next((k[1] for k in self.write_geo_knobs
+        export_presets = self._get_camera_export_presets(instance)
+        extension = next((k[1] for k in export_presets
                           if k[0] == "file_type"), None)
         if not extension:
             raise RuntimeError(
@@ -68,7 +95,7 @@ class ExtractCamera(publish.Extractor):
             wg_n = nuke.createNode("WriteGeo")
             wg_n["file"].setValue(file_path)
             # add path to write to
-            for k, v in self.write_geo_knobs:
+            for k, v in export_presets:
                 wg_n[k].setValue(v)
             rm_nodes.append(wg_n)
 

@@ -487,6 +487,11 @@ def get_review_presets_config():
     return [str(name) for name, _prop in outputs.items()]
 
 
+def get_publish_config():
+    settings = get_current_project_settings()
+    return settings["nuke"].get("publish", {})
+
+
 class NukeLoader(LoaderPlugin):
     container_id_knob = "containerId"
     container_id = None

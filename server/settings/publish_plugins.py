@@ -32,6 +32,14 @@ def nuke_product_types_enum():
     ] + nuke_render_publish_types_enum()
 
 
+def nuke_export_formats_enum():
+    """Return all nuke export format available in creators."""
+    return [
+        {"value": "abc", "label": "Alembic"},
+        {"value": "fbx", "label": "FBX"},    
+    ]
+
+
 class NodeModel(BaseSettingsModel):
     name: str = SettingsField(
         title="Node name"
@@ -186,6 +194,15 @@ class FVFXScopeOfWorkModel(BaseSettingsModel):
     template: str = SettingsField(title="Template")
 
 
+class ExtractCameraFormatModel(BaseSettingsModel):
+    export_camera_format: str = SettingsField(
+        enum_resolver=nuke_export_formats_enum,
+        conditionalEnum=True,
+        title="Camera export format",
+        description="Switch between different camera export formats",
+    )
+
+
 class ExctractSlateFrameParamModel(BaseSettingsModel):
     f_submission_note: FSubmissionNoteModel = SettingsField(
         title="f_submission_note",
@@ -259,6 +276,10 @@ class PublishPluginsModel(BaseSettingsModel):
             title="Extract Review Intermediates",
             default_factory=ExtractReviewIntermediatesModel
         )
+    )
+    ExtractCameraFormat: ExtractCameraFormatModel = SettingsField(
+        title="Extract Camera Format",
+        default_factory=ExtractCameraFormatModel        
     )
     ExtractSlateFrame: ExtractSlateFrameModel = SettingsField(
         title="Extract Slate Frame",
@@ -386,6 +407,9 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
                 "add_custom_tags": []
             }
         ]
+    },
+    "ExtractCameraFormat": {
+        "export_camera_format": "abc",
     },
     "ExtractSlateFrame": {
         "viewer_lut_raw": False,
