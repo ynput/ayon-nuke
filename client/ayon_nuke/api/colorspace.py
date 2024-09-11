@@ -259,26 +259,30 @@ def get_formatted_display_and_view_as_dict(
             display_views.append(
                 {"view": view.strip(), "display": display.strip()})
 
+    root_display_and_view = get_display_and_view_colorspaces(root_node)
     for dv_item in display_views:
         # format any template tokens used in the string
-        profile = {
-            "view": StringTemplate(dv_item["view"]).format_strict(
-                formatting_data),
-            "display": StringTemplate(dv_item["display"]).format_strict(
-                formatting_data) if dv_item["display"] else None,
-        }
-        log.debug("Resolved profile: `{}`".format(profile))
-
-        # making sure formatted colorspace exists in running session
-        # also need to test case where display is None
-        test_string = profile["view"]
-        if profile["display"]:
+        view = StringTemplate.format_strict_template(
+            dv_item["view"], formatting_data
+        )
+        test_string = view
+        display = dv_item["display"]
+        if display:
+            display = StringTemplate.format_strict_template(
+                display, formatting_data
+            )
             test_string = create_viewer_profile_string(
-                profile["view"], profile["display"], path_like=False
+                view, display, path_like=False
             )
 
-        if test_string in get_display_and_view_colorspaces(root_node):
-            return profile
+        log.debug(f"Resolved View: '{view}' Display: '{display}'")
+
+        # Make sure formatted colorspace exists in running session
+        if test_string in root_display_and_view:
+            return {
+                "view": view,
+                "display": display,
+            }
 
 
 def get_formatted_colorspace(
