@@ -41,6 +41,7 @@ from .lib import (
     get_node_data,
     get_view_process_node,
     get_filenames_without_hash,
+    get_work_default_directory,
     link_knobs,
     format_anatomy,
 )
@@ -489,6 +490,11 @@ def get_review_presets_config():
         outputs.update(profile.get("outputs", {}))
 
     return [str(name) for name, _prop in outputs.items()]
+
+
+def get_publish_config():
+    settings = get_current_project_settings()
+    return settings["nuke"].get("publish", {})
 
 
 class NukeLoader(LoaderPlugin):
@@ -1286,13 +1292,9 @@ def update_write_node_filepath(created_inst, changes):
         "{work}/renders/nuke/{subset}/{subset}.{frame}.{ext}"),
         "ext": write_node["file_type"].value()
     })
-    anatomy_filled = format_anatomy(formatting_data)
 
     # build file path to workfiles
-    fdir = str(
-        anatomy_filled["work"]["default"]["directory"]
-    ).replace("\\", "/")
-    formatting_data["work"] = fdir
+    formatting_data["work"] = get_work_default_directory(formatting_data)
     fpath = StringTemplate(formatting_data["fpath_template"]).format_strict(
         formatting_data)
     write_node["file"].setValue(fpath)
