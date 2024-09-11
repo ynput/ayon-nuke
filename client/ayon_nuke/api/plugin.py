@@ -43,7 +43,6 @@ from .lib import (
     get_filenames_without_hash,
     get_work_default_directory,
     link_knobs,
-    format_anatomy,
 )
 from .pipeline import (
     list_instances,
