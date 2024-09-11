@@ -265,6 +265,7 @@ def get_formatted_display_and_view_as_dict(
         view = StringTemplate.format_strict_template(
             dv_item["view"], formatting_data
         )
+        # for config without displays - nuke_default
         test_string = view
         display = dv_item["display"]
         if display:
@@ -277,7 +278,7 @@ def get_formatted_display_and_view_as_dict(
 
         log.debug(f"Resolved View: '{view}' Display: '{display}'")
 
-        # Make sure formatted colorspace exists in running session
+        # Make sure formatted colorspace exists in running ocio config session
         if test_string in root_display_and_view:
             return {
                 "view": view,
