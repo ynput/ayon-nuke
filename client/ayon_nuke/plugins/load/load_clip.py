@@ -422,6 +422,7 @@ class LoadClip(plugin.NukeLoader):
         ):
             self.log.info(f"Used colorspace: {used_colorspace}")
             read_node["colorspace"].setValue(used_colorspace)
+            read_node["raw"].setValue(False)
         else:
             self.log.info("Colorspace not set...")
 
