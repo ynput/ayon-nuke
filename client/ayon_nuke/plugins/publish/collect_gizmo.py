@@ -15,9 +15,12 @@ class CollectGizmo(pyblish.api.InstancePlugin):
 
     def process(self, instance):
 
+        # pass staging dir data
+        self._pass_staging_dir_data(instance)
+
         gizmo_node = instance.data["transientData"]["node"]
 
-        # add product type to familiess
+        # add product type to families
         instance.data["families"].insert(0, instance.data["productType"])
         # make label nicer
         instance.data["label"] = gizmo_node.name()
@@ -47,3 +50,13 @@ class CollectGizmo(pyblish.api.InstancePlugin):
             "frameEnd": last_frame
         })
         self.log.debug("Gizmo instance collected: `{}`".format(instance))
+
+    def _pass_staging_dir_data(self, instance):
+        staging_dir = instance.data["transientData"]["stagingDir"]
+        staging_dir_persistent = instance.data["transientData"].get(
+            "stagingDir_persistent", False
+        )
+        instance.data.update({
+            "stagingDir": staging_dir,
+            "stagingDir_persistent": staging_dir_persistent
+        })
