@@ -42,7 +42,8 @@ class CreateWriteRender(napi.NukeWriteCreator):
         ]
         return attr_defs
 
-    def create_instance_node(self, product_name, instance_data):
+    def create_instance_node(
+            self, product_name, instance_data, staging_dir=None):
         settings = self.project_settings["nuke"]["create"]["CreateWriteRender"]
 
         # add fpath_template
@@ -50,6 +51,7 @@ class CreateWriteRender(napi.NukeWriteCreator):
             "creator": self.__class__.__name__,
             "productName": product_name,
             "fpath_template": self.temp_rendering_path_template,
+            "staging_dir": staging_dir,
             "render_on_farm": (
                 "render_on_farm" in settings["instance_attributes"]
             )
@@ -99,17 +101,19 @@ class CreateWriteRender(napi.NukeWriteCreator):
         # make sure product name is unique
         self.check_existing_product(product_name)
 
-        instance_node = self.create_instance_node(
-            product_name,
-            instance_data
-        )
-
         try:
             instance = CreatedInstance(
                 self.product_type,
                 product_name,
                 instance_data,
                 self
+            )
+
+            staging_dir = self.apply_staging_dir(instance)
+            instance_node = self.create_instance_node(
+                product_name,
+                instance_data,
+                staging_dir
             )
 
             instance.transient_data["node"] = instance_node

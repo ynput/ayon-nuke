@@ -56,6 +56,8 @@ class CreateCamera(NukeCreator):
             pre_create_data
         )
 
+        self.apply_staging_dir(instance)
+
         return instance
 
     def set_selected_nodes(self, pre_create_data):
