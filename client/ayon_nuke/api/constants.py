@@ -8,3 +8,5 @@ LOADER_CATEGORY_COLORS = {
     "invalid": "0xff0000ff",
     "not_found": "0xffff00ff",
 }
+
+COLOR_VALUE_SEPARATOR = ";"

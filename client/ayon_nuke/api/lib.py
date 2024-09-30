@@ -58,6 +58,8 @@ from .constants import (
 from .workio import save_file
 from .utils import get_node_outputs
 
+from .colorspace import get_formatted_display_and_view
+
 log = Logger.get_logger(__name__)
 
 MENU_LABEL = os.getenv("AYON_MENU_LABEL") or "AYON"
@@ -749,6 +751,7 @@ def get_imageio_node_override_setting(
     return knobs_settings
 
 
+# TODO: move into ./colorspace.py
 def get_imageio_input_colorspace(filename):
     ''' Get input file colorspace based on regex in settings.
     '''
@@ -1427,6 +1430,7 @@ class WorkfileSettings(object):
             for filter in nodes_filter:
                 return [n for n in self._nodes if filter in n.Class()]
 
+    # TODO: move into ./colorspace.py
     def set_viewers_colorspace(self, imageio_nuke):
         ''' Adds correct colorspace to viewer
 
@@ -1439,11 +1443,11 @@ class WorkfileSettings(object):
             "wipe_position",
             "monitorOutOutputTransform"
         ]
-        viewer_process = self._display_and_view_formatted(
-            imageio_nuke["viewer"]
+        viewer_process = get_formatted_display_and_view(
+            imageio_nuke["viewer"], self.formatting_data, self._root_node
         )
-        output_transform = self._display_and_view_formatted(
-            imageio_nuke["monitor"]
+        output_transform = get_formatted_display_and_view(
+            imageio_nuke["monitor"], self.formatting_data, self._root_node
         )
         erased_viewers = []
         for v in nuke.allNodes(filter="Viewer"):
@@ -1481,21 +1485,7 @@ class WorkfileSettings(object):
                 "Attention! Viewer nodes {} were erased."
                 "It had wrong color profile".format(erased_viewers))
 
-    def _display_and_view_formatted(self, view_profile):
-        """ Format display and view profile string
-
-        Args:
-            view_profile (dict): view and display profile
-
-        Returns:
-            str: formatted display and view profile string
-        """
-        display_view = create_viewer_profile_string(
-            view_profile["view"], view_profile["display"], path_like=False
-        )
-        # format any template tokens used in the string
-        return StringTemplate(display_view).format_strict(self.formatting_data)
-
+    # TODO: move into ./colorspace.py
     def set_root_colorspace(self, imageio_host):
         ''' Adds correct colorspace to root
 
@@ -1755,6 +1745,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
 
         return new_path
 
+    # TODO: move into ./colorspace.py
     def set_writes_colorspace(self):
         ''' Adds correct colorspace to write node dict
 
@@ -1832,6 +1823,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             set_node_knobs_from_settings(
                 write_node, nuke_imageio_writes["knobs"])
 
+    # TODO: move into ./colorspace.py
     def set_reads_colorspace(self, read_clrs_inputs):
         """ Setting colorspace to Read nodes
 
@@ -1879,6 +1871,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                             nname,
                             knobs["to"]))
 
+    # TODO: move into ./colorspace.py
     def set_colorspace(self):
         ''' Setting colorspace following presets
         '''
