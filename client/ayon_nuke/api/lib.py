@@ -53,7 +53,6 @@ from . import gizmo_menu
 from .constants import (
     ASSIST,
     LOADER_CATEGORY_COLORS,
-    COLOR_VALUE_SEPARATOR,
 )
 
 from .workio import save_file
