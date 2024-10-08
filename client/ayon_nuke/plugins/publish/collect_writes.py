@@ -20,9 +20,29 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
     _write_nodes = {}
     _frame_ranges = {}
 
+    def _pass_staging_dir_data(self, instance):
+        staging_dir = instance.data["transientData"]["stagingDir"]
+        instance.data["stagingDir"] = staging_dir
+
+        staging_dir_persistent = instance.data["transientData"].get(
+            "stagingDir_persistent", False
+        )
+
+        if staging_dir_persistent is not None:
+            instance.data["stagingDir_persistent"] = staging_dir_persistent
+        else:
+            # compatibility. This is mainly focused on `renders`folders which
+            # were previously not cleaned up (and could be used in read notes)
+            # this logic should be removed and replaced with custom staging dir
+            instance.data["stagingDir_persistent"] = True
+
     def process(self, instance):
 
+        # pass staging dir data
+        self._pass_staging_dir_data(instance)
+
         group_node = instance.data["transientData"]["node"]
+
         render_target = instance.data["render_target"]
 
         write_node = self._write_node_helper(instance)
@@ -199,12 +219,6 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
                 "frameStartHandle": first_frame,
                 "frameEndHandle": last_frame,
             })
-
-        # TODO temporarily set stagingDir as persistent for backward
-        # compatibility. This is mainly focused on `renders`folders which
-        # were previously not cleaned up (and could be used in read notes)
-        # this logic should be removed and replaced with custom staging dir
-        instance.data["stagingDir_persistent"] = True
 
     def _write_node_helper(self, instance):
         """Helper function to get write node from instance.
