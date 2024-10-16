@@ -43,8 +43,8 @@ class ExtractCamera(publish.Extractor):
             write_geo_knobs.append((("storageFormat", "Ogawa")))
 
         elif export_camera_settings == "fbx":
-            write_geo_knobs.insert(0, ("file_type", "fbx"))            
-            write_geo_knobs.append(("writeLights", False))            
+            write_geo_knobs.insert(0, ("file_type", "fbx"))
+            write_geo_knobs.append(("writeLights", False))
 
         else:
             raise ValueError(
@@ -53,8 +53,11 @@ class ExtractCamera(publish.Extractor):
 
         return write_geo_knobs
 
-
     def process(self, instance):
+
+        # pass staging dir data
+        staging_dir = self._pass_staging_dir_data(instance)
+
         camera_node = instance.data["transientData"]["node"]
         handle_start = instance.context.data["handleStart"]
         handle_end = instance.context.data["handleEnd"]
@@ -66,7 +69,6 @@ class ExtractCamera(publish.Extractor):
         rm_nodes = []
         self.log.debug("Creating additional nodes for 3D Camera Extractor")
         product_name = instance.data["productName"]
-        staging_dir = self.staging_dir(instance)
 
         # get extension form preset
         export_presets = self._get_camera_export_presets(instance)
@@ -137,6 +139,18 @@ class ExtractCamera(publish.Extractor):
 
         self.log.debug("Extracted instance '{0}' to: {1}".format(
             instance.name, file_path))
+
+    def _pass_staging_dir_data(self, instance):
+        staging_dir = instance.data["transientData"]["stagingDir"]
+        staging_dir_persistent = instance.data["transientData"].get(
+            "stagingDir_persistent", False
+        )
+        instance.data.update({
+            "stagingDir": staging_dir,
+            "stagingDir_persistent": staging_dir_persistent
+        })
+
+        return staging_dir
 
 
 def bakeCameraWithAxeses(camera_node, output_range):
