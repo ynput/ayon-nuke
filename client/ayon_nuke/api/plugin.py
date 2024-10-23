@@ -628,6 +628,7 @@ class ExporterReview(object):
         add_tags = tags or []
         repre = {
             "name": self.name,
+            "outputName": self.name,
             "ext": self.ext,
             "files": self.file,
             "stagingDir": self.staging_dir,
@@ -636,7 +637,8 @@ class ExporterReview(object):
                 # making sure that once intermediate file is published
                 # as representation, we will be able to then identify it
                 # from representation.data.isIntermediate
-                "isIntermediate": True
+                "isIntermediate": True,
+                "isMultiIntermediates": self.multiple_presets
             },
         }
 
@@ -652,9 +654,6 @@ class ExporterReview(object):
             filenames = get_filenames_without_hash(
                 self.file, self.first_frame, self.last_frame)
             repre["files"] = filenames
-
-        if self.multiple_presets:
-            repre["outputName"] = self.name
 
         if self.publish_on_farm:
             repre["tags"].append("publish_on_farm")
