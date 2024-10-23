@@ -588,7 +588,6 @@ def read_avalon_data(node):
     if result:
         first_user_knob = result.group(2)
         # Collect user knobs from the end of the knob list
-        node_name = node['name'].value()
         for knob in reversed(node.allKnobs()):
             knob_name = knob.name()
             if not knob_name:
@@ -597,8 +596,9 @@ def read_avalon_data(node):
             try:
                 knob_type = nuke.knob(knob.fullyQualifiedName(), type=True)
                 value = knob.value()
-            except Exception as e:
-                log.debug(f"Error reading knob {knob_name} from node {node_name}")
+            except Exception:
+                log.debug(
+                    f"Error in knob {knob_name}, node {node['name'].value()}")
                 continue
             if (
                 knob_type not in EXCLUDED_KNOB_TYPE_ON_READ or
