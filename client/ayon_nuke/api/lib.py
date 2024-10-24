@@ -593,10 +593,13 @@ def read_avalon_data(node):
             if not knob_name:
                 # Ignore unnamed knob
                 continue
-
-            knob_type = nuke.knob(knob.fullyQualifiedName(), type=True)
-            value = knob.value()
-
+            try:
+                knob_type = nuke.knob(knob.fullyQualifiedName(), type=True)
+                value = knob.value()
+            except Exception:
+                log.debug(
+                    f"Error in knob {knob_name}, node {node['name'].value()}")
+                continue
             if (
                 knob_type not in EXCLUDED_KNOB_TYPE_ON_READ or
                 # For compating read-only string data that imprinted
@@ -815,18 +818,21 @@ def check_inventory_versions():
     This will group containers by their version to outdated, not found,
     invalid or latest and colorize the nodes based on the category.
     """
-    host = registered_host()
-    containers = host.get_containers()
-    project_name = get_current_project_name()
+    try:
+        host = registered_host()
+        containers = host.get_containers()
+        project_name = get_current_project_name()
 
-    filtered_containers = filter_containers(containers, project_name)
-    for category, containers in filtered_containers._asdict().items():
-        if category not in LOADER_CATEGORY_COLORS:
-            continue
-        color = LOADER_CATEGORY_COLORS[category]
-        color = int(color, 16)  # convert hex to nuke tile color int
-        for container in containers:
-            container["node"]["tile_color"].setValue(color)
+        filtered_containers = filter_containers(containers, project_name)
+        for category, containers in filtered_containers._asdict().items():
+            if category not in LOADER_CATEGORY_COLORS:
+                continue
+            color = LOADER_CATEGORY_COLORS[category]
+            color = int(color, 16)  # convert hex to nuke tile color int
+            for container in containers:
+                container["node"]["tile_color"].setValue(color)
+    except Exception as error:
+        log.warning(error)
 
 
 def writes_version_sync():
