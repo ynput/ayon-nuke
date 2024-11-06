@@ -2210,6 +2210,11 @@ def find_free_space_to_paste_nodes(
                      [n.ypos() + n.screenHeight() for n in nuke.allNodes()
                       if n not in nodes]
 
+        if len(group_xpos) == 0:
+            group_xpos = [0]
+        if len(group_ypos) == 0:
+            group_ypos = [0]
+
         # calc output left
         if direction in "left":
             xpos = min(group_xpos) - abs(nodes_screen_width) - abs(offset)
