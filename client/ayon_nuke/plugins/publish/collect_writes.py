@@ -20,26 +20,13 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
     _write_nodes = {}
     _frame_ranges = {}
 
-    def _pass_staging_dir_data(self, instance):
-        staging_dir = instance.data["transientData"]["stagingDir"]
-        instance.data["stagingDir"] = staging_dir
-
-        staging_dir_persistent = instance.data["transientData"].get(
-            "stagingDir_persistent", False
-        )
-
-        if staging_dir_persistent is not None:
-            instance.data["stagingDir_persistent"] = staging_dir_persistent
-        else:
-            # compatibility. This is mainly focused on `renders`folders which
-            # were previously not cleaned up (and could be used in read notes)
-            # this logic should be removed and replaced with custom staging dir
-            instance.data["stagingDir_persistent"] = True
-
     def process(self, instance):
 
-        # pass staging dir data
-        self._pass_staging_dir_data(instance)
+        # compatibility. This is mainly focused on `renders`folders which
+        # were previously not cleaned up (and could be used in read notes)
+        # this logic should be removed and replaced with custom staging dir
+        if instance.data.get("stagingDir_persistent") is None:
+            instance.data["stagingDir_persistent"] = True
 
         group_node = instance.data["transientData"]["node"]
 

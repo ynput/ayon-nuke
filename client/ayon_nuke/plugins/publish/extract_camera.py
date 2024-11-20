@@ -56,8 +56,12 @@ class ExtractCamera(publish.Extractor):
     def process(self, instance):
 
         # pass staging dir data
-        staging_dir = self._pass_staging_dir_data(instance)
+        if not instance.data.get("stagingDir"):
+            staging_dir = os.path.normpath(
+                os.path.dirname(instance.data["path"]))
+            instance.data["stagingDir"] = staging_dir
 
+        staging_dir = instance.data["stagingDir"]
         camera_node = instance.data["transientData"]["node"]
         handle_start = instance.context.data["handleStart"]
         handle_end = instance.context.data["handleEnd"]
@@ -139,18 +143,6 @@ class ExtractCamera(publish.Extractor):
 
         self.log.debug("Extracted instance '{0}' to: {1}".format(
             instance.name, file_path))
-
-    def _pass_staging_dir_data(self, instance):
-        staging_dir = instance.data["transientData"]["stagingDir"]
-        staging_dir_persistent = instance.data["transientData"].get(
-            "stagingDir_persistent", False
-        )
-        instance.data.update({
-            "stagingDir": staging_dir,
-            "stagingDir_persistent": staging_dir_persistent
-        })
-
-        return staging_dir
 
 
 def bakeCameraWithAxeses(camera_node, output_range):

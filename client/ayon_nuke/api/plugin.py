@@ -4,6 +4,7 @@ import os
 import sys
 import six
 import copy
+import pathlib
 import random
 import string
 from collections import defaultdict
@@ -69,18 +70,21 @@ class NukeCreatorError(CreatorError):
 class NukeCreator(NewCreator):
     selected_nodes = []
 
-    def pass_pre_attributes_to_instance(
+    def _pass_pre_attributes_to_instance(
         self,
         instance_data,
         pre_create_data,
         keys=None
     ):
-        if not keys:
-            keys = pre_create_data.keys()
-
+        keys = keys or pre_create_data.keys()
         creator_attrs = instance_data["creator_attributes"] = {}
-        for pass_key in keys:
-            creator_attrs[pass_key] = pre_create_data[pass_key]
+
+        creator_dict = {
+            key: value
+            for key, value in pre_create_data.items()
+            if key in keys
+        }
+        creator_attrs.update(creator_dict)
 
     def check_existing_product(self, product_name):
         """Make sure product name is unique.
@@ -154,7 +158,7 @@ class NukeCreator(NewCreator):
 
         return created_node
 
-    def set_selected_nodes(self, pre_create_data):
+    def _set_selected_nodes(self, pre_create_data):
         if pre_create_data.get("use_selection"):
             self.selected_nodes = nuke.selectedNodes()
             if self.selected_nodes == []:
@@ -165,7 +169,7 @@ class NukeCreator(NewCreator):
     def create(self, product_name, instance_data, pre_create_data):
 
         # make sure selected nodes are added
-        self.set_selected_nodes(pre_create_data)
+        self._set_selected_nodes(pre_create_data)
 
         # make sure product name is unique
         self.check_existing_product(product_name)
@@ -182,6 +186,7 @@ class NukeCreator(NewCreator):
                 self
             )
 
+            self.apply_staging_dir(instance)
             instance.transient_data["node"] = instance_node
 
             self._add_instance_to_context(instance)
@@ -209,6 +214,8 @@ class NukeCreator(NewCreator):
             created_instance = CreatedInstance.from_existing(
                 data, self
             )
+
+            self.apply_staging_dir(created_instance)            
             created_instance.transient_data["node"] = node
             self._add_instance_to_context(created_instance)
 
@@ -222,18 +229,18 @@ class NukeCreator(NewCreator):
         for created_inst, changes in update_list:
             instance_node = created_inst.transient_data["node"]
 
+            # in case node is not existing anymore (user erased it manually)
+            try:
+                instance_node.fullName()
+            except ValueError:
+                self._remove_instance_from_context(created_inst)
+                continue
+
             # update instance node name if product name changed
             if "productName" in changes.changed_keys:
                 instance_node["name"].setValue(
                     changes["productName"].new_value
                 )
-
-            # in case node is not existing anymore (user erased it manually)
-            try:
-                instance_node.fullName()
-            except ValueError:
-                self.remove_instances([created_inst])
-                continue
 
             set_node_data(
                 instance_node,
@@ -269,6 +276,9 @@ class NukeWriteCreator(NukeCreator):
     product_type = "write"
     icon = "sign-out"
 
+    temp_rendering_path_template = (  # default to be applied is settings is missing
+        "{work}/renders/nuke/{subset}/{subset}.{frame}.{ext}")    
+
     def get_linked_knobs(self):
         linked_knobs = []
         if "channels" in self.instance_attributes:
@@ -300,55 +310,76 @@ class NukeWriteCreator(NukeCreator):
         for dep_nodes in dependent_nodes:
             dep_nodes.setInput(0, node)
 
-    def set_selected_nodes(self, pre_create_data):
+    def _set_selected_nodes(self, pre_create_data):
         if pre_create_data.get("use_selection"):
-            selected_nodes = nuke.selectedNodes()
-            if selected_nodes == []:
-                raise NukeCreatorError("Creator error: No active selection")
-            elif len(selected_nodes) > 1:
-                NukeCreatorError("Creator error: Select only one camera node")
-            self.selected_node = selected_nodes[0]
+            super()._set_selected_nodes(pre_create_data)
+
+            if len(self.selected_nodes) > 1:
+                NukeCreatorError("Creator error: Select only one Write node")
+
+            self.selected_node, = self.selected_nodes
+
         else:
+            self.selected_nodes = []
             self.selected_node = None
 
     def update_instances(self, update_list):
+        super().update_instances(update_list)
         for created_inst, changes in update_list:
-            instance_node = created_inst.transient_data["node"]
+            if self.create_context.get_instance_by_id(created_inst.id):  # ensure was not deleted by super()
+                self._update_write_node_filepath(created_inst, changes)
 
-            # in case node is not existing anymore (user erased it manually)
-            try:
-                instance_node.fullName()
-            except ValueError:
-                self.remove_instances([created_inst])
-                continue
-            # update instance node name if product name changed
-            if "productName" in changes.changed_keys:
-                instance_node["name"].setValue(
-                    changes["productName"].new_value
-                )
+    def _update_write_node_filepath(self, created_inst, changes):
+        """Update instance node on context changes.
 
-            update_write_node_filepath(created_inst, changes)
+        Whenever any of productName, folderPath, task or productType
+        changes then update:
+        - output filepath of the write node
+        - instance node's name to the product name
+        """
+        keys = ("productName", "folderPath", "task", "productType")
+        if not any(key in changes.changed_keys for key in keys):
+            # No relevant changes, no need to update
+            return
 
-            set_node_data(
-                instance_node,
-                INSTANCE_DATA_KNOB,
-                created_inst.data_to_store()
-            )
+        data = created_inst.data_to_store()
+        # Update values with new formatted path
+        instance_node = created_inst.transient_data["node"]
+        formatting_data = copy.deepcopy(data)
+        write_node = nuke.allNodes(group=instance_node, filter="Write")[0]
+        formatting_data.update({"ext": write_node["file_type"].value()})
+
+        # Retieve render template and staging directory.
+        fpath_template = self.temp_rendering_path_template
+        formatting_data["work"] = get_work_default_directory(formatting_data)
+        fpath = StringTemplate(fpath_template).format_strict(formatting_data)
+
+        staging_dir = self.apply_staging_dir(created_inst)
+        if staging_dir:
+            basename = os.path.basename(fpath)
+            staging_path = pathlib.Path(staging_dir)/ basename
+            fpath = staging_path.as_posix()
+
+        write_node["file"].setValue(fpath)
 
     def get_pre_create_attr_defs(self):
-        attr_defs = [
-            BoolDef("use_selection", label="Use selection"),
-            self._get_render_target_enum()
-        ]
-        return attr_defs
+        attrs_defs = super().get_pre_create_attr_defs()
+        attrs_defs.append(self._get_render_target_enum())
+
+        return attrs_defs
 
     def get_instance_attr_defs(self):
-        attr_defs = [
-            self._get_render_target_enum(),
-        ]
+        attr_defs = [self._get_render_target_enum()]
+
         # add reviewable attribute
         if "reviewable" in self.instance_attributes:
-            attr_defs.append(self._get_reviewable_bool())
+            attr_defs.append(
+                BoolDef(
+                    "review",
+                    default=True,
+                    label="Review"
+                )
+            )
 
         return attr_defs
 
@@ -357,9 +388,11 @@ class NukeWriteCreator(NukeCreator):
             "local": "Local machine rendering",
             "frames": "Use existing frames"
         }
-        if ("farm_rendering" in self.instance_attributes):
-            rendering_targets["frames_farm"] = "Use existing frames - farm"
-            rendering_targets["farm"] = "Farm rendering"
+        if "farm_rendering" in self.instance_attributes:
+            rendering_targets.update({
+                "frames_farm": "Use existing frames - farm",
+                "farm": "Farm rendering",
+            })
 
         return EnumDef(
             "render_target",
@@ -367,24 +400,21 @@ class NukeWriteCreator(NukeCreator):
             label="Render target"
         )
 
-    def _get_reviewable_bool(self):
-        return BoolDef(
-            "review",
-            default=True,
-            label="Review"
-        )
-
     def create(self, product_name, instance_data, pre_create_data):
+        # pass values from precreate to instance
+        self._pass_pre_attributes_to_instance(
+            instance_data,
+            pre_create_data,
+            [
+                "active_frame",            
+                "render_target"
+            ]
+        )
         # make sure selected nodes are added
-        self.set_selected_nodes(pre_create_data)
+        self._set_selected_nodes(pre_create_data)
 
         # make sure product name is unique
         self.check_existing_product(product_name)
-
-        instance_node = self.create_instance_node(
-            product_name,
-            instance_data
-        )
 
         try:
             instance = CreatedInstance(
@@ -394,12 +424,26 @@ class NukeWriteCreator(NukeCreator):
                 self
             )
 
+            staging_dir = self.apply_staging_dir(instance)
+            instance_node = self.create_instance_node(
+                product_name,
+                instance_data,
+                staging_dir=staging_dir
+            )
+
             instance.transient_data["node"] = instance_node
 
             self._add_instance_to_context(instance)
 
             set_node_data(
-                instance_node, INSTANCE_DATA_KNOB, instance.data_to_store())
+                instance_node,
+                INSTANCE_DATA_KNOB,
+                instance.data_to_store()
+            )
+
+            exposed_write_knobs(
+                self.project_settings, self.__class__.__name__, instance_node
+            )
 
             return instance
 
@@ -1256,33 +1300,3 @@ def exposed_write_knobs(settings, plugin_name, instance_node):
         instance_node.addKnob(nuke.Text_Knob('', 'Write Knobs'))
     write_node = nuke.allNodes(group=instance_node, filter="Write")[0]
     link_knobs(exposed_knobs, write_node, instance_node)
-
-
-def update_write_node_filepath(created_inst, changes):
-    """Update instance node on context changes.
-
-    Whenever any of productName, folderPath, task or productType
-    changes then update:
-    - output filepath of the write node
-    - instance node's name to the product name
-    """
-    keys = ("productName", "folderPath", "task", "productType")
-    if not any(key in changes.changed_keys for key in keys):
-        # No relevant changes, no need to update
-        return
-    data = created_inst.data_to_store()
-    # Update values with new formatted path
-    instance_node = created_inst.transient_data["node"]
-    formatting_data = copy.deepcopy(data)
-    write_node = nuke.allNodes(group=instance_node, filter="Write")[0]
-    formatting_data.update({
-        "fpath_template": (
-        "{work}/renders/nuke/{subset}/{subset}.{frame}.{ext}"),
-        "ext": write_node["file_type"].value()
-    })
-
-    # build file path to workfiles
-    formatting_data["work"] = get_work_default_directory(formatting_data)
-    fpath = StringTemplate(formatting_data["fpath_template"]).format_strict(
-        formatting_data)
-    write_node["file"].setValue(fpath)

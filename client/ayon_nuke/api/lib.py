@@ -4,6 +4,7 @@ import json
 import six
 import functools
 import warnings
+import pathlib
 import platform
 import tempfile
 import contextlib
@@ -1104,12 +1105,15 @@ def create_write_node(
         "ext": ext
     })
 
+    # build file path to workfiles
+    data["work"] = get_work_default_directory(data)
+    fpath = StringTemplate(data["fpath_template"]).format_strict(data)
+
+    # Override output directory is provided staging directory.
     if data.get("staging_dir"):
-        fpath = data["staging_dir"]
-    else:
-        # build file path to workfiles
-        data["work"] = get_work_default_directory(data)
-        fpath = StringTemplate(data["fpath_template"]).format_strict(data)
+        basename = os.path.basename(fpath)
+        staging_path = pathlib.Path(data["staging_dir"]) / basename
+        fpath = staging_path.as_posix()
 
     # create directory
     if not os.path.isdir(os.path.dirname(fpath)):

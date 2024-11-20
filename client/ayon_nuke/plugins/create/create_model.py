@@ -28,12 +28,8 @@ class CreateModel(NukeCreator):
         node_type=None
     ):
         with maintained_selection():
-            if self.selected_nodes:
-                node = self.selected_nodes[0]
-                if node.Class() != "Scene":
-                    raise NukeCreatorError(
-                        "Creator error: Select only 'Scene' node type")
-                created_node = node
+            if self.selected_node:
+                created_node = self.selected_node
             else:
                 created_node = nuke.createNode("Scene")
 
@@ -44,26 +40,24 @@ class CreateModel(NukeCreator):
 
             return created_node
 
-    def create(self, product_name, instance_data, pre_create_data):
-        # make sure product name is unique
-        self.check_existing_product(product_name)
+    def _set_selected_nodes(self, pre_create_data):
+        """ Ensure provided selection is valid.
 
-        instance = super(CreateModel, self).create(
-            product_name,
-            instance_data,
-            pre_create_data
-        )
+        Args:
+            pre_create_data (dict): The pre-create data.
 
-        self.apply_staging_dir(instance)
+        Raises:
+            NukeCreatorError. When provided selection is invalid.
+        """
+        super()._set_selected_nodes(pre_create_data)
 
-        return instance
+        if len(self.selected_nodes) > 1:
+            raise NukeCreatorError("Creator error: Select only one 'Scene' node")
 
-    def set_selected_nodes(self, pre_create_data):
-        if pre_create_data.get("use_selection"):
-            self.selected_nodes = nuke.selectedNodes()
-            if self.selected_nodes == []:
-                raise NukeCreatorError("Creator error: No active selection")
-            elif len(self.selected_nodes) > 1:
-                NukeCreatorError("Creator error: Select only one 'Scene' node")
+        elif not self.selected_nodes:
+            self.selected_node = None
+
         else:
-            self.selected_nodes = []
+            self.selected_node, = self.selected_nodes
+            if self.selected_node.Class() != "Scene":
+                raise NukeCreatorError("Creator error: Select one 'Scene' node type")

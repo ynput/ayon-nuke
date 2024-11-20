@@ -40,7 +40,7 @@ class CreateSource(NukeCreator):
     def create(self, product_name, instance_data, pre_create_data):
 
         # make sure selected nodes are added
-        self.set_selected_nodes(pre_create_data)
+        self._set_selected_nodes(pre_create_data)
 
         try:
             for read_node in self.selected_nodes:
@@ -83,11 +83,18 @@ class CreateSource(NukeCreator):
                 NukeCreatorError("Creator error: {}".format(er)),
                 sys.exc_info()[2])
 
-    def set_selected_nodes(self, pre_create_data):
-        if pre_create_data.get("use_selection"):
-            self.selected_nodes = nuke.selectedNodes()
-            if self.selected_nodes == []:
-                raise NukeCreatorError("Creator error: No active selection")
-        else:
-            NukeCreatorError(
-                "Creator error: only supported with active selection")
+    def _set_selected_nodes(self, pre_create_data):
+        """ Ensure provided selection is valid.
+
+        Args:
+            pre_create_data (dict): The pre-create data.
+
+        Raises:
+            NukeCreatorError. When provided selection is invalid.
+        """
+        if not pre_create_data.get("use_selection"):
+            raise NukeCreatorError(
+                "Creator error: only supported with active selection"
+            )
+
+        super()._set_selected_nodes(pre_create_data)

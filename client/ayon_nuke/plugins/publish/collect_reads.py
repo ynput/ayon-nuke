@@ -17,9 +17,6 @@ class CollectNukeReads(pyblish.api.InstancePlugin):
     def process(self, instance):
         self.log.debug("checking instance: {}".format(instance))
 
-        # pass staging dir data
-        self._pass_staging_dir_data(instance)
-
         node = instance.data["transientData"]["node"]
         if node.Class() != "Read":
             return
@@ -112,7 +109,6 @@ class CollectNukeReads(pyblish.api.InstancePlugin):
         instance.data.update({
             "versionData": version_data,
             "path": path,
-            "stagingDir": source_dir,
             "ext": ext,
             "label": label,
             "frameStart": first_frame,
@@ -125,13 +121,3 @@ class CollectNukeReads(pyblish.api.InstancePlugin):
         })
 
         self.log.debug("instance.data: {}".format(instance.data))
-
-    def _pass_staging_dir_data(self, instance):
-        staging_dir = instance.data["transientData"]["stagingDir"]
-        staging_dir_persistent = instance.data["transientData"].get(
-            "stagingDir_persistent", False
-        )
-        instance.data.update({
-            "stagingDir": staging_dir,
-            "stagingDir_persistent": staging_dir_persistent
-        })

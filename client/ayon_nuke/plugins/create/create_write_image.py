@@ -32,40 +32,25 @@ class CreateWriteImage(napi.NukeWriteCreator):
         "MPFrame",
         "LayoutFrame"
     ]
-    temp_rendering_path_template = (
-        "{work}/renders/nuke/{subset}/{subset}.{frame}.{ext}")
 
     def get_pre_create_attr_defs(self):
-        attr_defs = [
-            BoolDef(
-                "use_selection",
-                default=not self.create_context.headless,
-                label="Use selection"
-            ),
-            self._get_render_target_enum(),
+        attr_defs = super().get_pre_create_attr_defs()
+        attr_defs.extend([
             UISeparatorDef(),
-            self._get_frame_source_number()
-        ]
+            NumberDef(
+                "active_frame",
+                label="Active frame",
+                default=nuke.frame()
+            ),
+        ])
         return attr_defs
 
     def _get_render_target_enum(self):
-        rendering_targets = {
-            "local": "Local machine rendering",
-            "frames": "Use existing frames"
-        }
+        # Prevent farm rendering for still image (force local).
+        if "farm_rendering" in self.instance_attributes:
+            self.instance_attributes.remove("farm_rendering")
 
-        return EnumDef(
-            "render_target",
-            items=rendering_targets,
-            label="Render target"
-        )
-
-    def _get_frame_source_number(self):
-        return NumberDef(
-            "active_frame",
-            label="Active frame",
-            default=nuke.frame()
-        )
+        return super()._get_render_target_enum()
 
     def create_instance_node(
             self, product_name, instance_data, staging_dir=None):
@@ -99,61 +84,6 @@ class CreateWriteImage(napi.NukeWriteCreator):
         self.integrate_links(created_node, outputs=True)
 
         return created_node
-
-    def create(self, product_name, instance_data, pre_create_data):
-        product_name = product_name.format(**pre_create_data)
-
-        # pass values from precreate to instance
-        self.pass_pre_attributes_to_instance(
-            instance_data,
-            pre_create_data,
-            [
-                "active_frame",
-                "render_target"
-            ]
-        )
-
-        # make sure selected nodes are added
-        self.set_selected_nodes(pre_create_data)
-
-        # make sure product name is unique
-        self.check_existing_product(product_name)
-
-        try:
-            instance = CreatedInstance(
-                self.product_type,
-                product_name,
-                instance_data,
-                self
-            )
-
-            staging_dir = self.apply_staging_dir(instance)
-            instance_node = self.create_instance_node(
-                product_name, instance_data, staging_dir
-            )
-
-            instance.transient_data["node"] = instance_node
-
-            self._add_instance_to_context(instance)
-
-            napi.set_node_data(
-                instance_node,
-                napi.INSTANCE_DATA_KNOB,
-                instance.data_to_store()
-            )
-
-            exposed_write_knobs(
-                self.project_settings, self.__class__.__name__, instance_node
-            )
-
-            return instance
-
-        except Exception as er:
-            six.reraise(
-                napi.NukeCreatorError,
-                napi.NukeCreatorError("Creator error: {}".format(er)),
-                sys.exc_info()[2]
-            )
 
     def _add_frame_range_limit(self, write_node, instance_data):
         if "use_range_limit" not in self.instance_attributes:
