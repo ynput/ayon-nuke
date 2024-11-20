@@ -1,18 +1,10 @@
 import nuke
-import sys
-import six
 
-from ayon_core.pipeline import (
-    CreatedInstance
-)
 from ayon_core.lib import (
-    BoolDef,
     NumberDef,
     UISeparatorDef,
-    EnumDef
 )
 from ayon_nuke import api as napi
-from ayon_nuke.api.plugin import exposed_write_knobs
 
 
 class CreateWriteImage(napi.NukeWriteCreator):
