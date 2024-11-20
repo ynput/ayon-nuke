@@ -1,4 +1,3 @@
-import nuke
 import six
 import sys
 from ayon_nuke.api import (

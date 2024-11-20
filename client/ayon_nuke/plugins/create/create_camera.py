@@ -1,4 +1,3 @@
-import nuke
 from ayon_nuke.api import (
     NukeCreator,
     NukeCreatorError,
