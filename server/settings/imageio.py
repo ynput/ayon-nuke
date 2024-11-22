@@ -23,6 +23,19 @@ def nuke_creator_plugins_enum():
         {"value": "CreateSource", "label": "Source (read)"},
     ]
 
+
+def nuke_node_class_enum():
+    return [
+        {"value": "Write", "label": "Write [Image]"},
+        {"value": "Read", "label": "Read [Image]"},
+        {"value": "Group", "label": "Group [Other]"},
+        {"value": "Camera4", "label": "Camera [3D]"},
+        {"value": "Camera2", "label": "Camera [3D Classic]"},
+        {"value": "Scene", "label": "Scene [3D Classic]"},
+        {"value": "BackdropNode", "label": "Backdrop [Other]"}, 
+    ]
+
+
 class NodesModel(BaseSettingsModel):
     _layout = "expanded"
     plugins: list[str] = SettingsField(
@@ -32,6 +45,7 @@ class NodesModel(BaseSettingsModel):
     )
     nuke_node_class: str = SettingsField(
         title="Nuke Node Class",
+        enum_resolver=nuke_node_class_enum
     )
 
 
