@@ -45,7 +45,7 @@ DEFAULT_SCRIPTSMENU_SETTINGS = {
             "type": "action",
             "sourcetype": "python",
             "title": "Set non publish output for Write Node",
-            "command": "from from ayon_nuke.startup.custom_write_node import main;main();",  # noqa
+            "command": "from ayon_nuke.startup.custom_write_node import main; main();",  # noqa
             "tooltip": "Set up write nodes for non-publish"
         }
     ]
