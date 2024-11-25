@@ -326,7 +326,8 @@ class NukeWriteCreator(NukeCreator):
     def update_instances(self, update_list):
         super().update_instances(update_list)
         for created_inst, changes in update_list:
-            if self.create_context.get_instance_by_id(created_inst.id):  # ensure was not deleted by super()
+            # ensure was not deleted by super()
+            if self.create_context.get_instance_by_id(created_inst.id):  
                 self._update_write_node_filepath(created_inst, changes)
 
     def _update_write_node_filepath(self, created_inst, changes):

@@ -56,12 +56,12 @@ class ExtractCamera(publish.Extractor):
     def process(self, instance):
 
         # pass staging dir data
-        if not instance.data.get("stagingDir"):
+        staging_dir = instance.data.get("stagingDir")
+        if not staging_dir:
             staging_dir = os.path.normpath(
                 os.path.dirname(instance.data["path"]))
             instance.data["stagingDir"] = staging_dir
-
-        staging_dir = instance.data["stagingDir"]
+        
         camera_node = instance.data["transientData"]["node"]
         handle_start = instance.context.data["handleStart"]
         handle_end = instance.context.data["handleEnd"]

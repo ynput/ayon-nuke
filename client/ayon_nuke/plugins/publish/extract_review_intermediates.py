@@ -43,9 +43,8 @@ class ExtractReviewIntermediates(publish.Extractor):
             instance.data["representations"] = []
 
         if not instance.data.get("stagingDir"):
-            staging_dir = os.path.normpath(
+            instance.data["stagingDir"] = os.path.normpath(
                 os.path.dirname(instance.data["path"]))
-            instance.data["stagingDir"] = staging_dir
 
         self.log.debug(
             "StagingDir `{0}`...".format(instance.data["stagingDir"]))
