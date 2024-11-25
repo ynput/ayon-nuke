@@ -30,7 +30,7 @@ class GizmoDefinitionItem(BaseSettingsModel):
         description="Leave it empty to use the toolbar menu name as parent."
     )
     sub_gizmo_list: list[SubGizmoItem] = SettingsField(
-        default_factory=list, title="Sub Gizmo List")
+        default_factory=list, title="Gizmo List")
 
 
 def gizmo_enum_options():
