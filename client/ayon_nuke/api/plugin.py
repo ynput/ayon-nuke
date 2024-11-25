@@ -277,7 +277,7 @@ class NukeWriteCreator(NukeCreator):
     icon = "sign-out"
 
     temp_rendering_path_template = (  # default to be applied is settings is missing
-        "{work}/renders/nuke/{subset}/{subset}.{frame}.{ext}")    
+        "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}")    
 
     def get_linked_knobs(self):
         linked_knobs = []
