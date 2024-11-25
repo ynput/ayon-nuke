@@ -42,13 +42,17 @@ from .lib import (
     get_node_data,
     get_view_process_node,
     get_filenames_without_hash,
-    link_knobs
+    get_work_default_directory,
+    link_knobs,
 )
 from .pipeline import (
     list_instances,
     remove_instance
 )
-from ayon_nuke.api.lib import get_work_default_directory
+from .colorspace import (
+    get_formatted_display_and_view_as_dict,
+    get_formatted_colorspace
+)
 
 
 def _collect_and_cache_nodes(creator):
@@ -669,6 +673,7 @@ class ExporterReview(object):
         add_tags = tags or []
         repre = {
             "name": self.name,
+            "outputName": self.name,
             "ext": self.ext,
             "files": self.file,
             "stagingDir": self.staging_dir,
@@ -677,7 +682,8 @@ class ExporterReview(object):
                 # making sure that once intermediate file is published
                 # as representation, we will be able to then identify it
                 # from representation.data.isIntermediate
-                "isIntermediate": True
+                "isIntermediate": True,
+                "isMultiIntermediates": self.multiple_presets
             },
         }
 
@@ -693,9 +699,6 @@ class ExporterReview(object):
             filenames = get_filenames_without_hash(
                 self.file, self.first_frame, self.last_frame)
             repre["files"] = filenames
-
-        if self.multiple_presets:
-            repre["outputName"] = self.name
 
         if self.publish_on_farm:
             repre["tags"].append("publish_on_farm")
@@ -1014,25 +1017,27 @@ class ExporterReviewMov(ExporterReview):
                 if baking_colorspace["type"] == "display_view":
                     display_view = baking_colorspace["display_view"]
 
+                    display_view_f = get_formatted_display_and_view_as_dict(
+                        display_view, self.formatting_data
+                    )
+
+                    if not display_view_f:
+                        raise ValueError(
+                            "Invalid display and view profile: "
+                            f"'{display_view}'"
+                        )
+
+                    # assign display and view
+                    display = display_view_f["display"]
+                    view = display_view_f["view"]
+
                     message = "OCIODisplay...   '{}'"
                     node = nuke.createNode("OCIODisplay")
 
-                    # assign display and view
-                    display = display_view["display"]
-                    view = display_view["view"]
-
                     # display could not be set in nuke_default config
                     if display:
-                        # format display string with anatomy data
-                        display = StringTemplate(display).format_strict(
-                            self.formatting_data
-                        )
                         node["display"].setValue(display)
 
-                    # format view string with anatomy data
-                    view = StringTemplate(view).format_strict(
-                        self.formatting_data)
-                    # assign viewer
                     node["view"].setValue(view)
 
                     if config_data:
@@ -1046,8 +1051,13 @@ class ExporterReviewMov(ExporterReview):
                 elif baking_colorspace["type"] == "colorspace":
                     baking_colorspace = baking_colorspace["colorspace"]
                     # format colorspace string with anatomy data
-                    baking_colorspace = StringTemplate(
-                        baking_colorspace).format_strict(self.formatting_data)
+                    baking_colorspace = get_formatted_colorspace(
+                        baking_colorspace, self.formatting_data
+                    )
+                    if not baking_colorspace:
+                        raise ValueError(
+                            f"Invalid baking color space: '{baking_colorspace}'"
+                        )
                     node = nuke.createNode("OCIOColorSpace")
                     message = "OCIOColorSpace...   '{}'"
                     # no need to set input colorspace since it is driven by
