@@ -17,7 +17,7 @@ class CollectGizmo(pyblish.api.InstancePlugin):
 
         gizmo_node = instance.data["transientData"]["node"]
 
-        # add product type to familiess
+        # add product type to families
         instance.data["families"].insert(0, instance.data["productType"])
         # make label nicer
         instance.data["label"] = gizmo_node.name()

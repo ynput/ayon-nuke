@@ -39,15 +39,3 @@ class CreateBackdrop(NukeCreator):
             created_node["label"].setValue("[{}]".format(node_name))
 
             return created_node
-
-    def create(self, product_name, instance_data, pre_create_data):
-        # make sure product name is unique
-        self.check_existing_product(product_name)
-
-        instance = super(CreateBackdrop, self).create(
-            product_name,
-            instance_data,
-            pre_create_data
-        )
-
-        return instance

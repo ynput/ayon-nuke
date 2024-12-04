@@ -109,7 +109,6 @@ class CollectNukeReads(pyblish.api.InstancePlugin):
         instance.data.update({
             "versionData": version_data,
             "path": path,
-            "stagingDir": source_dir,
             "ext": ext,
             "label": label,
             "frameStart": first_frame,
