@@ -51,7 +51,7 @@ class GizmoItem(BaseSettingsModel):
 
 
 DEFAULT_GIZMO_ITEM = {
-    "toolbar_menu_name": "OpenPype Gizmo",
+    "toolbar_menu_name": "AYON Gizmo",
     "gizmo_source_dir": {
         "windows": [],
         "darwin": [],
@@ -69,7 +69,7 @@ DEFAULT_GIZMO_ITEM = {
                 {
                     "sourcetype": "python",
                     "title": "Gizmo Note",
-                    "command": "nuke.nodes.StickyNote(label='You can create your own toolbar menu in the Nuke GizmoMenu of OpenPype')",
+                    "command": "nuke.nodes.StickyNote(label='You can create your own toolbar menu in the Nuke GizmoMenu of AYON.')",
                     "icon": "",
                     "shortcut": ""
                 }
