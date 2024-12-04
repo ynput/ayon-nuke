@@ -80,7 +80,8 @@ class NukeCreator(NewCreator):
         pre_create_data,
         keys=None
     ):
-        keys = keys or pre_create_data.keys()
+        if keys is None:
+            keys = pre_create_data.keys()
         creator_attrs = instance_data["creator_attributes"] = {}
 
         creator_dict = {
