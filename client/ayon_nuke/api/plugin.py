@@ -164,6 +164,9 @@ class NukeCreator(NewCreator):
         return created_node
 
     def _set_selected_nodes(self, pre_create_data):
+        # Storing selected nodes early in the creator
+        # is important as further operations on the node
+        # graph might mess it up.
         if pre_create_data.get("use_selection"):
             self.selected_nodes = nuke.selectedNodes()
             if self.selected_nodes == []:
