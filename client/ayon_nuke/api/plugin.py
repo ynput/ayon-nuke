@@ -250,7 +250,7 @@ class NukeCreator(NewCreator):
                 data, self
             )
 
-            self.apply_staging_dir(created_instance)            
+            self.apply_staging_dir(created_instance)
             created_instance.transient_data["node"] = node
             self._add_instance_to_context(created_instance)
 
@@ -313,7 +313,7 @@ class NukeWriteCreator(NukeCreator):
     node_class_name = "Write"
 
     temp_rendering_path_template = (  # default to be applied is settings is missing
-        "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}")    
+        "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}")
 
     def get_linked_knobs(self):
         linked_knobs = []
@@ -377,7 +377,7 @@ class NukeWriteCreator(NukeCreator):
         super().update_instances(update_list)
         for created_inst, changes in update_list:
             # ensure was not deleted by super()
-            if self.create_context.get_instance_by_id(created_inst.id):  
+            if self.create_context.get_instance_by_id(created_inst.id):
                 self._update_write_node_filepath(created_inst, changes)
 
     def _update_write_node_filepath(self, created_inst, changes):
