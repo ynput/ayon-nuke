@@ -84,12 +84,11 @@ class NukeCreator(NewCreator):
             keys = pre_create_data.keys()
         creator_attrs = instance_data["creator_attributes"] = {}
 
-        creator_dict = {
+        creator_attrs.update({
             key: value
             for key, value in pre_create_data.items()
             if key in keys
-        }
-        creator_attrs.update(creator_dict)
+        })
 
     def check_existing_product(self, product_name):
         """Make sure product name is unique.
