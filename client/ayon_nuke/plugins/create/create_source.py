@@ -24,6 +24,7 @@ class CreateSource(NukeCreator):
 
     # plugin attributes
     node_color = "0xff9100ff"
+    node_class_name = "Read"
 
     def create_instance_node(
         self,
@@ -39,12 +40,13 @@ class CreateSource(NukeCreator):
     def create(self, product_name, instance_data, pre_create_data):
 
         # make sure selected nodes are added
-        self._set_selected_nodes(pre_create_data)
+        node_selection = self._get_current_selected_nodes(
+            pre_create_data,
+            class_name=self.node_class_name
+        )
 
         try:
-            for read_node in self.selected_nodes:
-                if read_node.Class() != 'Read':
-                    continue
+            for read_node in node_selection:
 
                 node_name = read_node.name()
                 _product_name = product_name + node_name
@@ -81,19 +83,3 @@ class CreateSource(NukeCreator):
                 NukeCreatorError,
                 NukeCreatorError("Creator error: {}".format(er)),
                 sys.exc_info()[2])
-
-    def _set_selected_nodes(self, pre_create_data):
-        """ Ensure provided selection is valid.
-
-        Args:
-            pre_create_data (dict): The pre-create data.
-
-        Raises:
-            NukeCreatorError. When provided selection is invalid.
-        """
-        if not pre_create_data.get("use_selection"):
-            raise NukeCreatorError(
-                "Creator error: only supported with active selection"
-            )
-
-        super()._set_selected_nodes(pre_create_data)

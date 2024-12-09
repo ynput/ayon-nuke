@@ -72,7 +72,8 @@ class NukeCreatorError(CreatorError):
 
 
 class NukeCreator(NewCreator):
-    selected_nodes = []
+    node_class_name = None
+
 
     def _pass_pre_attributes_to_instance(
         self,
@@ -126,7 +127,8 @@ class NukeCreator(NewCreator):
         node_name,
         knobs=None,
         parent=None,
-        node_type=None
+        node_type=None,
+        node_selection=None,
     ):
         """Create node representing instance.
 
@@ -135,6 +137,7 @@ class NukeCreator(NewCreator):
             knobs (OrderedDict): node knobs name and values
             parent (str): Name of the parent node.
             node_type (str, optional): Nuke node Class.
+            node_selection (Optional[list[nuke.Node]]): The node selection.
 
         Returns:
             nuke.Node: Newly created instance node.
@@ -162,21 +165,45 @@ class NukeCreator(NewCreator):
 
         return created_node
 
-    def _set_selected_nodes(self, pre_create_data):
-        # Storing selected nodes early in the creator
-        # is important as further operations on the node
-        # graph might mess it up.
-        if pre_create_data.get("use_selection"):
-            self.selected_nodes = nuke.selectedNodes()
-            if self.selected_nodes == []:
-                raise NukeCreatorError("Creator error: No active selection")
+    def _get_current_selected_nodes(
+            self,
+            pre_create_data,
+            class_name: str = None,
+        ):
+        """ Get current node selection.
+
+        Arguments:
+            pre_create_data (dict): The creator initial data.
+            class_name (Optional[str]): Filter on a class name.
+
+        Returns:
+            list[nuke.Node]: node selection.
+        """
+        class_name = class_name or self.node_class_name
+        use_selection = pre_create_data.get("use_selection")
+
+        if use_selection:
+            selected_nodes = nuke.selectedNodes()
         else:
-            self.selected_nodes = []
+            selected_nodes = nuke.allNodes()
+
+        if class_name:
+            selected_nodes = [
+                node
+                for node in selected_nodes
+                if node.Class() == class_name
+            ]
+
+        if class_name and use_selection and not selected_nodes:
+            raise NukeCreatorError(f"Creator error: Select a {class_name} node.")
+
+        return selected_nodes
 
     def create(self, product_name, instance_data, pre_create_data):
 
-        # make sure selected nodes are added
-        self._set_selected_nodes(pre_create_data)
+        # make sure selected nodes are detected early on.
+        # we do not want any further Nuke operation to change the selection.
+        node_selection = self._get_current_selected_nodes(pre_create_data)
 
         # make sure product name is unique
         self.check_existing_product(product_name)
@@ -184,7 +211,8 @@ class NukeCreator(NewCreator):
         try:
             instance_node = self.create_instance_node(
                 product_name,
-                node_type=instance_data.pop("node_type", None)
+                node_type=instance_data.pop("node_type", None),
+                node_selection=node_selection,
             )
             instance = CreatedInstance(
                 self.product_type,
@@ -282,6 +310,7 @@ class NukeWriteCreator(NukeCreator):
     label = "Create Write"
     product_type = "write"
     icon = "sign-out"
+    node_class_name = "Write"
 
     temp_rendering_path_template = (  # default to be applied is settings is missing
         "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}")    
@@ -297,14 +326,14 @@ class NukeWriteCreator(NukeCreator):
 
         return linked_knobs
 
-    def integrate_links(self, node, outputs=True):
+    def integrate_links(self, node_selection, node, outputs=True):
         # skip if no selection
-        if not self.selected_node:
+        if not node_selection:  # selection should contain either 1 or no node.
             return
 
         # collect dependencies
-        input_nodes = [self.selected_node]
-        dependent_nodes = self.selected_node.dependent() if outputs else []
+        input_nodes = node_selection
+        dependent_nodes = node_selection[0].dependent() if outputs else []
 
         # relinking to collected connections
         for i, input in enumerate(input_nodes):
@@ -317,18 +346,32 @@ class NukeWriteCreator(NukeCreator):
         for dep_nodes in dependent_nodes:
             dep_nodes.setInput(0, node)
 
-    def _set_selected_nodes(self, pre_create_data):
-        if pre_create_data.get("use_selection"):
-            super()._set_selected_nodes(pre_create_data)
+    def _get_current_selected_nodes(
+            self,
+            pre_create_data,
+            class_name: str = None,
+        ):
+        """ Get current node selection.
 
-            if len(self.selected_nodes) > 1:
-                NukeCreatorError("Creator error: Select only one Write node")
+        Arguments:
+            pre_create_data (dict): The creator initial data.
+            class_name (Optional[str]): Filter on a class name.
 
-            self.selected_node, = self.selected_nodes
+        Returns:
+            list[nuke.Node]: node selection.
 
-        else:
-            self.selected_nodes = []
-            self.selected_node = None
+        Raises:
+            NukeCreatorError. When the selection contains more than 1 Write node.
+        """
+        selected_nodes = super()._get_current_selected_nodes(
+            pre_create_data,
+            class_name=self.node_class_name
+        )
+
+        if len(selected_nodes) > 1:
+            NukeCreatorError(f"Creator error: Select only one {self.node_class_name} node")
+
+        return selected_nodes
 
     def update_instances(self, update_list):
         super().update_instances(update_list)
@@ -414,12 +457,12 @@ class NukeWriteCreator(NukeCreator):
             instance_data,
             pre_create_data,
             [
-                "active_frame",            
+                "active_frame",
                 "render_target"
             ]
         )
         # make sure selected nodes are added
-        self._set_selected_nodes(pre_create_data)
+        node_selection = self._get_current_selected_nodes(pre_create_data)
 
         # make sure product name is unique
         self.check_existing_product(product_name)
@@ -436,7 +479,8 @@ class NukeWriteCreator(NukeCreator):
             instance_node = self.create_instance_node(
                 product_name,
                 instance_data,
-                staging_dir=staging_dir
+                staging_dir=staging_dir,
+                node_selection=node_selection,
             )
 
             instance.transient_data["node"] = instance_node

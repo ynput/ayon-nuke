@@ -45,7 +45,7 @@ class CreateWriteImage(napi.NukeWriteCreator):
         return super()._get_render_target_enum()
 
     def create_instance_node(
-            self, product_name, instance_data, staging_dir=None):
+            self, product_name, instance_data, staging_dir=None, node_selection=None):
         settings = self.project_settings["nuke"]["create"]["CreateWriteImage"]
 
         # add fpath_template
@@ -60,10 +60,15 @@ class CreateWriteImage(napi.NukeWriteCreator):
         }
         write_data.update(instance_data)
 
+        if node_selection:
+            selected_node = node_selection[0]
+        else:
+            selected_node = None
+
         created_node = napi.create_write_node(
             product_name,
             write_data,
-            input=self.selected_node,
+            input=selected_node,
             prenodes=self.prenodes,
             linked_knobs=self.get_linked_knobs(),
             **{
@@ -73,7 +78,7 @@ class CreateWriteImage(napi.NukeWriteCreator):
 
         self._add_frame_range_limit(created_node, instance_data)
 
-        self.integrate_links(created_node, outputs=True)
+        self.integrate_links(node_selection, created_node, outputs=True)
 
         return created_node
 

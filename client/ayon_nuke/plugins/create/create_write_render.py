@@ -21,7 +21,7 @@ class CreateWriteRender(napi.NukeWriteCreator):
     ]
 
     def create_instance_node(
-            self, product_name, instance_data, staging_dir=None):
+            self, product_name, instance_data, staging_dir=None, node_selection=None):
         settings = self.project_settings["nuke"]["create"]["CreateWriteRender"]
 
         # add fpath_template
@@ -38,12 +38,14 @@ class CreateWriteRender(napi.NukeWriteCreator):
         write_data.update(instance_data)
 
         # get width and height
-        if self.selected_node:
+        if node_selection:  # contains 1 Write node or nothing
+            selected_node = node_selection[0]
             width, height = (
-                self.selected_node.width(), self.selected_node.height())
+                selected_node.width(), selected_node.height())
         else:
             actual_format = nuke.root().knob('format').value()
             width, height = (actual_format.width(), actual_format.height())
+            selected_node = None
 
         self.log.debug(">>>>>>> : {}".format(self.instance_attributes))
         self.log.debug(">>>>>>> : {}".format(self.get_linked_knobs()))
@@ -51,7 +53,7 @@ class CreateWriteRender(napi.NukeWriteCreator):
         created_node = napi.create_write_node(
             product_name,
             write_data,
-            input=self.selected_node,
+            input=selected_node,
             prenodes=self.prenodes,
             linked_knobs=self.get_linked_knobs(),
             **{
@@ -60,6 +62,6 @@ class CreateWriteRender(napi.NukeWriteCreator):
             }
         )
 
-        self.integrate_links(created_node, outputs=False)
+        self.integrate_links(node_selection, created_node, outputs=False)
 
         return created_node

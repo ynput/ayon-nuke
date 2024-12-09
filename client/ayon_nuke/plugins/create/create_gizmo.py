@@ -19,17 +19,41 @@ class CreateGizmo(NukeCreator):
 
     # plugin attributes
     node_color = "0x7533c1ff"
+    node_class_name = "Group"
 
     def create_instance_node(
         self,
         node_name,
         knobs=None,
         parent=None,
-        node_type=None
+        node_type=None,
+        node_selection=None,
     ):
+        """Create node representing instance.
+
+        Arguments:
+            node_name (str): Name of the new node.
+            knobs (OrderedDict): node knobs name and values
+            parent (str): Name of the parent node.
+            node_type (str, optional): Nuke node Class.
+            node_selection (Optional[list[nuke.Node]]): The node selection.
+
+        Returns:
+            nuke.Node: Newly created instance node.
+
+        Raises:
+            NukeCreatorError. When multiple Camera nodes are part of the selection.
+
+        """
         with maintained_selection():
-            if self.selected_node:
-                created_node = self.selected_node
+            if node_selection:
+                if len(node_selection) > 1:
+                    raise NukeCreatorError(
+                        "Creator error: Select only one "
+                        f"{self.node_class_name} node"
+                    )
+
+                created_node = node_selection[0]
             else:
                 created_node = nuke.collapseToGroup()
 
@@ -39,25 +63,3 @@ class CreateGizmo(NukeCreator):
             created_node["name"].setValue(node_name)
 
             return created_node
-
-    def _set_selected_nodes(self, pre_create_data):
-        """ Ensure provided selection is valid.
-
-        Args:
-            pre_create_data (dict): The pre-create data.
-
-        Raises:
-            NukeCreatorError. When provided selection is invalid.
-        """
-        super()._set_selected_nodes(pre_create_data)
-
-        if len(self.selected_nodes) > 1:
-            raise NukeCreatorError("Creator error: Select only one 'Group' node")
-
-        elif not self.selected_nodes:
-            self.selected_node = None
-
-        else:
-            self.selected_node, = self.selected_nodes
-            if self.selected_node.Class() != "Group":
-                raise NukeCreatorError("Creator error: Select one 'Group' node type")
