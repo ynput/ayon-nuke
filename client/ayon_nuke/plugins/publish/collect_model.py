@@ -17,7 +17,7 @@ class CollectModel(pyblish.api.InstancePlugin):
 
         geo_node = instance.data["transientData"]["node"]
 
-        # add product type to familiess
+        # add product type to families
         instance.data["families"].insert(0, instance.data["productType"])
         # make label nicer
         instance.data["label"] = geo_node.name()
