@@ -166,10 +166,10 @@ class NukeCreator(NewCreator):
         return created_node
 
     def _get_current_selected_nodes(
-            self,
-            pre_create_data,
-            class_name: str = None,
-        ):
+        self,
+        pre_create_data,
+        class_name: str = None,
+    ):
         """ Get current node selection.
 
         Arguments:
@@ -195,7 +195,7 @@ class NukeCreator(NewCreator):
             ]
 
         if class_name and use_selection and not selected_nodes:
-            raise NukeCreatorError(f"Creator error: Select a {class_name} node.")
+            raise NukeCreatorError(f"Select a {class_name} node.")
 
         return selected_nodes
 
@@ -347,10 +347,9 @@ class NukeWriteCreator(NukeCreator):
             dep_nodes.setInput(0, node)
 
     def _get_current_selected_nodes(
-            self,
-            pre_create_data,
-            class_name: str = None,
-        ):
+        self,
+        pre_create_data,
+    ):
         """ Get current node selection.
 
         Arguments:
