@@ -26,11 +26,28 @@ class CreateBackdrop(NukeCreator):
         node_name,
         knobs=None,
         parent=None,
-        node_type=None
+        node_type=None,
+        node_selection=None,
     ):
+        """Create node representing instance.
+
+        Arguments:
+            node_name (str): Name of the new node.
+            knobs (OrderedDict): node knobs name and values
+            parent (str): Name of the parent node.
+            node_type (str, optional): Nuke node Class.
+            node_selection (Optional[list[nuke.Node]]): The node selection.
+
+        Returns:
+            nuke.Node: Newly created instance node.
+
+        Raises:
+            NukeCreatorError. When multiple Camera nodes are part of the selection.
+
+        """
         with maintained_selection():
-            if len(self.selected_nodes) >= 1:
-                select_nodes(self.selected_nodes)
+            if len(node_selection) >= 1:
+                select_nodes(node_selection)
 
             created_node = autoBackdrop()
             created_node["name"].setValue(node_name)
@@ -39,15 +56,3 @@ class CreateBackdrop(NukeCreator):
             created_node["label"].setValue("[{}]".format(node_name))
 
             return created_node
-
-    def create(self, product_name, instance_data, pre_create_data):
-        # make sure product name is unique
-        self.check_existing_product(product_name)
-
-        instance = super(CreateBackdrop, self).create(
-            product_name,
-            instance_data,
-            pre_create_data
-        )
-
-        return instance

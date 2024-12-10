@@ -1,4 +1,3 @@
-import nuke
 import six
 import sys
 from ayon_nuke.api import (
@@ -25,6 +24,7 @@ class CreateSource(NukeCreator):
 
     # plugin attributes
     node_color = "0xff9100ff"
+    node_class_name = "Read"
 
     def create_instance_node(
         self,
@@ -40,12 +40,13 @@ class CreateSource(NukeCreator):
     def create(self, product_name, instance_data, pre_create_data):
 
         # make sure selected nodes are added
-        self.set_selected_nodes(pre_create_data)
+        node_selection = self._get_current_selected_nodes(
+            pre_create_data,
+            class_name=self.node_class_name
+        )
 
         try:
-            for read_node in self.selected_nodes:
-                if read_node.Class() != 'Read':
-                    continue
+            for read_node in node_selection:
 
                 node_name = read_node.name()
                 _product_name = product_name + node_name
@@ -64,6 +65,9 @@ class CreateSource(NukeCreator):
                     self
                 )
 
+                # add staging dir related data to transient data
+                self.apply_staging_dir(instance)
+
                 instance.transient_data["node"] = instance_node
 
                 self._add_instance_to_context(instance)
@@ -79,12 +83,3 @@ class CreateSource(NukeCreator):
                 NukeCreatorError,
                 NukeCreatorError("Creator error: {}".format(er)),
                 sys.exc_info()[2])
-
-    def set_selected_nodes(self, pre_create_data):
-        if pre_create_data.get("use_selection"):
-            self.selected_nodes = nuke.selectedNodes()
-            if self.selected_nodes == []:
-                raise NukeCreatorError("Creator error: No active selection")
-        else:
-            NukeCreatorError(
-                "Creator error: only supported with active selection")
