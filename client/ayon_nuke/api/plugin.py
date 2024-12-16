@@ -74,7 +74,6 @@ class NukeCreatorError(CreatorError):
 class NukeCreator(NewCreator):
     node_class_name = None
 
-
     def _pass_pre_attributes_to_instance(
         self,
         instance_data,
