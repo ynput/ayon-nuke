@@ -369,7 +369,7 @@ class NukeWriteCreator(NukeCreator):
             raise NukeCreatorError("No active selection")
 
         elif len(selected_nodes) > 1:
-            raise NukeCreatorError(f"Select only one node")
+            raise NukeCreatorError("Select only one node")
 
         return selected_nodes
 
