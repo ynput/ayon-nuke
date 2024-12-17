@@ -309,7 +309,6 @@ class NukeWriteCreator(NukeCreator):
     label = "Create Write"
     product_type = "write"
     icon = "sign-out"
-    node_class_name = "Write"
 
     temp_rendering_path_template = (  # default to be applied is settings is missing
         "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}")
@@ -363,11 +362,14 @@ class NukeWriteCreator(NukeCreator):
         """
         selected_nodes = super()._get_current_selected_nodes(
             pre_create_data,
-            class_name=self.node_class_name
+            class_name=None,
         )
 
-        if len(selected_nodes) > 1:
-            NukeCreatorError(f"Creator error: Select only one {self.node_class_name} node")
+        if pre_create_data.get("use_selection") and not selected_nodes:
+            raise NukeCreatorError("No active selection")
+
+        elif len(selected_nodes) > 1:
+            raise NukeCreatorError(f"Select only one node")
 
         return selected_nodes
 
