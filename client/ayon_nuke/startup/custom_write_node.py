@@ -5,12 +5,10 @@ import nukescripts
 from ayon_core.pipeline import Anatomy, get_current_project_name
 from ayon_nuke.api.lib import (
     set_node_knobs_from_settings,
-    get_nuke_imageio_settings
+    get_nuke_imageio_settings,
+    get_current_project_settings,
 )
 
-
-temp_rendering_path_template = (
-    "{work}/renders/nuke/{subset}/{subset}.{frame}.{ext}")
 
 knobs_setting = {
     "knobs": [
@@ -63,11 +61,11 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
     def __init__(self):
         nukescripts.PythonPanel.__init__(self, "Set Knobs Value(Write Node)")
 
-        preset_name, _ = self.get_node_knobs_setting()
+        preset_names, _ = self.get_node_knobs_setting()
         # create knobs
 
         self.selected_preset_name = nuke.Enumeration_Knob(
-            'preset_selector', 'presets', preset_name)
+            'preset_selector', 'presets', preset_names)
         # add knobs to panel
         self.addKnob(self.selected_preset_name)
 
@@ -104,6 +102,10 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
 
         anatomy = Anatomy(get_current_project_name())
 
+        project_settings = get_current_project_settings()
+        write_settings = project_settings["nuke"]["create"]["CreateWriteRender"]
+        temp_rendering_path_template = write_settings["temp_rendering_path_template"]
+
         frame_padding = anatomy.templates_obj.frame_padding
         for write_node in write_selected_nodes:
             # data for mapping the path
@@ -111,7 +113,6 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
             product_name = write_node["name"].value()
             data = {
                 "work": os.getenv("AYON_WORKDIR"),
-                "subset": product_name,
                 "product": {
                     "name": product_name,
                 },
@@ -124,7 +125,7 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
             set_node_knobs_from_settings(write_node, knobs)
 
     def get_node_knobs_setting(self, selected_preset=None):
-        preset_name = []
+        preset_names = []
         knobs_nodes = []
         settings = [
             node_settings for node_settings
@@ -133,7 +134,7 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
             and node_settings["subsets"]
         ]
         if not settings:
-            return
+            return [], []
 
         for i, _ in enumerate(settings):
             if selected_preset in settings[i]["subsets"]:
@@ -142,9 +143,9 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
         for setting in settings:
             # TODO change 'subsets' to 'product_names' in settings
             for product_name in setting["subsets"]:
-                preset_name.append(product_name)
+                preset_names.append(product_name)
 
-        return preset_name, knobs_nodes
+        return preset_names, knobs_nodes
 
 
 def main():
