@@ -57,7 +57,7 @@ class ValidateNukeWriteNode(
     families = ["render"]
     label = "Validate write node"
     actions = [RepairNukeWriteNodeAction]
-    hosts = ["nuke"]
+    hosts = []
 
     settings_category = "nuke"
 

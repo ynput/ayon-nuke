@@ -166,7 +166,8 @@ def add_nuke_callbacks():
     nuke.addOnScriptSave(check_inventory_versions)
 
     # set apply all workfile settings on script load and save
-    nuke.addOnScriptLoad(WorkfileSettings().set_context_settings)
+    #nuke.addOnScriptLoad(WorkfileSettings().set_context_settings)
+    nuke.addOnScriptLoad(WorkfileSettings().set_colorspace)
 
     if nuke_settings["dirmap"]["enabled"]:
         log.info("Added Nuke's dir-mapping callback ...")

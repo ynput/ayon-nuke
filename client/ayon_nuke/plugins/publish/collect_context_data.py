@@ -34,9 +34,11 @@ class CollectContextData(pyblish.api.ContextPlugin):
         root_instance_context = napi.get_node_data(
             root_node, napi.INSTANCE_DATA_KNOB
         )
+        if not root_instance_context:
+            root_instance_context = {}
 
-        handle_start = root_instance_context["handleStart"]
-        handle_end = root_instance_context["handleEnd"]
+        handle_start = root_instance_context.get("handleStart",0)
+        handle_end = root_instance_context.get("handleEnd",0)
 
         # Get format
         format = root_node['format'].value()
