@@ -4,6 +4,7 @@ import json
 import six
 import functools
 import warnings
+import pathlib
 import platform
 import tempfile
 import contextlib
@@ -57,6 +58,8 @@ from .constants import (
 
 from .workio import save_file
 from .utils import get_node_outputs
+
+from .colorspace import get_formatted_display_and_view
 
 log = Logger.get_logger(__name__)
 
@@ -591,10 +594,13 @@ def read_avalon_data(node):
             if not knob_name:
                 # Ignore unnamed knob
                 continue
-
-            knob_type = nuke.knob(knob.fullyQualifiedName(), type=True)
-            value = knob.value()
-
+            try:
+                knob_type = nuke.knob(knob.fullyQualifiedName(), type=True)
+                value = knob.value()
+            except Exception:
+                log.debug(
+                    f"Error in knob {knob_name}, node {node['name'].value()}")
+                continue
             if (
                 knob_type not in EXCLUDED_KNOB_TYPE_ON_READ or
                 # For compating read-only string data that imprinted
@@ -749,6 +755,7 @@ def get_imageio_node_override_setting(
     return knobs_settings
 
 
+# TODO: move into ./colorspace.py
 def get_imageio_input_colorspace(filename):
     ''' Get input file colorspace based on regex in settings.
     '''
@@ -812,18 +819,21 @@ def check_inventory_versions():
     This will group containers by their version to outdated, not found,
     invalid or latest and colorize the nodes based on the category.
     """
-    host = registered_host()
-    containers = host.get_containers()
-    project_name = get_current_project_name()
+    try:
+        host = registered_host()
+        containers = host.get_containers()
+        project_name = get_current_project_name()
 
-    filtered_containers = filter_containers(containers, project_name)
-    for category, containers in filtered_containers._asdict().items():
-        if category not in LOADER_CATEGORY_COLORS:
-            continue
-        color = LOADER_CATEGORY_COLORS[category]
-        color = int(color, 16)  # convert hex to nuke tile color int
-        for container in containers:
-            container["node"]["tile_color"].setValue(color)
+        filtered_containers = filter_containers(containers, project_name)
+        for category, containers in filtered_containers._asdict().items():
+            if category not in LOADER_CATEGORY_COLORS:
+                continue
+            color = LOADER_CATEGORY_COLORS[category]
+            color = int(color, 16)  # convert hex to nuke tile color int
+            for container in containers:
+                container["node"]["tile_color"].setValue(color)
+    except Exception as error:
+        log.warning(error)
 
 
 def writes_version_sync():
@@ -1109,6 +1119,12 @@ def create_write_node(
     # build file path to workfiles
     data["work"] = get_work_default_directory(data)
     fpath = StringTemplate(data["fpath_template"]).format_strict(data)
+
+    # Override output directory is provided staging directory.
+    if data.get("staging_dir"):
+        basename = os.path.basename(fpath)
+        staging_path = pathlib.Path(data["staging_dir"]) / basename
+        fpath = staging_path.as_posix()
 
     # create directory
     if not os.path.isdir(os.path.dirname(fpath)):
@@ -1432,6 +1448,7 @@ class WorkfileSettings(object):
             for filter in nodes_filter:
                 return [n for n in self._nodes if filter in n.Class()]
 
+    # TODO: move into ./colorspace.py
     def set_viewers_colorspace(self, imageio_nuke):
         ''' Adds correct colorspace to viewer
 
@@ -1444,11 +1461,11 @@ class WorkfileSettings(object):
             "wipe_position",
             "monitorOutOutputTransform"
         ]
-        viewer_process = self._display_and_view_formatted(
-            imageio_nuke["viewer"]
+        viewer_process = get_formatted_display_and_view(
+            imageio_nuke["viewer"], self.formatting_data, self._root_node
         )
-        output_transform = self._display_and_view_formatted(
-            imageio_nuke["monitor"]
+        output_transform = get_formatted_display_and_view(
+            imageio_nuke["monitor"], self.formatting_data, self._root_node
         )
         erased_viewers = []
         for v in nuke.allNodes(filter="Viewer"):
@@ -1474,8 +1491,8 @@ class WorkfileSettings(object):
                     nv.setInput(i, n)
 
                 # set copied knobs
-                for k, v in copy_knobs.items():
-                    nv[k].setValue(v)
+                for knob_name, knob_value in copy_knobs.items():
+                    nv[knob_name].setValue(knob_value)
 
                 # set viewerProcess
                 nv["viewerProcess"].setValue(viewer_process)
@@ -1486,21 +1503,7 @@ class WorkfileSettings(object):
                 "Attention! Viewer nodes {} were erased."
                 "It had wrong color profile".format(erased_viewers))
 
-    def _display_and_view_formatted(self, view_profile):
-        """ Format display and view profile string
-
-        Args:
-            view_profile (dict): view and display profile
-
-        Returns:
-            str: formatted display and view profile string
-        """
-        display_view = create_viewer_profile_string(
-            view_profile["view"], view_profile["display"], path_like=False
-        )
-        # format any template tokens used in the string
-        return StringTemplate(display_view).format_strict(self.formatting_data)
-
+    # TODO: move into ./colorspace.py
     def set_root_colorspace(self, imageio_host):
         ''' Adds correct colorspace to root
 
@@ -1760,6 +1763,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
 
         return new_path
 
+    # TODO: move into ./colorspace.py
     def set_writes_colorspace(self):
         ''' Adds correct colorspace to write node dict
 
@@ -1840,6 +1844,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             set_node_knobs_from_settings(
                 write_node, nuke_imageio_writes["knobs"])
 
+    # TODO: move into ./colorspace.py
     def set_reads_colorspace(self, read_clrs_inputs):
         """ Setting colorspace to Read nodes
 
@@ -1887,6 +1892,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                             nname,
                             knobs["to"]))
 
+    # TODO: move into ./colorspace.py
     def set_colorspace(self):
         ''' Setting colorspace following presets
         '''
@@ -2218,6 +2224,11 @@ def find_free_space_to_paste_nodes(
         group_ypos = [n.ypos() for n in nuke.allNodes() if n not in nodes] + \
                      [n.ypos() + n.screenHeight() for n in nuke.allNodes()
                       if n not in nodes]
+
+        if len(group_xpos) == 0:
+            group_xpos = [0]
+        if len(group_ypos) == 0:
+            group_ypos = [0]
 
         # calc output left
         if direction in "left":

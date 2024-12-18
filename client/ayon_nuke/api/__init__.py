@@ -14,7 +14,8 @@ from .plugin import (
     NukeWriteCreator,
     NukeCreatorError,
     get_instance_group_node_childs,
-    get_colorspace_from_node
+    get_colorspace_from_node,
+    get_publish_config,
 )
 from .pipeline import (
     NukeHost,
@@ -45,7 +46,7 @@ from .lib import (
     create_write_node,
     link_knobs
 )
-from .utils import (
+from .colorspace import (
     colorspace_exists_on_node,
     get_colorspace_list
 )
@@ -71,6 +72,7 @@ __all__ = (
     "NukeHost",
     "get_instance_group_node_childs",
     "get_colorspace_from_node",
+    "get_publish_config",
 
     "ls",
 

@@ -11,15 +11,41 @@ from .common import (
     ColorspaceConfigurationModel,
 )
 
+def nuke_creator_plugins_enum():
+    return [
+        {"value": "CreateWritePrerender", "label": "Prerender (write)"},
+        {"value": "CreateCamera", "label": "Camera (3d)"},
+        {"value": "CreateGizmo", "label": "Gizmo (group)"},
+        {"value": "CreateWriteImage", "label": "Image (write)"},
+        {"value": "CreateModel", "label": "Model (3d)"},
+        {"value": "CreateBackdrop", "label": "Nukenodes (backdrop)"},
+        {"value": "CreateWriteRender", "label": "Render (write)"},
+        {"value": "CreateSource", "label": "Source (read)"},
+    ]
+
+
+def nuke_node_class_enum():
+    return [
+        {"value": "Write", "label": "Write [Image]"},
+        {"value": "Read", "label": "Read [Image]"},
+        {"value": "Group", "label": "Group [Other]"},
+        {"value": "Camera4", "label": "Camera [3D]"},
+        {"value": "Camera2", "label": "Camera [3D Classic]"},
+        {"value": "Scene", "label": "Scene [3D Classic]"},
+        {"value": "BackdropNode", "label": "Backdrop [Other]"}, 
+    ]
+
 
 class NodesModel(BaseSettingsModel):
     _layout = "expanded"
     plugins: list[str] = SettingsField(
         default_factory=list,
-        title="Used in plugins"
+        title="Used in plugins",
+        enum_resolver=nuke_creator_plugins_enum
     )
     nuke_node_class: str = SettingsField(
         title="Nuke Node Class",
+        enum_resolver=nuke_node_class_enum
     )
 
 
@@ -146,14 +172,23 @@ class ViewProcessModel(BaseSettingsModel):
     display: str = SettingsField(
         "",
         title="Display",
-        description="What display to use",
+        description=(
+            "What display to use. Anatomy context tokens can "
+            "be used to dynamically set the value. And also fallback can "
+            "be defined via ';' (semicolon) separator. \n"
+            "Example: \n'{project[code]} ; ACES'.\n"
+            "Note that we are stripping the spaces around the separator."
+        ),
     )
     view: str = SettingsField(
         "",
         title="View",
         description=(
             "What view to use. Anatomy context tokens can "
-            "be used to dynamically set the value."
+            "be used to dynamically set the value. And also fallback can "
+            "be defined via ';' separator. \nExample: \n"
+            "'{project[code]}_{parent}_{folder[name]} ; sRGB'.\n"
+            "Note that we are stripping the spaces around the separator."
         ),
     )
 
@@ -164,14 +199,23 @@ class MonitorProcessModel(BaseSettingsModel):
     display: str = SettingsField(
         "",
         title="Display",
-        description="What display to use",
+        description=(
+            "What display to use. Anatomy context tokens can "
+            "be used to dynamically set the value. And also fallback can "
+            "be defined via ';' (semicolon) separator. \n"
+            "Example: \n'{project[code]} ; ACES'.\n"
+            "Note that we are stripping the spaces around the separator."
+        ),
     )
     view: str = SettingsField(
         "",
         title="View",
         description=(
             "What view to use. Anatomy context tokens can "
-            "be used to dynamically set the value."
+            "be used to dynamically set the value. And also fallback can "
+            "be defined via ';' separator. \nExample: \n"
+            "'{project[code]}_{parent}_{folder[name]} ; sRGB'.\n"
+            "Note that we are stripping the spaces around the separator."
         ),
     )
 
