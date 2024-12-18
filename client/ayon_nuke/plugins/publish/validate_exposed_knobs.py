@@ -51,7 +51,7 @@ class ValidateExposedKnobs(
     families = ["render", "prerender", "image"]
     label = "Validate Exposed Knobs"
     actions = [RepairExposedKnobs]
-    hosts = ["nuke"]
+    hosts = []
 
     settings_category = "nuke"
 
