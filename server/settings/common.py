@@ -147,15 +147,23 @@ class DisplayAndViewProfileModel(BaseSettingsModel):
     display: str = SettingsField(
         "",
         title="Display",
-        description="What display to use",
+        description=(
+            "What display to use. Anatomy context tokens can "
+            "be used to dynamically set the value. And also fallback can "
+            "be defined via ';' (semicolon) separator. \n"
+            "Example: \n'{project[code]} ; ACES'.\n"
+            "Note that we are stripping the spaces around the separator."
+        ),
     )
-
     view: str = SettingsField(
         "",
         title="View",
         description=(
             "What view to use. Anatomy context tokens can "
-            "be used to dynamically set the value."
+            "be used to dynamically set the value. And also fallback can "
+            "be defined via ';' separator. \nExample: \n"
+            "'{project[code]}_{parent}_{folder[name]} ; sRGB'.\n"
+            "Note that we are stripping the spaces around the separator."
         ),
     )
 

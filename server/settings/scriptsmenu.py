@@ -38,15 +38,15 @@ DEFAULT_SCRIPTSMENU_SETTINGS = {
             "type": "action",
             "sourcetype": "python",
             "title": "Set Frame Start (Read Node)",
-            "command": "from openpype.hosts.nuke.startup.frame_setting_for_read_nodes import main;main();",  # noqa
+            "command": "from ayon_nuke.startup.frame_setting_for_read_nodes import main;main();",  # noqa
             "tooltip": "Set frame start for read node(s)"
         },
         {
             "type": "action",
             "sourcetype": "python",
             "title": "Set non publish output for Write Node",
-            "command": "from openpype.hosts.nuke.startup.custom_write_node import main;main();",  # noqa
-            "tooltip": "Open the OpenPype Nuke user doc page"
+            "command": "from ayon_nuke.startup.custom_write_node import main; main();",  # noqa
+            "tooltip": "Set up write nodes for non-publish"
         }
     ]
 }

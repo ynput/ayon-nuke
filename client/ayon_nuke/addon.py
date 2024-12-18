@@ -45,7 +45,8 @@ class NukeAddon(AYONAddon, IHostAddon):
 
         # Set default values if are not already set via settings
         defaults = {
-            "LOGLEVEL": "DEBUG"
+            "LOGLEVEL": "DEBUG",
+            "AYON_LOG_NO_COLORS": "1",
         }
         for key, value in defaults.items():
             if not env.get(key):
