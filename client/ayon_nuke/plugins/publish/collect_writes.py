@@ -122,15 +122,21 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             return self._frame_ranges[instance_name]
 
         write_node = self._write_node_helper(instance)
-
+        if write_node.name().startswith('inside_'):
+            group_node = nuke.toNode(write_node.name()[7:])
+            self.log.info("Group node: %s" % group_node.name())
+        if group_node.knob('usePublishRange').value() == True:
+            first_frame = int(group_node['publishFirst'].value())
+            last_frame = int(group_node['publishLast'].value())
+            self.log.info(f"first frame: {first_frame}, last frame: {last_frame}")
+            self._frame_ranges[instance_name] = (first_frame, last_frame)
+            self.log.info("Using publish range from write node")
+            return first_frame, last_frame
         # Get frame range from workfile
-        first_frame = int(nuke.root()["first_frame"].getValue())
-        last_frame = int(nuke.root()["last_frame"].getValue())
 
         # Get frame range from write node if activated
-        if write_node["use_limit"].getValue():
-            first_frame = int(write_node["first"].getValue())
-            last_frame = int(write_node["last"].getValue())
+        first_frame = int(write_node["first"].getValue())
+        last_frame = int(write_node["last"].getValue())
 
         # add to cache
         self._frame_ranges[instance_name] = (first_frame, last_frame)
@@ -150,12 +156,20 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         product_type = instance.data["productType"]
 
         # add targeted family to families
-        instance.data["families"].append(
-            "{}.{}".format(product_type, render_target)
-        )
-        self.log.debug("Appending render target to families: {}.{}".format(
-            product_type, render_target)
-        )
+        if render_target == "frames_farm":
+            instance.data["families"].append(
+                "{}.{}".format(product_type, 'frames')
+            )
+            self.log.debug("Hornet - Appending render target to families: {}.frames".format(
+                product_type)
+            )
+        else:
+            instance.data["families"].append(
+                "{}.{}".format(product_type, render_target)
+            )
+            self.log.debug("Appending render target to families: {}.{}".format(
+                product_type, render_target)
+            )
 
         write_node = self._write_node_helper(instance)
 
@@ -353,11 +367,11 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         # make sure rendered sequence on farm will
         # be used for extract review
         if not instance.data.get("review"):
-            instance.data["useSequenceForReview"] = False
+            instance.data["useSequenceForReview"] = True
 
         # Farm rendering
         instance.data.update({
-            "transfer": False,
+            "transfer": True,
             "farm": True  # to skip integrate
         })
         self.log.info("Farm rendering ON ...")

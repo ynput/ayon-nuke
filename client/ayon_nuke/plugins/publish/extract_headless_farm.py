@@ -18,6 +18,7 @@ class ExtractRenderOnFarm(pyblish.api.InstancePlugin):
     settings_category = "nuke"
 
     def process(self, instance):
+        self.log.debug("Processing instance: %s" % instance)
         if not instance.context.data.get("render_on_farm", False):
             return
 

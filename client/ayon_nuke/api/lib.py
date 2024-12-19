@@ -1104,11 +1104,13 @@ def create_write_node(
         product_name=product_name
     )
 
-    for knob in imageio_writes["knobs"]:
-        if knob["name"] == "file_type":
-            knot_type = knob["type"]
-            ext = knob[knot_type]
-
+    if not imageio_writes is None:
+        for knob in imageio_writes["knobs"]:
+            if knob["name"] == "file_type":
+                log.debug(knob)
+                ext = knob["value"] if 'value' in knob.keys() else 'exr'
+    else:
+        ext = 'exr'
     data.update({
         "imageio_writes": imageio_writes,
         "ext": ext
@@ -1159,7 +1161,10 @@ def create_write_node(
         )
         if last_prenode:
             prev_node = last_prenode
-
+        if not imageio_writes:
+            imageio_writes = {}
+        if not 'knobs' in imageio_writes.keys():
+            imageio_writes['knobs'] = {}
         # creating write node
         write_node = now_node = add_write_node(
             "inside_{}".format(name),
@@ -1829,10 +1834,13 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                 if x.Class() == "Write":
                     write_node = x
             node.end()
-
             if not write_node:
                 return
-
+            #if write_node.knob('file_type').value() and len(write_node.knob('file_type').value()) > 1:
+            #    nuke_imageio_writes["knobs"][knob_index]["file_type"] = write_node.knob('file_type').value()
+            #else:
+            #    write_node.knob('file_type').setValue("exr")
+            #    nuke_imageio_writes["knobs"][knob_index]["file_type"] = "exr"
             set_node_knobs_from_settings(
                 write_node, nuke_imageio_writes["knobs"])
 
@@ -1905,13 +1913,13 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             msg = "Set Colorspace to viewer error: {}".format(_error)
             nuke.message(msg)
 
-        log.info("Setting colorspace to write nodes...")
-        try:
-            self.set_writes_colorspace()
-        except AttributeError as _error:
-            nuke.message(_error)
-            log.error(_error)
-
+        #log.info("Setting colorspace to write nodes...")
+        #try:
+        #    self.set_writes_colorspace()
+        #except AttributeError as _error:
+        #    nuke.message(_error)
+        #    log.error(_error)
+        log.info("colorspace on write nodes set by Hornet .. ignoring")
         log.info("Setting colorspace to read nodes...")
         read_clrs_inputs = nuke_colorspace["regex_inputs"].get("inputs", [])
         if read_clrs_inputs:
@@ -2054,9 +2062,9 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
 
     def set_context_settings(self):
         # replace reset resolution from avalon core to pype's
-        self.reset_resolution()
+        #self.reset_resolution()
         # replace reset resolution from avalon core to pype's
-        self.reset_frame_range_handles()
+        #self.reset_frame_range_handles()
         # add colorspace menu item
         self.set_colorspace()
 

@@ -24,7 +24,7 @@ class ValidateOutputResolution(
     optional = True
     families = ["render"]
     label = "Validate Write resolution"
-    hosts = ["nuke"]
+    hosts = []
     actions = [RepairAction]
 
     settings_category = "nuke"
