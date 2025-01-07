@@ -1080,6 +1080,10 @@ def create_write_node(
     Return:
         node (obj): group node with avalon data as Knobs
     '''
+
+    print("test")
+
+        
     # Ensure name does not contain any invalid characters.
     special_chars = re.escape("!@#$%^&*()=[]{}|\\;',.<>/?~+-")
     special_chars_regex = re.compile(f"[{special_chars}]")

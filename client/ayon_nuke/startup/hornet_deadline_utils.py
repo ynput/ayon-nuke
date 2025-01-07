@@ -5,6 +5,7 @@ from ayon_api import get_bundle_settings
 import getpass
 import nuke
 import requests
+import pathlib
 from datetime import datetime
 ## copied from submit_nuke_to_deadline.py
 def GetDeadlineCommand():
@@ -83,6 +84,23 @@ def getNodeSubmissionInfo():
 
 def deadlineNetworkSubmit(dev=False):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    body = build_request(getNodeSubmissionInfo(),timestamp)
+    file_path = body["PluginInfo"]["OutputFilePath"]
+    nuke.tprint(f"File path: {file_path}")
+    
+
+    # create path now to save script into 
+    pathlib.Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+    script_name = pathlib.Path(nuke.root().name()).stem
+    render_dir = pathlib.Path(file_path).parent
+    save_path = str(render_dir / script_name) + ".nk"
+    if(pathlib.Path(save_path).exists()):
+        os.remove(save_path)
+
+    # Save a copy next to render
+    nuke.scriptSaveToTemp(save_path)
+
+    # Create nuke script that render node will access
     if not os.path.exists(os.path.join(os.environ['AYON_WORKDIR'], "submission")):
         os.mkdir(os.path.join(os.environ['AYON_WORKDIR'], "submission"))
     nuke.scriptSaveToTemp("{path}/submission/{name}_{time}.nk".format(path=os.environ['AYON_WORKDIR'],
@@ -104,10 +122,12 @@ def deadlineNetworkSubmit(dev=False):
             deadline_server = deadline_settings['settings']['deadline_urls'][0]['value']
     print(f"Current Deadline Webserver URL: {deadline_server}")
 
-    if os.environ['AYON_PROJECT_NAME'] == 'eden44_bb' or os.environ['AYON_PROJECT_NAME'] == 'rnd02_ayon':
-        deadline_server = "http://192.168.2.77:8081"
     deadline_url = "{}/api/jobs".format(deadline_server)
-    body = build_request(getNodeSubmissionInfo(),timestamp)
+
+    # nuke.tprint("Deadline URL: " + deadline_url)
+
+    # nuke.tprint(body["PluginInfo"]["OutputFilePath"])
+
     response = requests.post(deadline_url, json=body, timeout=10)
     if not response.ok:
         nuke.alert("Failed to submit to Deadline: {}".format(response.text))

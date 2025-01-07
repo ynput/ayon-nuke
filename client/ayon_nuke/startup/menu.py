@@ -26,6 +26,12 @@ knobMatrix = { 'exr': ['autocrop', 'datatype', 'heroview', 'metadata', 'interlea
                 'tiff': ['datatype', 'compression'],
                 'jpeg': []
 }
+
+
+print("running menu.py")
+
+
+
 universalKnobs = ['colorspace', 'views']
 
 knobMatrix = {key: universalKnobs + value for key, value in knobMatrix.items()}
@@ -111,6 +117,7 @@ def switchExtension():
         filek.setValue(pre + '.' + knb.value())
 
 def embedOptions():
+
     nde = nuke.thisNode()
     knb = nuke.thisKnob()
     log.info(' knob of type' + str(knb.Class()))
@@ -228,6 +235,8 @@ def embedOptions():
     group.addKnob(endGroup)
 
 def quick_write_node(family='render'):
+    nuke.tprint("quick write node tprint")
+    print("quick write node print")
     if '/' in os.environ['AYON_FOLDER_PATH']:
         ayon_asset_name = os.environ['AYON_FOLDER_PATH'].split('/')[-1]
     else:
@@ -300,7 +309,7 @@ def enable_publish_range():
         nde.knob('publishLast').setEnabled(False)
 
 hornet_menu = nuke.menu("Nuke")
-m = hornet_menu.addMenu("&Hornet")
+m = hornet_menu.addMenu("&Hornet_harding_tinkering")
 m.addCommand("&Quick Write Node", "quick_write_node()", "Ctrl+W")
 m.addCommand("&Quick PreWrite Node", "quick_write_node(family='prerender')", "Ctrl+Shift+W")
 nuke.addKnobChanged(apply_format_presets, nodeClass='Write')
