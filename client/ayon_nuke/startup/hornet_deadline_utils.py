@@ -89,7 +89,7 @@ def deadlineNetworkSubmit(dev=False):
     nuke.tprint(f"File path: {file_path}")
     
 
-    # create path now to save script into 
+    # create path now (rather than when the first node executes a frame) to save script into 
     pathlib.Path(file_path).parent.mkdir(parents=True, exist_ok=True)
     script_name = pathlib.Path(nuke.root().name()).stem
     render_dir = pathlib.Path(file_path).parent

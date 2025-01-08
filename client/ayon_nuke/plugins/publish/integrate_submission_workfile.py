@@ -17,42 +17,90 @@ class IntegrateSubmissionWorkfile(pyblish.api.InstancePlugin):
     def process(self, instance):
 
 
-        # self.log.info(instance.data)
+        source_path = Path(instance.data["path"])
+        source_dir = source_path.parent
+        publish_format = source_path.suffix[1:]
 
+        # self.log.info(instance.data)
         # self.log.info(instance.data.keys())
 
         reps = instance.data["published_representations"].values()
 
-        for rep in reps:
 
-            self.log.info(rep["transfers"])
 
-            from_files = Path(rep["transfers"][0][0])
-            from_dir = from_files.parent
-            to_files = Path(rep["transfers"][0][1])
-            to_dir = Path(to_files.parent)
+        for rep in [r['representation'] for r in reps]:
 
-            self.get_script(from_dir)
+            if not rep['name'] == publish_format:
+                continue
 
-            from_script = self.get_script(from_dir)
-            to_script = to_dir / Path(str(to_files.stem).split(".")[0] + ".nk")
+            # target_path = Path(rep["published_path"][0])
+            target_path = Path(rep["attrib"]["path"])
+            target_dir = target_path.parent
+            target_scrtipt_file = str(target_path.stem).split(".")[0] + ".nk"
+            target_script_path = target_dir / target_scrtipt_file
+            source_script_path = self.get_script(source_dir)
 
-            self.log.info(from_script)
-            # self.log.info(to_files)
-            self.log.info(to_script)
+            self.log.info(f"source script path: {source_script_path}") 
+            self.log.info(f"target script file: {target_script_path}") 
 
-            shutil.copy2(from_script, to_script)
+
+            try:
+                shutil.copy2(source_script_path, target_script_path)
+            except shutil.Error as e:
+                self.log.error(f'Copy error: {e}')
+            except OSError as e:
+                self(f'OS error: {e}')
+
+            if os.path.exists(target_script_path):
+                self.log.info(f"Script copy succeeded")
+
+
+
+
+
+        # for rep in instance.data.get("representations", []):
+
+        #     to_files = Path(rep["transfers"][0][1])
+        #     to_dir = Path(to_files.parent)
+
+        #     self.get_script(from_dir)
+
+        #     from_script = self.get_script(from_dir)
+        #     to_script = to_dir / Path(str(to_files.stem).split(".")[0] + ".nk")
+
+        #     self.log.info(from_script)
+        #     # self.log.info(to_files)
+        #     self.log.info(to_script)
+
+        #     shutil.copy2(from_script, to_script)
 
     def get_script(self, path):
 
         nuke_scripts = [file for file in path.iterdir() if file.suffix == '.nk']
+        if len(nuke_scripts) == 0:
+            raise ValueError('No nuke scripts found')
+        
+        # for script in nuke_scripts:
+        #     self.log.info(script)
+
         newest_script = max(nuke_scripts, key=os.path.getmtime)
 
         return newest_script
 
 
+        # self.log.info("------")
+        # for key in instance.data.keys():
+        #     self.log.info(key)
 
-        # print(instance.data)
+        # self.log.info("------ representations -------")
+
+        # for rep in instance.data.get("representations", []):
+        #     self.log.info(rep.keys()) 
+
+        self.log.info(instance.data["path"])
+
+
+        
 
         # supported_exts = {'jpg', 'exr', 'hdr', 'raw', 'dpx', 'png', 'jpeg', 'mov', 'mp4', 'tiff', 'tga'}
         # clippable_reps = [
@@ -87,7 +135,3 @@ class IntegrateSubmissionWorkfile(pyblish.api.InstancePlugin):
         #         raise Exception(f'Clip file generation failed for {clip_path_win}')
 
 
-# [
-#     ('P:/projects/ayon/rnd02_ayon/sequences/richk_VDITEST/rkim_010/work/comp/renders/nuke/rendercomp_Main\\rendercomp_Main.0001.exr', 
-#   'P:\\projects\\ayon\\rnd02_ayon\\sequences\\richk_VDITEST\\rkim_010\\publish\\render\\rendercomp_Main\\v010\\rnd02_ayon_rkim_010_rendercomp_Main_v010.exr')
-# ]

@@ -61,6 +61,9 @@ from .utils import get_node_outputs
 
 from .colorspace import get_formatted_display_and_view
 
+import pathlib
+
+
 log = Logger.get_logger(__name__)
 
 MENU_LABEL = os.getenv("AYON_MENU_LABEL") or "AYON"
@@ -945,6 +948,10 @@ def script_name():
     '''
     return nuke.root().knob("name").value()
 
+# submit a local render but also save script like a submission
+# def add_button_render(node):
+
+
 
 def add_button_render_on_farm(node):
     name = "renderOnFarm"
@@ -1080,9 +1087,6 @@ def create_write_node(
     Return:
         node (obj): group node with avalon data as Knobs
     '''
-
-    print("test")
-
         
     # Ensure name does not contain any invalid characters.
     special_chars = re.escape("!@#$%^&*()=[]{}|\\;',.<>/?~+-")
@@ -1176,6 +1180,12 @@ def create_write_node(
             imageio_writes["knobs"],
             **data
         )
+        
+        # add callback after render
+        # write_node['beforeRender'].setValue(
+        #     "save_script_with_render(fpath)"
+        # )
+
         # connect to previous node
         now_node.setInput(0, prev_node)
 
@@ -1252,6 +1262,20 @@ def create_write_node(
         color_gui_to_int(new_tile_color))
 
     return GN
+
+
+# def save_script_with_render(file_path):
+#      # create path now to save script into 
+#     pathlib.Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+#     script_name = pathlib.Path(nuke.root().name()).stem
+#     render_dir = pathlib.Path(file_path).parent
+#     save_path = str(render_dir / script_name) + ".nk"
+#     if(pathlib.Path(save_path).exists()):
+#         os.remove(save_path)
+
+#     # Save a copy next to render
+#     nuke.scriptSaveToTemp(save_path)
+
 
 
 def set_node_knobs_from_settings(node, knob_settings, **kwargs):

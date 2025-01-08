@@ -6,6 +6,7 @@ install_host(host)
 import nuke
 import os
 import json
+import pathlib
 
 from ayon_core.lib import Logger
 from ayon_nuke import api
@@ -234,6 +235,36 @@ def embedOptions():
     endGroup = nuke.Tab_Knob('endpipeline', None, nuke.TABENDGROUP)
     group.addKnob(endGroup)
 
+def save_script_with_local_render():
+    
+    nde = nuke.thisNode()
+    knb = nuke.thisKnob()
+
+    if not knb.name() == 'Render':
+        return
+    
+    if not nuke.toNode('.'.join(['root'] + nde.fullName().split('.')[:-1])).Class() == 'Group':
+        return
+
+    # print("save_script_with_local_render")
+    # nuke.tprint("save_script_with_local_render")
+
+    file_path = nde['file'].getValue()
+
+    nuke.tprint("file_path", file_path)
+
+    pathlib.Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+    script_name = pathlib.Path(nuke.root().name()).stem
+    render_dir = pathlib.Path(file_path).parent
+    save_path = str(render_dir / script_name) + ".nk"
+    if(pathlib.Path(save_path).exists()):
+        os.remove(save_path)
+
+    # Save a copy next to render
+    nuke.scriptSaveToTemp(save_path)
+
+
+
 def quick_write_node(family='render'):
     nuke.tprint("quick write node tprint")
     print("quick write node print")
@@ -320,3 +351,5 @@ nuke.addKnobChanged(enable_disable_frame_range, nodeClass='Write')
 nuke.addOnScriptSave(writes_ver_sync)
 nuke.addOnScriptLoad(WorkfileSettings().set_colorspace)
 nuke.addOnCreate(WorkfileSettings().set_colorspace, nodeClass='Root')
+
+nuke.addKnobChanged(save_script_with_local_render, nodeClass='Write')
