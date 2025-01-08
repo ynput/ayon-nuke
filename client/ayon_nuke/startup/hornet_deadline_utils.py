@@ -5,7 +5,7 @@ from ayon_api import get_bundle_settings
 import getpass
 import nuke
 import requests
-import pathlib
+from pathlib import Path
 from datetime import datetime
 ## copied from submit_nuke_to_deadline.py
 def GetDeadlineCommand():
@@ -87,18 +87,19 @@ def deadlineNetworkSubmit(dev=False):
     body = build_request(getNodeSubmissionInfo(),timestamp)
     file_path = body["PluginInfo"]["OutputFilePath"]
     nuke.tprint(f"File path: {file_path}")
-    
 
-    # create path now (rather than when the first node executes a frame) to save script into 
-    pathlib.Path(file_path).parent.mkdir(parents=True, exist_ok=True)
-    script_name = pathlib.Path(nuke.root().name()).stem
-    render_dir = pathlib.Path(file_path).parent
-    save_path = str(render_dir / script_name) + ".nk"
-    if(pathlib.Path(save_path).exists()):
-        os.remove(save_path)
+    # create path preemptively (rather than when the first node executes a frame) to save script into 
+    # pathlib.Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+    # script_name = pathlib.Path(nuke.root().name()).stem
+    # render_dir = pathlib.Path(file_path).parent
+    # save_path = str(render_dir / script_name) + ".nk"
+    # if(pathlib.Path(save_path).exists()):
+    #     os.remove(save_path)
 
     # Save a copy next to render
-    nuke.scriptSaveToTemp(save_path)
+    # nuke.scriptSaveToTemp(save_path)
+
+    save_script_with_render(Path(file_path))
 
     # Create nuke script that render node will access
     if not os.path.exists(os.path.join(os.environ['AYON_WORKDIR'], "submission")):
@@ -185,3 +186,28 @@ def build_request(knobValues,timestamp):
         value=str(environment[key])
             ) for index, key in enumerate(environment)})
     return body
+
+
+
+    
+def save_script_with_render(node_file_path):
+
+
+    if not isinstance(node_file_path, Path):
+        raise TypeError("supply a Path object, not a string")
+
+    # node_file_path = Path(nde['file'].getValue())
+
+    nuke.tprint("node_file_path", node_file_path)
+
+    node_file_path.parent.mkdir(parents=True, exist_ok=True)
+    script_name = Path(nuke.root().name()).stem
+    render_dir = Path(node_file_path).parent
+    render_name = str(Path(node_file_path.name)).split(".")[0]
+    save_name = script_name + "__" + render_name
+    save_path = str(render_dir / save_name) + ".nk"
+    if(Path(save_path).exists()):
+        os.remove(save_path)
+
+    # Save a copy next to render
+    nuke.scriptSaveToTemp(save_path)

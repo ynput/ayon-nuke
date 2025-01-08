@@ -15,7 +15,6 @@ class CollectWorkfile(pyblish.api.InstancePlugin):
 
     def process(self, instance):  # sourcery skip: avoid-builtin-shadow
 
-        
 
         script_data = instance.context.data["scriptData"]
         current_file = os.path.normpath(nuke.root().name())

@@ -1,12 +1,12 @@
 from ayon_core.pipeline import install_host
 from ayon_nuke.api import NukeHost
-from hornet_deadline_utils import deadlineNetworkSubmit
+from hornet_deadline_utils import deadlineNetworkSubmit, save_script_with_render
 host = NukeHost()
 install_host(host)
 import nuke
 import os
 import json
-import pathlib
+from pathlib import Path
 
 from ayon_core.lib import Logger
 from ayon_nuke import api
@@ -27,9 +27,6 @@ knobMatrix = { 'exr': ['autocrop', 'datatype', 'heroview', 'metadata', 'interlea
                 'tiff': ['datatype', 'compression'],
                 'jpeg': []
 }
-
-
-print("running menu.py")
 
 
 
@@ -235,7 +232,7 @@ def embedOptions():
     endGroup = nuke.Tab_Knob('endpipeline', None, nuke.TABENDGROUP)
     group.addKnob(endGroup)
 
-def save_script_with_local_render():
+def save_script_on_render():
     
     nde = nuke.thisNode()
     knb = nuke.thisKnob()
@@ -243,27 +240,18 @@ def save_script_with_local_render():
     if not knb.name() == 'Render':
         return
     
+    # detect if we're a managed write node (better way?)
+    # check if we're in a group:
     if not nuke.toNode('.'.join(['root'] + nde.fullName().split('.')[:-1])).Class() == 'Group':
         return
+    
+    # check if node name matches naming convention
+    if not nde.name().startswith('inside_'):
+        return
 
-    # print("save_script_with_local_render")
-    # nuke.tprint("save_script_with_local_render")
+    file_path = Path(nde['file'].getValue())
 
-    file_path = nde['file'].getValue()
-
-    nuke.tprint("file_path", file_path)
-
-    pathlib.Path(file_path).parent.mkdir(parents=True, exist_ok=True)
-    script_name = pathlib.Path(nuke.root().name()).stem
-    render_dir = pathlib.Path(file_path).parent
-    save_path = str(render_dir / script_name) + ".nk"
-    if(pathlib.Path(save_path).exists()):
-        os.remove(save_path)
-
-    # Save a copy next to render
-    nuke.scriptSaveToTemp(save_path)
-
-
+    save_script_with_render(file_path)
 
 def quick_write_node(family='render'):
     nuke.tprint("quick write node tprint")
@@ -352,4 +340,4 @@ nuke.addOnScriptSave(writes_ver_sync)
 nuke.addOnScriptLoad(WorkfileSettings().set_colorspace)
 nuke.addOnCreate(WorkfileSettings().set_colorspace, nodeClass='Root')
 
-nuke.addKnobChanged(save_script_with_local_render, nodeClass='Write')
+nuke.addKnobChanged(save_script_on_render, nodeClass='Write')

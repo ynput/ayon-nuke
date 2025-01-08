@@ -3,6 +3,7 @@ import re
 import xml.etree.ElementTree as xmlt
 import pyblish.api
 import shutil
+import nuke
 from pathlib import Path
 
 class IntegrateSubmissionWorkfile(pyblish.api.InstancePlugin):
@@ -24,6 +25,7 @@ class IntegrateSubmissionWorkfile(pyblish.api.InstancePlugin):
         # self.log.info(instance.data)
         # self.log.info(instance.data.keys())
 
+        
         reps = instance.data["published_representations"].values()
 
 
@@ -33,13 +35,24 @@ class IntegrateSubmissionWorkfile(pyblish.api.InstancePlugin):
             if not rep['name'] == publish_format:
                 continue
 
-            # target_path = Path(rep["published_path"][0])
+            source_script_path = self.get_script_path(source_dir)
+
+            if source_script_path == None:
+                self.log.warn("Source script not found - using current script")
+                source_script_path =  current_file = os.path.normpath(nuke.root().name())
+                # self.log.info(f"source_script_path: {source_script_path}")
+                # return
+            
+                # the below code causes nuke to crash
+
+                # self.log.warn("Source script not found - saving current script")
+                # nuke.scriptSaveToTemp(source_script_path)
+
             target_path = Path(rep["attrib"]["path"])
             target_dir = target_path.parent
             target_scrtipt_file = str(target_path.stem).split(".")[0] + ".nk"
             target_script_path = target_dir / target_scrtipt_file
-            source_script_path = self.get_script(source_dir)
-
+            
             self.log.info(f"source script path: {source_script_path}") 
             self.log.info(f"target script file: {target_script_path}") 
 
@@ -55,30 +68,11 @@ class IntegrateSubmissionWorkfile(pyblish.api.InstancePlugin):
                 self.log.info(f"Script copy succeeded")
 
 
-
-
-
-        # for rep in instance.data.get("representations", []):
-
-        #     to_files = Path(rep["transfers"][0][1])
-        #     to_dir = Path(to_files.parent)
-
-        #     self.get_script(from_dir)
-
-        #     from_script = self.get_script(from_dir)
-        #     to_script = to_dir / Path(str(to_files.stem).split(".")[0] + ".nk")
-
-        #     self.log.info(from_script)
-        #     # self.log.info(to_files)
-        #     self.log.info(to_script)
-
-        #     shutil.copy2(from_script, to_script)
-
-    def get_script(self, path):
+    def get_script_path(self, path):
 
         nuke_scripts = [file for file in path.iterdir() if file.suffix == '.nk']
         if len(nuke_scripts) == 0:
-            raise ValueError('No nuke scripts found')
+            return None
         
         # for script in nuke_scripts:
         #     self.log.info(script)

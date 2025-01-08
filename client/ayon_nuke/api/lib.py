@@ -8,6 +8,7 @@ import pathlib
 import platform
 import tempfile
 import contextlib
+import platform
 from collections import OrderedDict
 
 import nuke
@@ -1245,6 +1246,9 @@ def create_write_node(
 
     # adding write to read button
     add_button_clear_rendered(GN, os.path.dirname(fpath))
+
+    # adding navigate to render button
+    # add_button_navigate_to_render(GN, os.path.dirname(fpath))
 
     # set tile color
     tile_color = next(
@@ -2955,3 +2959,23 @@ def link_knobs(knobs, node, group_node):
             "Write node exposed knobs missing:\n\n{}\n\nPlease review"
             " project settings.".format("\n".join(missing_knobs))
         )
+
+def add_button_navigate_to_render(node, path):
+    name = "navigateToRender"
+    label = "Navigate to Render"
+    value = f"open_file_browser({path})"
+    knob = nuke.PyScript_Knob(name, label, value)
+    node.addKnob(knob)
+
+def open_file_browser(path):
+   path = os.path.normpath(path)
+   
+   if not os.path.exists(path):
+       return
+
+   if platform.system() == "Windows":
+       os.startfile(path)
+   elif platform.system() == "Darwin":  # macOS
+       subprocess.run(["open", path])
+   else:  # Linux
+       subprocess.run(["xdg-open", path])
