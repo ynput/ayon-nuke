@@ -291,7 +291,8 @@ class NukeCreator(NewCreator):
         return [
             BoolDef(
                 "use_selection",
-                default=not self.create_context.headless,
+                # default=not self.create_context.headless,
+                default=False, # HPIPE-710 requested to set default to False
                 label="Use selection"
             )
         ]
@@ -448,7 +449,9 @@ class NukeWriteCreator(NukeCreator):
         return EnumDef(
             "render_target",
             items=rendering_targets,
-            label="Render target"
+            label="Render target",
+            default="frames"  # HPIPE-713 Rqequest to set default to "Use existing frames"
+
         )
 
     def create(self, product_name, instance_data, pre_create_data):
@@ -1129,6 +1132,8 @@ class ExporterReviewMov(ExporterReview):
         write_node["file"].setValue(str(self.path))
         write_node["file_type"].setValue(str(self.ext))
         write_node["channels"].setValue(str(self.color_channels))
+        
+
 
         # Knobs `meta_codec` and `mov64_codec` are not available on centos.
         # TODO shouldn't this come from settings on outputs?
@@ -1154,6 +1159,14 @@ class ExporterReviewMov(ExporterReview):
         write_node.setInput(0, self.previous_node)
         self._temp_nodes[product_name].append(write_node)
         self.log.debug(f"Write...   `{self._temp_nodes[product_name]}`")
+
+        # set it to a single view, any view, to avoid breaking on publish
+        self.log.info("SETTING VIEW")
+        write_node["views"].setValue(nuke.views()[0]) 
+        # self.log.info(f"VIEWS ARE  {write_node["views"].value()}")
+
+
+
         # ---------- end nodes creation
 
         # ---------- render or save to nk
@@ -1166,7 +1179,7 @@ class ExporterReviewMov(ExporterReview):
                 "bakeRenderPath": self.path
             })
         else:
-            self.render(write_node.name())
+            self.render(write_node.name()) # modified to only render one view
 
         # ---------- generate representation data
         tags = ["review", "need_thumbnail"]
@@ -1184,6 +1197,9 @@ class ExporterReviewMov(ExporterReview):
         self.log.debug(f"Representation...   `{self.data}`")
 
         self.clean_nodes(product_name)
+
+
+
         nuke.scriptSave()
 
         return self.data

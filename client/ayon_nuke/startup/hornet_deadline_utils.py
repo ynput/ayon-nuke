@@ -74,7 +74,7 @@ def getSubmitterInfo():
 def getNodeSubmissionInfo():
     nde = nuke.thisNode()
     inside_write = nuke.toNode('inside_' + nde.name())
-    relevant_knobs = ['File output','deadlinePool','deadlineGroup','deadlinePriority','deadlineChunkSize']
+    relevant_knobs = ['File output','deadlinePool','deadlineGroup','deadlinePriority','deadlineChunkSize','concurrentTasks']
     relevant_inside_knobs = ['first', 'last']
     all_knobs = nde.allKnobs()
     knob_values = { knb.name(): knb.value() for knb in all_knobs if knb.name() in relevant_knobs }
@@ -88,16 +88,6 @@ def deadlineNetworkSubmit(dev=False):
     file_path = body["PluginInfo"]["OutputFilePath"]
     nuke.tprint(f"File path: {file_path}")
 
-    # create path preemptively (rather than when the first node executes a frame) to save script into 
-    # pathlib.Path(file_path).parent.mkdir(parents=True, exist_ok=True)
-    # script_name = pathlib.Path(nuke.root().name()).stem
-    # render_dir = pathlib.Path(file_path).parent
-    # save_path = str(render_dir / script_name) + ".nk"
-    # if(pathlib.Path(save_path).exists()):
-    #     os.remove(save_path)
-
-    # Save a copy next to render
-    # nuke.scriptSaveToTemp(save_path)
 
     save_script_with_render(Path(file_path))
 
@@ -161,7 +151,8 @@ def build_request(knobValues,timestamp):
                     #"OutputFilename0": str(output_filename_0).replace("\\", "/"),
                     # limiting groups
                     "ChunkSize": int(knobValues.get('deadlineChunkSize',1)) or 1,
-                    "LimitGroups": 'nuke-limit'
+                    "LimitGroups": 'nuke-limit',
+                    "ConcurrentTasks": knobValues['concurrentTasks'] or 1
                 },
                 "PluginInfo": {
                     # Input
@@ -191,12 +182,12 @@ def build_request(knobValues,timestamp):
 
     
 def save_script_with_render(node_file_path):
-
+    '''
+    Back up the script next to the render files
+    '''
 
     if not isinstance(node_file_path, Path):
-        raise TypeError("supply a Path object, not a string")
-
-    # node_file_path = Path(nde['file'].getValue())
+        node_file_path = Path(node_file_path)
 
     nuke.tprint("node_file_path", node_file_path)
 
@@ -211,3 +202,7 @@ def save_script_with_render(node_file_path):
 
     # Save a copy next to render
     nuke.scriptSaveToTemp(save_path)
+    if(Path(save_path).exists()):
+        nuke.tprint("Saved script to {}".format(save_path))
+    else:
+        nuke.tprint("Failed to save script to {}".format(save_path))

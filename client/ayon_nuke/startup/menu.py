@@ -118,7 +118,7 @@ def embedOptions():
 
     nde = nuke.thisNode()
     knb = nuke.thisKnob()
-    log.info(' knob of type' + str(knb.Class()))
+    # log.info(' knob of type' + str(knb.Class()))
     htab = nuke.Tab_Knob('htab','Hornet')
     htab.setName('htab')
     if knb == nde.knob('file_type'):
@@ -197,30 +197,43 @@ def embedOptions():
     sub.setFlag(nuke.STARTLINE)
     clr = nuke.PyScript_Knob('clear', 'Clear Temp Outputs', "import os;fpath = os.path.dirname(nuke.thisNode().knob('File output').value());[os.remove(os.path.join(fpath, f)) for f in os.listdir(fpath)]")
     pub = nuke.PyScript_Knob('publish', 'Publish', "from ayon_core.tools.utils import host_tools;host_tools.show_publisher(tab='Publish')")
-    readfrom_src = "import write_to_read;write_to_read.write_to_read(nuke.thisNode(), allow_relative=False)"
+    readfrom_src = "import read_node_generators;read_node_generators.write_to_read(nuke.thisNode(), allow_relative=False)"
     readfrom = nuke.PyScript_Knob('readfrom', 'Read From Rendered', readfrom_src)
-    link = nuke.Link_Knob('render')
-    link.makeLink(nde.name(), 'Render')
-    link.setName('Render Local')
-    link.setFlag(nuke.STARTLINE)
-    group.addKnob(link)
+    # link = nuke.Link_Knob('render')
+    # link.makeLink(nde.name(), 'Render')
+    # link.setName('Render Local')
+    # link.setFlag(nuke.STARTLINE)
+    render_local_button = nuke.PyScript_Knob('renderlocal', 
+                                             'Render Local', 
+                                             "nuke.toNode(f'inside_{nuke.thisNode().name()}').knob('Render').execute();save_script_with_render(nuke.thisNode()['File output'].getValue())")    
+    group.addKnob(render_local_button)
+    # group.addKnob(link)
 
     div = nuke.Text_Knob('div','','')
     deadlinediv = nuke.Text_Knob('deadlinediv','Deadline','')
     deadlinePriority = nuke.Int_Knob('deadlinePriority', 'Priority')
+    deadlineChunkSize = nuke.Int_Knob('deadlineChunkSize', 'Chunk Size')
+    concurrentTasks = nuke.Int_Knob('concurrentTasks', 'Concurrent Tasks')
     deadlinePool = nuke.String_Knob('deadlinePool', 'Pool')
     deadlineGroup = nuke.String_Knob('deadlineGroup', 'Group')
-    deadlineChunkSize = nuke.Int_Knob('deadlineChunkSize', 'Chunk Size')
+    
     deadlineChunkSize.setValue(1)
+    concurrentTasks.setValue(1)
     deadlinePool.setValue('local')
     deadlineGroup.setValue('nuke')
     deadlinePriority.setValue(90)
-    deadlineChunkSize.clearFlag(nuke.STARTLINE)
+    
+    deadlinePriority.setFlag(nuke.STARTLINE)
+    deadlineChunkSize.clearFlag(nuke.STARTLINE)  # Don't start a new line
+    concurrentTasks.clearFlag(nuke.STARTLINE)
+    
     group.addKnob(readfrom)
     group.addKnob(clr)
     group.addKnob(deadlinediv)
+    
     group.addKnob(deadlinePriority)
     group.addKnob(deadlineChunkSize)
+    group.addKnob(concurrentTasks)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
     group.addKnob(deadlinePool)
     group.addKnob(deadlineGroup)
     group.addKnob(sub)
@@ -232,30 +245,17 @@ def embedOptions():
     endGroup = nuke.Tab_Knob('endpipeline', None, nuke.TABENDGROUP)
     group.addKnob(endGroup)
 
-def save_script_on_render():
-    
-    nde = nuke.thisNode()
-    knb = nuke.thisKnob()
-
-    if not knb.name() == 'Render':
-        return
-    
-    # detect if we're a managed write node (better way?)
-    # check if we're in a group:
-    if not nuke.toNode('.'.join(['root'] + nde.fullName().split('.')[:-1])).Class() == 'Group':
-        return
-    
-    # check if node name matches naming convention
-    if not nde.name().startswith('inside_'):
-        return
-
-    file_path = Path(nde['file'].getValue())
-
-    save_script_with_render(file_path)
 
 def quick_write_node(family='render'):
-    nuke.tprint("quick write node tprint")
-    print("quick write node print")
+
+    variant = nuke.getInput('Variant for Quick Write Node','Main').title()
+    _quick_write_node(variant, family)
+
+def _quick_write_node(variant, family='render'):
+
+    print("quick write node")
+    nuke.tprint('quick write node')
+
     if '/' in os.environ['AYON_FOLDER_PATH']:
         ayon_asset_name = os.environ['AYON_FOLDER_PATH'].split('/')[-1]
     else:
@@ -264,7 +264,7 @@ def quick_write_node(family='render'):
     if any(var is None or var == '' for var in [os.environ['AYON_TASK_NAME'],ayon_asset_name]):
         nuke.alert("missing AYON_TASK_NAME and AYON_FOLDER_PATH, can't make quick write")
 
-    variant = nuke.getInput('Variant for Quick Write Node','Main').title()
+    # variant = nuke.getInput('Variant for Quick Write Node','Main').title()
     variant = '_' + variant if variant[0] != '_' else variant
     if variant == '_' or variant == None or variant == '':
         nuke.message('No Variant Specified, will not create Write Node')
@@ -301,6 +301,8 @@ def quick_write_node(family='render'):
     with qnode.begin():
         inside_write = nuke.toNode('inside_'+ family + os.environ['AYON_TASK_NAME'] + variant.title())
         inside_write.knob('file_type').setValue('exr')
+
+    return qnode
 def enable_disable_frame_range():
     nde = nuke.thisNode()
     knb = nuke.thisKnob()
@@ -327,6 +329,28 @@ def enable_publish_range():
         nde.knob('publishFirst').setEnabled(False)
         nde.knob('publishLast').setEnabled(False)
 
+def assemble_publish_path(write_node_file, environ):
+
+    work_dir = Path(environ['AYON_WORKDIR'])
+    shot_path = Path(work_dir.parts[0]).joinpath(*work_dir.parts[1:7])
+    render_name = Path(Path(write_node_file).parts[11])
+    publish_path = shot_path / Path("publish") / Path("render") / render_name
+    subdirs = [d.name for d in publish_path.iterdir() if d.is_dir()]
+
+    if len(subdirs) == 0:
+        return
+    
+    version = Path(sorted(subdirs)[-1])
+    publish_path /= version
+    return publish_path
+
+# def read_from_publish():
+#     nde = nuke.thisNode()
+#     f = nde['File output'].getValue()
+#     publish_path = assemble_publish_path(f, os.environ)
+#     w = nuke.nodes.Write()
+#     return str(publish_path)
+
 hornet_menu = nuke.menu("Nuke")
 m = hornet_menu.addMenu("&Hornet_harding_tinkering")
 m.addCommand("&Quick Write Node", "quick_write_node()", "Ctrl+W")
@@ -340,4 +364,5 @@ nuke.addOnScriptSave(writes_ver_sync)
 nuke.addOnScriptLoad(WorkfileSettings().set_colorspace)
 nuke.addOnCreate(WorkfileSettings().set_colorspace, nodeClass='Root')
 
-nuke.addKnobChanged(save_script_on_render, nodeClass='Write')
+# nuke.addKnobChanged(save_script_on_render, nodeClass='Write')
+

@@ -29,6 +29,11 @@ class ExtractReviewIntermediates(publish.Extractor):
     outputs = {}
 
     def process(self, instance):
+
+        self.log.info(f"PLUGIN LOCATION: {plugin.__file__}")
+        # return
+
+
         # TODO 'families' should not be included for filtering of outputs
         families = set(instance.data["families"])
 
@@ -108,6 +113,9 @@ class ExtractReviewIntermediates(publish.Extractor):
                     instance.data["bakePresets"] = {}
                 # add preset to bakePresets
                 instance.data["bakePresets"][o_name] = o_data
+
+                self.log.info(f"PLUGIN LOCATION: {plugin.__file__}")
+
 
                 # create exporter instance
                 exporter = plugin.ExporterReviewMov(
