@@ -2,6 +2,8 @@ import re
 import os
 import glob
 import nuke
+import json
+from pathlib import Path
 from ayon_core.lib import Logger
 log = Logger.get_logger(__name__)
 
@@ -84,6 +86,10 @@ def evaluate_filepath_new(
 
 
 def create_read_node(ndata, comp_start):
+
+    nuke.tprint(ndata['filepath'])
+    print(ndata['filepath'])
+
     read = nuke.createNode('Read', 'file "' + ndata['filepath'] + '"')
     read.knob('colorspace').setValue(int(ndata['colorspace']))
     read.knob('raw').setValue(ndata['rawdata'])
@@ -149,3 +155,108 @@ def write_to_read(gn,
     for oneread in group_read_nodes:
         # create read node
         create_read_node(oneread, comp_start)
+
+
+def slice_path(path, start, end):
+
+    # return a re-joined path from a slice of path parts
+
+    path = Path(path)
+    return Path(path.parts[start]).joinpath(*path.parts[start+1: end])
+
+
+
+def get_publish_instance_data(write_node):
+    
+    # parse the json data from the write node
+
+    return json.loads(write_node['publish_instance'].value().replace("JSON:::", ""))
+
+
+
+
+
+
+
+def assemble_publish_path(ayon_write_node):
+        
+
+    data = get_publish_instance_data(ayon_write_node)
+    
+    project_root = Path(os.environ['AYON_PROJECT_ROOT_WORK'])
+    project_name = Path(os.environ['AYON_PROJECT_NAME'])
+    shot_path = Path(data['folderPath'].lstrip("/"))
+    shot = Path(shot_path.parts[-1])
+    product_type = Path(data['productType'])
+    name = Path(data['productName'])
+    publish_path = project_root / project_name / shot_path / Path("publish") / product_type / name
+    
+    
+    # nuke.tprint(publish_path)
+    
+    if not (publish_path.is_dir()):
+        log.error("Path not found, has it been rendered and published?")
+        return
+    
+    try:
+        newest = Path(sorted([d.name for d in publish_path.iterdir() if d.is_dir()])[-1])
+    except IndexError:
+        log.error("No versions, has it been published?")
+        return
+    except Exception as e:
+        log.error(f"Unexpected error: {e}")
+        return
+    
+    publish_path /= newest
+    
+    extension = ayon_write_node['file_type'].value()
+    first_frame = int(ayon_write_node['Render Start'].getValue())
+    last_frame = int(ayon_write_node['Render End'].getValue())
+    pad_count = len(str(last_frame))
+    
+    file_name = f"{project_name}_{shot}_{name}_{str(newest)}.{'#'*pad_count}.{extension} {first_frame}-{last_frame}"
+    
+    
+    publish_path /= file_name
+    
+    return str(publish_path)
+
+
+def read_from_publish(ayon_write_node):
+
+    # print(ayon_write_node)
+    # nuke.tprint(ayon_write_node)
+
+    if(ayon_write_node) is None:
+        log.error("ayon_write_node is None")
+        nuke.tprint("ayon_write_node is None")
+
+    with nuke.toNode("root"):
+
+        t = assemble_publish_path(ayon_write_node)
+
+        if(t) is None:
+            # log.error("publish path could not be found")
+            # nuke.tprint("t is None")
+            return
+
+    
+
+        read_node = nuke.nodes.Read()
+        # read_node = nuke.createNode("Read")
+        # nuke.tprint("b")
+        read_node['file'].fromUserText(t)
+        # nuke.tprint("c")
+        read_node.setXYpos(
+                        int(ayon_write_node['xpos'].getValue()),
+                        int(ayon_write_node['ypos'].getValue())+ 60,
+                        )
+        # nuke.tprint("d")
+
+
+
+def get_publish_instance_data(write_node):
+    
+    # parse the json data from the write node
+
+    return json.loads(write_node['publish_instance'].value().replace("JSON:::", ""))

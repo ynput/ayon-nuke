@@ -1,6 +1,7 @@
 from ayon_core.pipeline import install_host
 from ayon_nuke.api import NukeHost
 from hornet_deadline_utils import deadlineNetworkSubmit, save_script_with_render
+import read_node_generators
 host = NukeHost()
 install_host(host)
 import nuke
@@ -196,7 +197,7 @@ def embedOptions():
     sub = nuke.PyScript_Knob('submit', 'Submit to Deadline', "deadlineNetworkSubmit()")
     sub.setFlag(nuke.STARTLINE)
     clr = nuke.PyScript_Knob('clear', 'Clear Temp Outputs', "import os;fpath = os.path.dirname(nuke.thisNode().knob('File output').value());[os.remove(os.path.join(fpath, f)) for f in os.listdir(fpath)]")
-    pub = nuke.PyScript_Knob('publish', 'Publish', "from ayon_core.tools.utils import host_tools;host_tools.show_publisher(tab='Publish')")
+    publish_button = nuke.PyScript_Knob('publish', 'Publish', "from ayon_core.tools.utils import host_tools;host_tools.show_publisher(tab='Publish')")
     readfrom_src = "import read_node_generators;read_node_generators.write_to_read(nuke.thisNode(), allow_relative=False)"
     readfrom = nuke.PyScript_Knob('readfrom', 'Read From Rendered', readfrom_src)
     # link = nuke.Link_Knob('render')
@@ -216,6 +217,8 @@ def embedOptions():
     concurrentTasks = nuke.Int_Knob('concurrentTasks', 'Concurrent Tasks')
     deadlinePool = nuke.String_Knob('deadlinePool', 'Pool')
     deadlineGroup = nuke.String_Knob('deadlineGroup', 'Group')
+
+    read_from_publish_button = nuke.PyScript_Knob('readfrompublish', 'Read From Publish', "read_node_generators.read_from_publish(nuke.thisNode())")
     
     deadlineChunkSize.setValue(1)
     concurrentTasks.setValue(1)
@@ -238,7 +241,8 @@ def embedOptions():
     group.addKnob(deadlineGroup)
     group.addKnob(sub)
     group.addKnob(div)
-    group.addKnob(pub)
+    group.addKnob(publish_button)
+    group.addKnob(read_from_publish_button)
     tempwarn = nuke.Text_Knob('tempwarn', '', '- all rendered files are TEMPORARY and WILL BE OVERWRITTEN unless published ')
     group.addKnob(tempwarn)
 
@@ -329,27 +333,7 @@ def enable_publish_range():
         nde.knob('publishFirst').setEnabled(False)
         nde.knob('publishLast').setEnabled(False)
 
-def assemble_publish_path(write_node_file, environ):
 
-    work_dir = Path(environ['AYON_WORKDIR'])
-    shot_path = Path(work_dir.parts[0]).joinpath(*work_dir.parts[1:7])
-    render_name = Path(Path(write_node_file).parts[11])
-    publish_path = shot_path / Path("publish") / Path("render") / render_name
-    subdirs = [d.name for d in publish_path.iterdir() if d.is_dir()]
-
-    if len(subdirs) == 0:
-        return
-    
-    version = Path(sorted(subdirs)[-1])
-    publish_path /= version
-    return publish_path
-
-# def read_from_publish():
-#     nde = nuke.thisNode()
-#     f = nde['File output'].getValue()
-#     publish_path = assemble_publish_path(f, os.environ)
-#     w = nuke.nodes.Write()
-#     return str(publish_path)
 
 hornet_menu = nuke.menu("Nuke")
 m = hornet_menu.addMenu("&Hornet_harding_tinkering")
@@ -365,4 +349,7 @@ nuke.addOnScriptLoad(WorkfileSettings().set_colorspace)
 nuke.addOnCreate(WorkfileSettings().set_colorspace, nodeClass='Root')
 
 # nuke.addKnobChanged(save_script_on_render, nodeClass='Write')
+
+
+
 
