@@ -58,10 +58,14 @@ class CollectInstanceData(pyblish.api.InstancePlugin):
         staging_dir_persistent = instance.data["transientData"].get(
             "stagingDir_persistent", False
         )
+        staging_dir_is_custom = instance.data["transientData"].get(
+            "stagingDir_is_custom", False
+        )
         if staging_dir:
             instance.data.update({
                 "stagingDir": staging_dir,
-                "stagingDir_persistent": staging_dir_persistent
+                "stagingDir_persistent": staging_dir_persistent,
+                "stagingDir_is_custom": staging_dir_is_custom,
             })
 
         self.log.debug("Collected instance: {}".format(
