@@ -6,6 +6,6 @@ client_dir = "ayon_nuke"
 
 ayon_server_version = ">=1.1.2"
 ayon_required_addons = {
-    "core": ">=1.0.12",
+    "core": ">=1.0.13",
 }
 ayon_compatible_addons = {}
