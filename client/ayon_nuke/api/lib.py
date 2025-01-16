@@ -1181,11 +1181,9 @@ def create_write_node(
             imageio_writes["knobs"],
             **data
         )
-        
-        # add callback after render
-        # write_node['beforeRender'].setValue(
-        #     "save_script_with_render(fpath)"
-        # )
+
+        nuke.tprint(type(write_node))
+        nuke.tprint(write_node.Class())
 
         # connect to previous node
         now_node.setInput(0, prev_node)
@@ -1264,6 +1262,8 @@ def create_write_node(
         new_tile_color.append(c)
     GN["tile_color"].setValue(
         color_gui_to_int(new_tile_color))
+
+
 
     return GN
 

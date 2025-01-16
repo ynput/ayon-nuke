@@ -224,9 +224,6 @@ def assemble_publish_path(ayon_write_node):
 
 def read_from_publish(ayon_write_node):
 
-    # print(ayon_write_node)
-    # nuke.tprint(ayon_write_node)
-
     if(ayon_write_node) is None:
         log.error("ayon_write_node is None")
         nuke.tprint("ayon_write_node is None")
@@ -236,22 +233,18 @@ def read_from_publish(ayon_write_node):
         t = assemble_publish_path(ayon_write_node)
 
         if(t) is None:
-            # log.error("publish path could not be found")
-            # nuke.tprint("t is None")
             return
 
     
 
         read_node = nuke.nodes.Read()
-        # read_node = nuke.createNode("Read")
-        # nuke.tprint("b")
         read_node['file'].fromUserText(t)
-        # nuke.tprint("c")
+
         read_node.setXYpos(
                         int(ayon_write_node['xpos'].getValue()),
                         int(ayon_write_node['ypos'].getValue())+ 60,
                         )
-        # nuke.tprint("d")
+
 
 
 

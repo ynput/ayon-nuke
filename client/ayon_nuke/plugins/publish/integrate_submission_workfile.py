@@ -17,17 +17,11 @@ class IntegrateSubmissionWorkfile(pyblish.api.InstancePlugin):
 
     def process(self, instance):
 
-
         source_path = Path(instance.data["path"])
         source_dir = source_path.parent
         publish_format = source_path.suffix[1:]
 
-        # self.log.info(instance.data)
-        # self.log.info(instance.data.keys())
-
-        
         reps = instance.data["published_representations"].values()
-
 
 
         for rep in [r['representation'] for r in reps]:
@@ -35,18 +29,14 @@ class IntegrateSubmissionWorkfile(pyblish.api.InstancePlugin):
             if not rep['name'] == publish_format:
                 continue
 
+            
+            # Save the latest script in the source dir along with the publish
+            
             source_script_path = self.get_script_path(source_dir)
 
-            if source_script_path == None:
+            if source_script_path is None:
                 self.log.warn("Source script not found - using current script")
                 source_script_path =  current_file = os.path.normpath(nuke.root().name())
-                # self.log.info(f"source_script_path: {source_script_path}")
-                # return
-            
-                # the below code causes nuke to crash
-
-                # self.log.warn("Source script not found - saving current script")
-                # nuke.scriptSaveToTemp(source_script_path)
 
             target_path = Path(rep["attrib"]["path"])
             target_dir = target_path.parent
@@ -55,7 +45,6 @@ class IntegrateSubmissionWorkfile(pyblish.api.InstancePlugin):
             
             self.log.info(f"source script path: {source_script_path}") 
             self.log.info(f"target script file: {target_script_path}") 
-
 
             try:
                 shutil.copy2(source_script_path, target_script_path)

@@ -193,7 +193,6 @@ def embedOptions():
     group.addKnob(renderLast)
     group.addKnob(publishLast)
     group.addKnob(usePublishRange)
-
     sub = nuke.PyScript_Knob('submit', 'Submit to Deadline', "deadlineNetworkSubmit()")
     sub.setFlag(nuke.STARTLINE)
     clr = nuke.PyScript_Knob('clear', 'Clear Temp Outputs', "import os;fpath = os.path.dirname(nuke.thisNode().knob('File output').value());[os.remove(os.path.join(fpath, f)) for f in os.listdir(fpath)]")
@@ -255,7 +254,10 @@ def quick_write_node(family='render'):
     variant = nuke.getInput('Variant for Quick Write Node','Main').title()
     _quick_write_node(variant, family)
 
+
 def _quick_write_node(variant, family='render'):
+
+    variant = variant.title()
 
     print("quick write node")
     nuke.tprint('quick write node')
@@ -305,6 +307,8 @@ def _quick_write_node(variant, family='render'):
     with qnode.begin():
         inside_write = nuke.toNode('inside_'+ family + os.environ['AYON_TASK_NAME'] + variant.title())
         inside_write.knob('file_type').setValue('exr')
+
+    
 
     return qnode
 def enable_disable_frame_range():
@@ -360,11 +364,12 @@ toolbar = nuke.toolbar("Nodes")
 toolbar.addCommand("Alex Dev / View Manager", "show_view_manager()")
 
 
+
 # Project Gizmos
 
 PROJECT_NAME = os.environ["AYON_PROJECT_NAME"]
 
-from gizmo_manager import NodeLoader
+from node_manager import NodeLoader
 nodes_toolbar = nuke.toolbar("Nodes")
 project_toolbar = nodes_toolbar.addMenu(PROJECT_NAME)
 

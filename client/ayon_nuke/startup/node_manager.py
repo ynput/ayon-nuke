@@ -3,14 +3,8 @@ import nuke
 import os
 
 
-# ROOT = Path(__file__).parent
-
 PROJECT_NAME = os.environ["AYON_PROJECT_NAME"]
-
 PROJECT_FOLDER = Path(os.environ['AYON_PROJECT_ROOT_WORK'] + "/" + os.environ['AYON_PROJECT_NAME'])
-NODES_FOLDER = PROJECT_FOLDER / "assets/nuke_nodes/groups"
-TOOLSETS_FOLDER = PROJECT_FOLDER / "assets/nuke_nodes/toolsets"
-
 
 class NodeHolder:
     def __init__(self, path):
@@ -26,8 +20,15 @@ class NodeHolder:
 class NodeLoader:
 
     def __init__(self):
-        self.node_dir = NODES_FOLDER
-        self.toolset_dir = TOOLSETS_FOLDER
+        self.node_dir = PROJECT_FOLDER / "assets/nuke_nodes/groups"
+        self.toolset_dir =  PROJECT_FOLDER / "assets/nuke_nodes/toolsets"
+
+        if not self.node_dir.exists():
+            self.node_dir.mkdir(parents=True, exist_ok=True)
+
+        if not self.toolset_dir.exists():
+            self.toolset_dir.mkdir(parents=True, exist_ok=True)
+
         self.active_nodes = {}
         self.active_toolsets = {}
         self.project_name = PROJECT_NAME
@@ -37,6 +38,7 @@ class NodeLoader:
         self.node_toolbar = self.root_tb.addMenu(self.node_menu_name)
         self.toolset_toolbar = self.root_tb.addMenu(self.toolset_menu_name)
         self.populate()
+
 
     @property 
     def node_location(self):
@@ -162,14 +164,3 @@ class NodeLoader:
         nuke.selectAll()
         nuke.invertSelection()
         node['selected'].setValue(True)
-
-
-
-# nodes_toolbar = nuke.toolbar("Nodes")
-# project_toolbar = nodes_toolbar.addMenu(PROJECT_NAME)
-
-# node_loader = NodeLoader()
-
-# project_toolbar.addCommand(name="Add Selected Nodes", command="node_loader.add_selected_nodes()")
-# project_toolbar.addCommand(name="Add Toolset", command="node_loader.add_toolset()")
-# project_toolbar.addCommand(name="Reload", command="node_loader.populate()")
