@@ -972,7 +972,7 @@ def add_button_clear_rendered(node, path):
     name = "clearRendered"
     label = "Clear Rendered"
     value = "import clear_rendered;\
-        clear_rendered.clear_rendered(\"{}\")".format(path)
+        clear_rendered.clear_rendered('{}')".format(path)
     knob = nuke.PyScript_Knob(name, label, value)
     node.addKnob(knob)
 
