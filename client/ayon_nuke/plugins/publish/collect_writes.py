@@ -55,8 +55,18 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             self._set_expected_files(instance, collected_frames)
 
             self._add_farm_instance_data(instance)
+        else:
+            # change write path only if not reusing existing files
+            if instance.data.get("stagingDir"):
+                write_file_path = nuke.filename(write_node)
+                write_file_name = os.path.basename(write_file_path)
+                new_write_file_path = (
+                    os.path.join(instance.data["stagingDir"], write_file_name))
 
-        elif render_target == "farm":
+                new_write_file_path = new_write_file_path.replace("\\", "/")
+                write_node["file"].setValue(new_write_file_path)
+
+        if render_target == "farm":
             self._add_farm_instance_data(instance)
 
         # set additional instance data
