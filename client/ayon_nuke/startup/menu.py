@@ -447,7 +447,7 @@ def enable_publish_range():
 
 
 hornet_menu = nuke.menu("Nuke")
-m = hornet_menu.addMenu("&Hornet_harding_tinkering")
+m = hornet_menu.addMenu("&Hornet")
 m.addCommand("&Quick Write Node", "quick_write_node()", "Ctrl+W")
 m.addCommand(
     "&Quick PreWrite Node",
@@ -466,7 +466,7 @@ nuke.addOnCreate(WorkfileSettings().set_colorspace, nodeClass="Root")
 # nuke.addKnobChanged(save_script_on_render, nodeClass='Write')
 
 
-# View Manager
+### View Manager
 
 from view_manager import show as show_view_manager
 
@@ -474,7 +474,7 @@ toolbar = nuke.toolbar("Nodes")
 toolbar.addCommand("Alex Dev / View Manager", "show_view_manager()")
 
 
-# Project Gizmos
+### Project Gizmos
 
 PROJECT_NAME = os.environ["AYON_PROJECT_NAME"]
 

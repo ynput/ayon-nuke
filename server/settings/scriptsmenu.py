@@ -25,7 +25,7 @@ class ScriptsmenuSettings(BaseSettingsModel):
 
 
 DEFAULT_SCRIPTSMENU_SETTINGS = {
-    "name": "Custom Tools",
+    "name": "AYON Tools",
     "definition": [
         {
             "type": "action",

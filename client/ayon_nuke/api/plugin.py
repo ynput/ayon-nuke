@@ -437,13 +437,13 @@ class NukeWriteCreator(NukeCreator):
 
     def _get_render_target_enum(self):
         rendering_targets = {
-            "local": "Local machine rendering",
+            # "local": "Local machine rendering", # HPIPE-713 Rqequest to remove unused options
             "frames": "Use existing frames"
         }
         if "farm_rendering" in self.instance_attributes:
             rendering_targets.update({
                 "frames_farm": "Use existing frames - farm",
-                "farm": "Farm rendering",
+                # "farm": "Farm rendering", # HPIPE-713 Rqequest to remove unused options
             })
 
         return EnumDef(
@@ -451,7 +451,6 @@ class NukeWriteCreator(NukeCreator):
             items=rendering_targets,
             label="Render target",
             default="frames"  # HPIPE-713 Rqequest to set default to "Use existing frames"
-
         )
 
     def create(self, product_name, instance_data, pre_create_data):
@@ -1110,6 +1109,7 @@ class ExporterReviewMov(ExporterReview):
                         )
                     node = nuke.createNode("OCIOColorSpace")
                     message = "OCIOColorSpace...   '{}'"
+                    
                     # no need to set input colorspace since it is driven by
                     # working colorspace
                     node["out_colorspace"].setValue(baking_colorspace)

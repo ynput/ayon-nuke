@@ -61,6 +61,9 @@ class IntegrateSubmissionWorkfile(pyblish.api.InstancePlugin):
 
         path = Path(path)/"scripts"
 
+        if not path.exists():
+            return None
+
         nuke_scripts = [file for file in path.iterdir() if file.suffix == '.nk']
         if len(nuke_scripts) == 0:
             return None

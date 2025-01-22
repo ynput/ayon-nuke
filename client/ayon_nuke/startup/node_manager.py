@@ -5,6 +5,7 @@ import os
 
 PROJECT_NAME = os.environ["AYON_PROJECT_NAME"]
 PROJECT_FOLDER = Path(os.environ['AYON_PROJECT_ROOT_WORK'] + "/" + os.environ['AYON_PROJECT_NAME'])
+NODE_SUBPATH = Path("assets/nuke_nodes")
 
 class NodeHolder:
     def __init__(self, path):
@@ -20,8 +21,8 @@ class NodeHolder:
 class NodeLoader:
 
     def __init__(self):
-        self.node_dir = PROJECT_FOLDER / "assets/nuke_nodes/groups"
-        self.toolset_dir =  PROJECT_FOLDER / "assets/nuke_nodes/toolsets"
+        self.node_dir = PROJECT_FOLDER / NODE_SUBPATH / "nodes"
+        self.toolset_dir =  PROJECT_FOLDER / NODE_SUBPATH / "toolsets"
 
         if not self.node_dir.exists():
             self.node_dir.mkdir(parents=True, exist_ok=True)
@@ -49,11 +50,25 @@ class NodeLoader:
     
     def add_selected_nodes(self):
         nodes = nuke.selectedNodes()
- 
         gizmo_attempted = False
 
+
+        if len(nodes) > 1:
+            print("multiple nodes selected")
+            connection = False
+            for n in nodes:
+                if list(set(nodes) & set(n.dependencies())):
+                    connection = True
+
+
+            if connection:
+                if nuke.ask("Looks like it could be a toolset. Add as toolset?\nOtherwise, each selected node will be added separately."):
+                    self.add_toolset()
+                    return
+
+
         for node in nodes:
-            self._select_only(node)
+            self._select_only_this(node)
             if(node.Class() == "Gizmo"):
                 gizmo_attempted = True
                 continue
@@ -61,7 +76,7 @@ class NodeLoader:
             nuke.nodeCopy(str(path))
         
         if(gizmo_attempted):
-            nuke.message("Gizmos not currently supported, use groups or nodes")
+            nuke.message("Gizmos are not currently supported, use groups or nodes")
 
         self.populate()
 
@@ -79,7 +94,6 @@ class NodeLoader:
 
     def populate(self):
 
-        
         ### Nodes
 
         # remove existing menu items
@@ -97,7 +111,7 @@ class NodeLoader:
 
         # add new menu items
         for node_name, group_holder in self.active_nodes.items():
-            self._add_node_to_menu(name=node_name, command=group_holder.paste)
+            self._add_node_to_menu(name=f"{PROJECT_NAME}__{node_name}", command=group_holder.paste)
 
 
         ### Toolsets
@@ -116,7 +130,7 @@ class NodeLoader:
 
         # add new menu items
         for toolset_name, toolset_holder in self.active_toolsets.items():
-            self._add_toolset_to_menu(name=toolset_name, command=toolset_holder.paste)
+            self._add_toolset_to_menu(name=f"{PROJECT_NAME}__{toolset_name}", command=toolset_holder.paste)
                 
 
     def _remove_node_from_menu(self, name):
@@ -158,9 +172,18 @@ class NodeLoader:
         self.toolset_toolbar.addCommand(name=name, command=command)
 
 
+    @property
+    def node_path(self):
+        return str(self.node_dir)
+    
+    @property
+    def toolset_path(self):
+        return str(self.toolset_dir)
+
+
     # def _create_node_menu(self):
 
-    def _select_only(self, node):
+    def _select_only_this(self, node):
         nuke.selectAll()
         nuke.invertSelection()
         node['selected'].setValue(True)
