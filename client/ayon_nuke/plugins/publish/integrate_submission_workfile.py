@@ -59,62 +59,12 @@ class IntegrateSubmissionWorkfile(pyblish.api.InstancePlugin):
 
     def get_script_path(self, path):
 
+        path = Path(path)/"scripts"
+
         nuke_scripts = [file for file in path.iterdir() if file.suffix == '.nk']
         if len(nuke_scripts) == 0:
             return None
-        
-        # for script in nuke_scripts:
-        #     self.log.info(script)
 
         newest_script = max(nuke_scripts, key=os.path.getmtime)
 
         return newest_script
-
-
-        # self.log.info("------")
-        # for key in instance.data.keys():
-        #     self.log.info(key)
-
-        # self.log.info("------ representations -------")
-
-        # for rep in instance.data.get("representations", []):
-        #     self.log.info(rep.keys()) 
-
-        self.log.info(instance.data["path"])
-
-
-        
-
-        # supported_exts = {'jpg', 'exr', 'hdr', 'raw', 'dpx', 'png', 'jpeg', 'mov', 'mp4', 'tiff', 'tga'}
-        # clippable_reps = [
-        #     rep for rep in instance.data.get("representations", [])
-        #     if rep.get('ext') in supported_exts and 'published_path' in rep
-        # ]
-        # if len(clippable_reps) < 1:
-        #     self.log.warning('No media to make openclip from')
-        #     return
-        # workf = os.path.join(instance.data['publishDir'],'..')
-        # os.makedirs(workf, exist_ok=True)
-        # posix_base = workf.replace('P:\\', '/Volumes/production/').replace('D:\\', '/Volumes/production/').replace('V:\\', '/Volumes/vfxprod/').replace('\\', '/')
-
-        # for rep in clippable_reps:
-        #     if 'published_path' not in rep.keys() or rep['ext'] not in supported_exts:
-        #         continue
-        #     ext = rep['ext']
-        #     pattern = rep['published_path']
-        #     patternNoExt = os.path.splitext(pattern)[0]
-        #     patternStripped = re.sub(r'[0-9]+$', '{frame}', patternNoExt.replace('\\', '/').replace('P:', '/Volumes/production').replace('D:', '/Volumes/production').replace('V:\\', '/Volumes/vfxprod'))
-
-        #     regex = re.compile('(?<=[/._])v\d{3}(?=[/._])')
-        #     versions = regex.sub('v{version}', patternStripped) if ext not in ['mov', 'mp4'] else patternStripped
-
-        #     clip_path_win = os.path.join(workf, f"{instance.data['name']}_{rep['ext']}.clip")
-        #     tree = xmlt.fromstring(self.template)
-        #     tree.find('.//ScanPattern').text = f"{versions}.{ext}"
-
-        #     with open(clip_path_win, 'wb') as fout:
-        #         fout.write(xmlt.tostring(tree))
-        #     if not os.path.exists(clip_path_win):
-        #         raise Exception(f'Clip file generation failed for {clip_path_win}')
-
-

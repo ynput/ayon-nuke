@@ -5,6 +5,8 @@ from ayon_api import get_bundle_settings
 import getpass
 import nuke
 import requests
+import subprocess
+import platform
 from pathlib import Path
 from datetime import datetime
 ## copied from submit_nuke_to_deadline.py
@@ -89,7 +91,7 @@ def deadlineNetworkSubmit(dev=False):
     nuke.tprint(f"File path: {file_path}")
 
 
-    save_script_with_render(Path(file_path))
+    save_script_with_render(Path(file_path)) # ticket HPIPE-702 back up script with render
 
     # Create nuke script that render node will access
     if not os.path.exists(os.path.join(os.environ['AYON_WORKDIR'], "submission")):
@@ -152,7 +154,7 @@ def build_request(knobValues,timestamp):
                     # limiting groups
                     "ChunkSize": int(knobValues.get('deadlineChunkSize',1)) or 1,
                     "LimitGroups": 'nuke-limit',
-                    "ConcurrentTasks": knobValues['concurrentTasks'] or 1
+                    "ConcurrentTasks": int(knobValues.get('concurrentTasks', 1))
                 },
                 "PluginInfo": {
                     # Input
@@ -181,28 +183,56 @@ def build_request(knobValues,timestamp):
 
 
     
-def save_script_with_render(node_file_path):
+def save_script_with_render(write_node_file_path):
     '''
     Back up the script next to the render files
+
+    Args:
+        write_node_file_path (Path): the value of the "File" knob of the write node
     '''
 
-    if not isinstance(node_file_path, Path):
-        node_file_path = Path(node_file_path)
+    if not isinstance(write_node_file_path, Path):
+        write_node_file_path = Path(write_node_file_path)
 
-    nuke.tprint("node_file_path", node_file_path)
+    scripts_subfolder = "scripts"
 
-    node_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    nuke.tprint("write_node_file_path", write_node_file_path)
+
+    # write_node_file_path.parent.mkdir(parents=True, exist_ok=True)
     script_name = Path(nuke.root().name()).stem
-    render_dir = Path(node_file_path).parent
-    render_name = str(Path(node_file_path.name)).split(".")[0]
-    save_name = script_name + "__" + render_name
-    save_path = str(render_dir / save_name) + ".nk"
+    render_dir = Path(write_node_file_path).parent
+    render_name = str(Path(write_node_file_path.name)).split(".")[0]
+    save_name = script_name + "__" + render_name + ".nk"
+    save_path = render_dir / Path(scripts_subfolder) / save_name
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    nuke.tprint("save_path", save_path)
+
     if(Path(save_path).exists()):
         os.remove(save_path)
 
     # Save a copy next to render
-    nuke.scriptSaveToTemp(save_path)
+    nuke.scriptSaveToTemp(str(save_path))
     if(Path(save_path).exists()):
         nuke.tprint("Saved script to {}".format(save_path))
     else:
         nuke.tprint("Failed to save script to {}".format(save_path))
+
+def navigate_to_render(write_node):
+    ''' Open explorer at the location of the render file
+
+    Args:
+        Ayon write node
+
+    ''' 
+
+    file_path = Path(write_node['File output'].evaluate()).parent
+    if not file_path.exists():
+        return
+
+    if platform.system() == "Windows":
+        os.startfile(file_path)
+    elif platform.system() == "Darwin":  # macOS
+        subprocess.run(["open", file_path])
+    else:  # Linux
+        subprocess.run(["xdg-open", file_path])

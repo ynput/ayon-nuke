@@ -1160,9 +1160,13 @@ class ExporterReviewMov(ExporterReview):
         self._temp_nodes[product_name].append(write_node)
         self.log.debug(f"Write...   `{self._temp_nodes[product_name]}`")
 
-        # set it to a single view, any view, to avoid breaking on publish
+        """
+        Ticket HPIPE-131 - Fails if there are multiple views (kroger)
+        If you only have one view set, it isn't important which one it is
+        So we can just set it to the first view returned by Nuke
+        """
         self.log.info("SETTING VIEW")
-        write_node["views"].setValue(nuke.views()[0]) 
+        write_node["views"].setValue(nuke.views()[0])
         # self.log.info(f"VIEWS ARE  {write_node["views"].value()}")
 
 
@@ -1229,7 +1233,6 @@ def convert_to_valid_instaces():
             "nukenodes": "create_backdrop",
             "gizmo": "create_gizmo",
             "source": "create_source"
-
         }
         return mapping[product_type]
 
