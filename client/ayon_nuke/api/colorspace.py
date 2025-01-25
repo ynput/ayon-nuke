@@ -65,13 +65,10 @@ def get_colorspace_list(colorspace_knob, node=None):
         # colorspace is the string before the indentation, so we'll need to
         # convert the values to match with value returned from the knob,
         # ei. knob.value().
-        pattern = r".*\t.* \(.*\)"
+        pattern = r"[\t,]+"
         for colorspace in nuke.getColorspaceList(colorspace_knob):
-            match = re.search(pattern, colorspace)
-            if match:
-                results.append(colorspace.split("\t", 1)[0])
-            else:
-                results.append(colorspace)
+            colorspace_and_aliases = re.split(pattern, colorspace)
+            results.append(colorspace_and_aliases[0])
 
         _COLORSPACES_CACHE[identifier_key] = results
 
