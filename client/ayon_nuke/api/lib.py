@@ -50,7 +50,9 @@ from ayon_core.pipeline.colorspace import (
     get_current_context_imageio_config_preset
 )
 from ayon_core.pipeline.workfile import BuildWorkfile
-from . import gizmo_menu
+from ayon_core.resources import get_ayon_icon_filepath
+
+from .gizmo_menu import GizmoMenu
 from .constants import (
     ASSIST,
     LOADER_CATEGORY_COLORS,
@@ -2506,66 +2508,33 @@ def add_scripts_menu():
 def add_scripts_gizmo():
 
     # load configuration of custom menu
-    project_name = get_current_project_name()
-    project_settings = get_project_settings(project_name)
+    project_settings = get_current_project_settings()
     platform_name = platform.system().lower()
 
     for gizmo_settings in project_settings["nuke"]["gizmo"]:
-        gizmo_list_definition = gizmo_settings["gizmo_definition"]
+        # Get the toolbar.
         toolbar_name = gizmo_settings["toolbar_menu_name"]
-        # gizmo_toolbar_path = gizmo_settings["gizmo_toolbar_path"]
-        gizmo_source_dir = gizmo_settings.get(
-            "gizmo_source_dir", {}).get(platform_name)
-        toolbar_icon_path = gizmo_settings.get(
-            "toolbar_icon_path", {}).get(platform_name)
+        # TODO Support template keys and environment variables.
+        toolbar_icon_path = gizmo_settings["toolbar_icon_path"][platform_name]
 
-        if not gizmo_source_dir:
-            log.debug("Skipping studio gizmo `{}`, "
-                      "no gizmo path found.".format(toolbar_name)
-                      )
-            return
+        # Create the toolbar
+        toolbar_menu = GizmoMenu(
+                title=toolbar_name,
+                icon=toolbar_icon_path or get_ayon_icon_filepath()
+            )
 
-        if not gizmo_list_definition:
-            log.debug("Skipping studio gizmo `{}`, "
-                      "no definition found.".format(toolbar_name)
-                      )
-            return
+        # Add gizmos based on options
+        option = gizmo_settings["options"]
+        gizmos = gizmo_settings[option]
+        if not gizmos:
+            continue
 
-        if toolbar_icon_path:
-            try:
-                toolbar_icon_path = toolbar_icon_path.format(**os.environ)
-            except KeyError as e:
-                log.error(
-                    "This environment variable doesn't exist: {}".format(e)
-                )
-
-        existing_gizmo_path = []
-        for source_dir in gizmo_source_dir:
-            try:
-                resolve_source_dir = source_dir.format(**os.environ)
-            except KeyError as e:
-                log.error(
-                    "This environment variable doesn't exist: {}".format(e)
-                )
-                continue
-            if not os.path.exists(resolve_source_dir):
-                log.warning(
-                    "The source of gizmo `{}` does not exists".format(
-                        resolve_source_dir
-                    )
-                )
-                continue
-            existing_gizmo_path.append(resolve_source_dir)
-
-        # run the launcher for Nuke toolbar
-        toolbar_menu = gizmo_menu.GizmoMenu(
-            title=toolbar_name,
-            icon=toolbar_icon_path
-        )
-
-        # apply configuration
-        toolbar_menu.add_gizmo_path(existing_gizmo_path)
-        toolbar_menu.build_from_configuration(gizmo_list_definition)
+        if option == "gizmo_source_dir":
+            # TODO Support template keys and environment variables.
+            gizmo_paths_to_add = gizmos[platform_name]
+            toolbar_menu.add_gizmo_path(gizmo_paths_to_add)
+        elif option == "gizmo_definition":
+            toolbar_menu.build_from_configuration(gizmos)
 
 
 class NukeDirmap(HostDirmap):
