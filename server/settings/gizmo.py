@@ -75,16 +75,17 @@ class GizmoItem(BaseSettingsModel):
 
 DEFAULT_GIZMO_ITEM = {
     "toolbar_menu_name": "AYON Gizmo",
-    "gizmo_source_dir": {
-        "windows": [],
-        "darwin": [],
-        "linux": []
-    },
     "toolbar_icon_path": {
         "windows": "",
         "darwin": "",
         "linux": ""
     },
+    "options": "gizmo_definition",
+    "gizmo_source_dir": {
+        "windows": [],
+        "darwin": [],
+        "linux": []
+    },    
     "gizmo_definition": [
         {
             "gizmo_toolbar_path": "",
