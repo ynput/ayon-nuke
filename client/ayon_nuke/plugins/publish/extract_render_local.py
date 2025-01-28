@@ -14,7 +14,7 @@ class NukeRenderLocal(publish.Extractor,
     """Render the current Nuke composition locally.
 
     Extract the result of savers by starting a comp render
-    This will run the local render of Fusion.
+    This will run the local render of Nuke.
 
     Allows to use last published frames and overwrite only specific ones
     (set in instance.data.get("frames_to_fix"))

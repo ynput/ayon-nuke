@@ -37,15 +37,14 @@ class ExtractReviewIntermediates(publish.Extractor):
 
         task_type = instance.context.data["taskType"]
         product_name = instance.data["productName"]
-        self.log.debug("Creating staging dir...")
 
         if "representations" not in instance.data:
             instance.data["representations"] = []
 
-        staging_dir = os.path.normpath(
-            os.path.dirname(instance.data["path"]))
-
-        instance.data["stagingDir"] = staging_dir
+        # use instance's stagingDir only if explicitly custom
+        if not instance.data.get("stagingDir_is_custom"):
+            instance.data["stagingDir"] = os.path.normpath(
+                os.path.dirname(instance.data["path"]))
 
         self.log.debug(
             "StagingDir `{0}`...".format(instance.data["stagingDir"]))

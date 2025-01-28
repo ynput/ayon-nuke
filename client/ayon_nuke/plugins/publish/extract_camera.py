@@ -43,8 +43,8 @@ class ExtractCamera(publish.Extractor):
             write_geo_knobs.append((("storageFormat", "Ogawa")))
 
         elif export_camera_settings == "fbx":
-            write_geo_knobs.insert(0, ("file_type", "fbx"))            
-            write_geo_knobs.append(("writeLights", False))            
+            write_geo_knobs.insert(0, ("file_type", "fbx"))
+            write_geo_knobs.append(("writeLights", False))
 
         else:
             raise ValueError(
@@ -53,8 +53,15 @@ class ExtractCamera(publish.Extractor):
 
         return write_geo_knobs
 
-
     def process(self, instance):
+
+        # pass staging dir data
+        staging_dir = instance.data.get("stagingDir")
+        if not staging_dir:
+            staging_dir = os.path.normpath(
+                os.path.dirname(instance.data["path"]))
+            instance.data["stagingDir"] = staging_dir
+        
         camera_node = instance.data["transientData"]["node"]
         handle_start = instance.context.data["handleStart"]
         handle_end = instance.context.data["handleEnd"]
@@ -66,7 +73,6 @@ class ExtractCamera(publish.Extractor):
         rm_nodes = []
         self.log.debug("Creating additional nodes for 3D Camera Extractor")
         product_name = instance.data["productName"]
-        staging_dir = self.staging_dir(instance)
 
         # get extension form preset
         export_presets = self._get_camera_export_presets(instance)
