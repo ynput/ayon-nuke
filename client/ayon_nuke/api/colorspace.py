@@ -46,8 +46,8 @@ def get_colorspace_list(colorspace_knob, node=None, consider_aliases=True):
     Args:
         colorspace_knob (nuke.Knob): nuke knob object
         node (Optional[nuke.Node]): nuke node for caching differentiation
-        consider_aliases (bool): optional flag to indicate if colorspace
-        aliases should be added to results list
+        consider_aliases (Optional[bool]): optional flag to indicate if
+        colorspace aliases should be added to results list
 
     Returns:
         list: list of strings names of profiles
