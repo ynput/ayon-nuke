@@ -62,7 +62,7 @@ class LoadEffects(load.LoaderPlugin):
         self.log.info(
             "Loaded lut setup: `{}`".format(group_node["name"].value()))
 
-        data_imprint = self._get_imprint_data(context, name, namespace)
+        data_imprint = self._get_imprint_data(context)
         return containerise(
             node=group_node,
             name=name,
