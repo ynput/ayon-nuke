@@ -9,6 +9,7 @@ from ayon_nuke.api import (
     update_container,
     viewer_update_and_undo_stop
 )
+from ayon_nuke.api import lib
 
 
 class LoadEffects(load.LoaderPlugin):
@@ -37,18 +38,24 @@ class LoadEffects(load.LoaderPlugin):
             data (dict): compulsory attribute > not used
 
         Returns:
-            nuke node: containerised nuke node object
+            nuke.Node: containerised nuke node object
         """
         object_name = "{}_{}".format(name, namespace)
 
-        group_node = nuke.createNode(
+        group_node: nuke.Group = nuke.createNode(
             "Group",
             "name {}_1".format(object_name),
             inpanel=False
         )
 
         # load effects json and create nodes inside the group
-        self._load_nodes_to_group(context, namespace, group_node=group_node)
+        json_f = self._load_effects_data(context)
+        self._load_nodes_to_group(json_f, group_node=group_node)
+        self.on_load(group_node, namespace, json_f["assignTo"])
+
+        # On load may have deleted the group node. If it did, then we stop here
+        if not group_node:
+            return
 
         self._set_node_color(group_node, context)
 
@@ -56,7 +63,6 @@ class LoadEffects(load.LoaderPlugin):
             "Loaded lut setup: `{}`".format(group_node["name"].value()))
 
         data_imprint = self._get_imprint_data(context, name, namespace)
-
         return containerise(
             node=group_node,
             name=name,
@@ -73,12 +79,15 @@ class LoadEffects(load.LoaderPlugin):
         inputs:
 
         """
-        # get corresponding node
-        group_node = container["node"]
-        namespace = container["namespace"]
+        group_node: nuke.Group = container["node"]
+        namespace: str = container["namespace"]
 
         # load effects json and create nodes inside the group
-        self._load_nodes_to_group(context, namespace, group_node=group_node)
+        json_f = self._load_effects_data(context)
+        self._load_nodes_to_group(json_f, group_node=group_node)
+
+        # Trigger load logic on the created group
+        self.on_update(group_node, namespace, json_f)
 
         # change color of node
         self._set_node_color(group_node, context)
@@ -102,25 +111,67 @@ class LoadEffects(load.LoaderPlugin):
         with viewer_update_and_undo_stop():
             nuke.delete(node)
 
-    def _load_nodes_to_group(
-            self, context: dict, namespace: str, group_node):
-        """Load the json file and create nodes inside the group node"""
+    # On load and on update are overridden by LoadEffectsInputProcess
+    # for alternative behavior
+    def on_load(self, group_node, namespace, json_f):
+        self.connect_read_node(group_node, namespace, json_f["assignTo"])
+
+    def on_update(self, group_node, namespace, json_f):
+        self.connect_read_node(group_node, namespace, json_f["assignTo"])
+
+    def connect_read_node(self, group_node, namespace, product_name):
+        """
+        Finds read node and selects it
+
+        Arguments:
+            group_node (nuke.Node): Group node to connect to.
+            namespace (str): namespace name to search read node for.
+            product_name (str): product name to search read node for.
+
+        Returns:
+            nuke node: node is selected
+            None: if nothing found
+        """
+        search_name = "{0}_{1}".format(namespace, product_name)
+
+        read_node = next(
+            (
+                n for n in nuke.allNodes(filter="Read")
+                if search_name in n["file"].value()
+            ),
+            None
+        )
+
+        # Parent read node has been found
+        # solving connections
+        if read_node:
+            dep_nodes = read_node.dependent()
+
+            if len(dep_nodes) > 0:
+                for dn in dep_nodes:
+                    dn.setInput(0, group_node)
+
+            group_node.setInput(0, read_node)
+            group_node.autoplace()
+
+    def _load_effects_data(self, context: dict) -> dict:
         file = self.filepath_from_context(context).replace("\\", "/")
         with open(file, "r") as f:
-            json_f = json.load(f)
+            return json.load(f)
 
+    def _load_nodes_to_group(
+            self, json_f: dict, group_node: nuke.Group):
+        """Load the json file and create nodes inside the group node"""
         # get correct order of nodes by positions on track and subtrack
-        nodes_order = self.reorder_nodes(json_f)
+        nodes_order = self._reorder_nodes(json_f)
 
         # adding content to the group node
         nuke.endGroup()  # jump out of group if we happen to be in one
         with group_node:
             # first remove all nodes if any in the group
-            [nuke.delete(n) for n in nuke.allNodes()]
+            for node in group_node.nodes():
+                nuke.delete(node)
             self._create_nodes_order(nodes_order)
-
-        # try to find parent read node
-        self.connect_read_node(group_node, namespace, json_f["assignTo"])
 
     def _create_nodes_order(self, nodes_order: dict):
         workfile_first_frame = int(nuke.root()["first_frame"].getValue())
@@ -195,42 +246,7 @@ class LoadEffects(load.LoaderPlugin):
         color_value = "0x3469ffff" if is_latest else "0xd84f20ff"
         node["tile_color"].setValue(int(color_value, 16))
 
-    def connect_read_node(self, group_node, namespace, product_name):
-        """
-        Finds read node and selects it
-
-        Arguments:
-            group_node (nuke.Node): Group node to connect to.
-            namespace (str): namespace name to search read node for.
-            product_name (str): product name to search read node for.
-
-        Returns:
-            nuke node: node is selected
-            None: if nothing found
-        """
-        search_name = "{0}_{1}".format(namespace, product_name)
-
-        read_node = next(
-            (
-                n for n in nuke.allNodes(filter="Read")
-                if search_name in n["file"].value()
-            ),
-            None
-        )
-
-        # Parent read node has been found
-        # solving connections
-        if read_node:
-            dep_nodes = read_node.dependent()
-
-            if len(dep_nodes) > 0:
-                for dn in dep_nodes:
-                    dn.setInput(0, group_node)
-
-            group_node.setInput(0, read_node)
-            group_node.autoplace()
-
-    def reorder_nodes(self, data: dict) -> dict:
+    def _reorder_nodes(self, data: dict) -> dict:
         track_nums = [
             v["trackIndex"] for v in data.values() if isinstance(v, dict)]
         sub_track_nums = [
@@ -251,3 +267,68 @@ class LoadEffects(load.LoaderPlugin):
                 if isinstance(val, dict)
                 if sub_track_index == val["subTrackIndex"]
                 if track_index == val["trackIndex"]}
+
+
+class LoadEffectsInputProcess(LoadEffects):
+    """Loading colorspace soft effect exported from nukestudio"""
+
+    label = "Load Effects - Input Process"
+    icon = "eye"
+    color = "#cc0000"
+
+    def on_load(self, group_node, namespace, json_f):
+        # try to place it under Viewer1
+        if not self.connect_active_viewer(group_node):
+            nuke.delete(group_node)
+            return
+
+    def on_update(self, group_node, namespace, json_f):
+        # No post-process on update
+        # Only overridden to avoid behavior of LoadEffects
+        pass
+
+    def connect_active_viewer(self, group_node):
+        """
+        Finds Active viewer and
+        place the node under it, also adds
+        name of group into Input Process of the viewer
+
+        Arguments:
+            group_node (nuke node): nuke group node object
+
+        """
+        group_node_name = group_node["name"].value()
+
+        viewer = [n for n in nuke.allNodes() if "Viewer1" in n["name"].value()]
+        if len(viewer) > 0:
+            viewer = viewer[0]
+        else:
+            msg = str("Please create Viewer node before you "
+                      "run this action again")
+            self.log.error(msg)
+            nuke.message(msg)
+            return None
+
+        # get coordinates of Viewer1
+        xpos = viewer["xpos"].value()
+        ypos = viewer["ypos"].value()
+
+        ypos += 150
+
+        viewer["ypos"].setValue(ypos)
+
+        # set coordinates to group node
+        group_node["xpos"].setValue(xpos)
+        group_node["ypos"].setValue(ypos + 50)
+
+        # add group node name to Viewer Input Process
+        viewer["input_process_node"].setValue(group_node_name)
+
+        # put backdrop under
+        lib.create_backdrop(
+            label="Input Process",
+            layer=2,
+            nodes=[viewer, group_node],
+            color="0x7c7faaff")
+
+        return True
