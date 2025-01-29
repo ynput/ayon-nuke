@@ -1,13 +1,9 @@
 import json
-from collections import OrderedDict
-import nuke
-import six
-import ayon_api
 
-from ayon_core.pipeline import (
-    load,
-    get_representation_path,
-)
+import nuke
+
+import ayon_api
+from ayon_core.pipeline import load
 from ayon_nuke.api import (
     containerise,
     update_container,
@@ -43,105 +39,26 @@ class LoadEffects(load.LoaderPlugin):
         Returns:
             nuke node: containerised nuke node object
         """
-        # get main variables
-        version_entity = context["version"]
-
-        version_attributes = version_entity["attrib"]
-        first = version_attributes.get("frameStart")
-        last = version_attributes.get("frameEnd")
-        colorspace = version_attributes.get("colorSpace")
-
-        workfile_first_frame = int(nuke.root()["first_frame"].getValue())
-        namespace = namespace or context["folder"]["name"]
         object_name = "{}_{}".format(name, namespace)
 
-        # prepare data for imprinting
-        data_imprint = {
-            "frameStart": first,
-            "frameEnd": last,
-            "version": version_entity["version"],
-            "colorspaceInput": colorspace,
-        }
-
-        # add additional metadata from the version to imprint to Avalon knob
-        for k in [
-            "frameStart",
-            "frameEnd",
-            "handleStart",
-            "handleEnd",
-            "source",
-            "fps"
-        ]:
-            data_imprint[k] = version_attributes[k]
-
-        # getting file path
-        file = self.filepath_from_context(context).replace("\\", "/")
-
-        # getting data from json file with unicode conversion
-        with open(file, "r") as f:
-            json_f = {self.byteify(key): self.byteify(value)
-                      for key, value in json.load(f).items()}
-
-        # get correct order of nodes by positions on track and subtrack
-        nodes_order = self.reorder_nodes(json_f)
-
-        # adding nodes to node graph
-        # just in case we are in group lets jump out of it
-        nuke.endGroup()
-
-        GN = nuke.createNode(
+        group_node = nuke.createNode(
             "Group",
             "name {}_1".format(object_name),
             inpanel=False
         )
 
-        # adding content to the group node
-        with GN:
-            pre_node = nuke.createNode("Input")
-            pre_node["name"].setValue("rgb")
+        # load effects json and create nodes inside the group
+        self._load_nodes_to_group(context, namespace, group_node=group_node)
 
-            for ef_name, ef_val in nodes_order.items():
-                node = nuke.createNode(ef_val["class"])
-                for k, v in ef_val["node"].items():
-                    if k in self.ignore_attr:
-                        continue
+        self._set_node_color(group_node, context)
 
-                    try:
-                        node[k].value()
-                    except NameError as e:
-                        self.log.warning(e)
-                        continue
+        self.log.info(
+            "Loaded lut setup: `{}`".format(group_node["name"].value()))
 
-                    if isinstance(v, list) and len(v) > 4:
-                        node[k].setAnimated()
-                        for i, value in enumerate(v):
-                            if isinstance(value, list):
-                                for ci, cv in enumerate(value):
-                                    node[k].setValueAt(
-                                        cv,
-                                        (workfile_first_frame + i),
-                                        ci)
-                            else:
-                                node[k].setValueAt(
-                                    value,
-                                    (workfile_first_frame + i))
-                    else:
-                        node[k].setValue(v)
-                node.setInput(0, pre_node)
-                pre_node = node
-
-            output = nuke.createNode("Output")
-            output.setInput(0, pre_node)
-
-        # try to find parent read node
-        self.connect_read_node(GN, namespace, json_f["assignTo"])
-
-        GN["tile_color"].setValue(int("0x3469ffff", 16))
-
-        self.log.info("Loaded lut setup: `{}`".format(GN["name"].value()))
+        data_imprint = self._get_imprint_data(context, name, namespace)
 
         return containerise(
-            node=GN,
+            node=group_node,
             name=name,
             namespace=namespace,
             context=context,
@@ -156,201 +73,26 @@ class LoadEffects(load.LoaderPlugin):
         inputs:
 
         """
-        # get main variables
-        # Get version from io
-        project_name = context["project"]["name"]
-        version_entity = context["version"]
-        repre_entity = context["representation"]
-
         # get corresponding node
-        GN = container["node"]
-
-        file = get_representation_path(repre_entity).replace("\\", "/")
-
-        version_attributes = version_entity["attrib"]
-        first = version_attributes.get("frameStart")
-        last = version_attributes.get("frameEnd")
-        colorspace = version_attributes.get("colorSpace")
-
-        workfile_first_frame = int(nuke.root()["first_frame"].getValue())
+        group_node = container["node"]
         namespace = container["namespace"]
 
-        data_imprint = {
-            "representation": repre_entity["id"],
-            "frameStart": first,
-            "frameEnd": last,
-            "version": version_entity["version"],
-            "colorspaceInput": colorspace
-        }
+        # load effects json and create nodes inside the group
+        self._load_nodes_to_group(context, namespace, group_node=group_node)
 
-        for k in [
-            "frameStart",
-            "frameEnd",
-            "handleStart",
-            "handleEnd",
-            "source",
-            "fps",
-        ]:
-            data_imprint[k] = version_attributes[k]
+        # change color of node
+        self._set_node_color(group_node, context)
 
         # Update the imprinted representation
+        data_imprint = self._get_imprint_data(context)
         update_container(
-            GN,
+            group_node,
             data_imprint
         )
 
-        # getting data from json file with unicode conversion
-        with open(file, "r") as f:
-            json_f = {self.byteify(key): self.byteify(value)
-                      for key, value in json.load(f).items()}
-
-        # get correct order of nodes by positions on track and subtrack
-        nodes_order = self.reorder_nodes(json_f)
-
-        # adding nodes to node graph
-        # just in case we are in group lets jump out of it
-        nuke.endGroup()
-
-        # adding content to the group node
-        with GN:
-            # first remove all nodes
-            [nuke.delete(n) for n in nuke.allNodes()]
-
-            # create input node
-            pre_node = nuke.createNode("Input")
-            pre_node["name"].setValue("rgb")
-
-            for _, ef_val in nodes_order.items():
-                node = nuke.createNode(ef_val["class"])
-                for k, v in ef_val["node"].items():
-                    if k in self.ignore_attr:
-                        continue
-
-                    try:
-                        node[k].value()
-                    except NameError as e:
-                        self.log.warning(e)
-                        continue
-
-                    if isinstance(v, list) and len(v) > 4:
-                        node[k].setAnimated()
-                        for i, value in enumerate(v):
-                            if isinstance(value, list):
-                                for ci, cv in enumerate(value):
-                                    node[k].setValueAt(
-                                        cv,
-                                        (workfile_first_frame + i),
-                                        ci)
-                            else:
-                                node[k].setValueAt(
-                                    value,
-                                    (workfile_first_frame + i))
-                    else:
-                        node[k].setValue(v)
-                node.setInput(0, pre_node)
-                pre_node = node
-
-            # create output node
-            output = nuke.createNode("Output")
-            output.setInput(0, pre_node)
-
-        # try to find parent read node
-        self.connect_read_node(GN, namespace, json_f["assignTo"])
-
-        last_version_entity = ayon_api.get_last_version_by_product_id(
-            project_name, version_entity["productId"], fields={"id"}
-        )
-
-        # change color of node
-        if version_entity["id"] == last_version_entity["id"]:
-            color_value = "0x3469ffff"
-        else:
-            color_value = "0xd84f20ff"
-
-        GN["tile_color"].setValue(int(color_value, 16))
-
         self.log.info(
-            "updated to version: {}".format(version_entity["version"])
+            "updated to version: {}".format(context["version"]["version"])
         )
-
-    def connect_read_node(self, group_node, namespace, product_name):
-        """
-        Finds read node and selects it
-
-        Arguments:
-            namespace (str): namespace name
-
-        Returns:
-            nuke node: node is selected
-            None: if nothing found
-        """
-        search_name = "{0}_{1}".format(namespace, product_name)
-
-        node = [
-            n for n in nuke.allNodes(filter="Read")
-            if search_name in n["file"].value()
-        ]
-        if len(node) > 0:
-            rn = node[0]
-        else:
-            rn = None
-
-        # Parent read node has been found
-        # solving connections
-        if rn:
-            dep_nodes = rn.dependent()
-
-            if len(dep_nodes) > 0:
-                for dn in dep_nodes:
-                    dn.setInput(0, group_node)
-
-            group_node.setInput(0, rn)
-            group_node.autoplace()
-
-    def reorder_nodes(self, data):
-        new_order = OrderedDict()
-        trackNums = [v["trackIndex"] for k, v in data.items()
-                     if isinstance(v, dict)]
-        subTrackNums = [v["subTrackIndex"] for k, v in data.items()
-                        if isinstance(v, dict)]
-
-        for trackIndex in range(
-                min(trackNums), max(trackNums) + 1):
-            for subTrackIndex in range(
-                    min(subTrackNums), max(subTrackNums) + 1):
-                item = self.get_item(data, trackIndex, subTrackIndex)
-                if item:
-                    new_order.update(item)
-        return new_order
-
-    def get_item(self, data, trackIndex, subTrackIndex):
-        return {key: val for key, val in data.items()
-                if isinstance(val, dict)
-                if subTrackIndex == val["subTrackIndex"]
-                if trackIndex == val["trackIndex"]}
-
-    def byteify(self, input):
-        """
-        Converts unicode strings to strings
-        It goes through all dictionary
-
-        Arguments:
-            input (dict/str): input
-
-        Returns:
-            dict: with fixed values and keys
-
-        """
-
-        if isinstance(input, dict):
-            return {self.byteify(key): self.byteify(value)
-                    for key, value in input.items()}
-        elif isinstance(input, list):
-            return [self.byteify(element) for element in input]
-        elif isinstance(input, six.text_type):
-            return str(input)
-        else:
-            return input
 
     def switch(self, container, context):
         self.update(container, context)
@@ -359,3 +101,153 @@ class LoadEffects(load.LoaderPlugin):
         node = container["node"]
         with viewer_update_and_undo_stop():
             nuke.delete(node)
+
+    def _load_nodes_to_group(
+            self, context: dict, namespace: str, group_node):
+        """Load the json file and create nodes inside the group node"""
+        file = self.filepath_from_context(context).replace("\\", "/")
+        with open(file, "r") as f:
+            json_f = json.load(f)
+
+        # get correct order of nodes by positions on track and subtrack
+        nodes_order = self.reorder_nodes(json_f)
+
+        # adding content to the group node
+        nuke.endGroup()  # jump out of group if we happen to be in one
+        with group_node:
+            # first remove all nodes if any in the group
+            [nuke.delete(n) for n in nuke.allNodes()]
+            self._create_nodes_order(nodes_order)
+
+        # try to find parent read node
+        self.connect_read_node(group_node, namespace, json_f["assignTo"])
+
+    def _create_nodes_order(self, nodes_order: dict):
+        workfile_first_frame = int(nuke.root()["first_frame"].getValue())
+
+        # create input node
+        pre_node = nuke.createNode("Input")
+        pre_node["name"].setValue("rgb")
+
+        for ef_val in nodes_order.values():
+            node = nuke.createNode(ef_val["class"])
+            for k, v in ef_val["node"].items():
+                if k in self.ignore_attr:
+                    continue
+
+                # Check if attribute is available
+                try:
+                    node[k].value()
+                except NameError as e:
+                    self.log.warning(e)
+                    continue
+
+                # Set node attribute values
+                if isinstance(v, list) and len(v) > 4:
+                    node[k].setAnimated()
+                    for i, value in enumerate(v):
+                        if isinstance(value, list):
+                            for ci, cv in enumerate(value):
+                                node[k].setValueAt(
+                                    cv,
+                                    (workfile_first_frame + i),
+                                    ci)
+                        else:
+                            node[k].setValueAt(
+                                value,
+                                (workfile_first_frame + i))
+                else:
+                    node[k].setValue(v)
+            node.setInput(0, pre_node)
+            pre_node = node
+
+        # create output node
+        output = nuke.createNode("Output")
+        output.setInput(0, pre_node)
+
+        return pre_node
+
+    def _get_imprint_data(self, context: dict) -> dict:
+        """Return data to be imprinted from version."""
+        version_entity = context["version"]
+        version_attributes = version_entity["attrib"]
+        data = {
+            "version": version_entity["version"],
+            "colorspaceInput": version_attributes.get("colorSpace"),
+        }
+        for k in [
+            "frameStart",
+            "frameEnd",
+            "handleStart",
+            "handleEnd",
+            "source",
+            "fps"
+        ]:
+            data[k] = version_attributes[k]
+
+        return data
+
+    def _set_node_color(self, node, context):
+        """Set node color based on whether version is latest"""
+        is_latest = ayon_api.version_is_latest(
+            context["project"]["name"], context["version"]["id"]
+        )
+        color_value = "0x3469ffff" if is_latest else "0xd84f20ff"
+        node["tile_color"].setValue(int(color_value, 16))
+
+    def connect_read_node(self, group_node, namespace, product_name):
+        """
+        Finds read node and selects it
+
+        Arguments:
+            group_node (nuke.Node): Group node to connect to.
+            namespace (str): namespace name to search read node for.
+            product_name (str): product name to search read node for.
+
+        Returns:
+            nuke node: node is selected
+            None: if nothing found
+        """
+        search_name = "{0}_{1}".format(namespace, product_name)
+
+        read_node = next(
+            (
+                n for n in nuke.allNodes(filter="Read")
+                if search_name in n["file"].value()
+            ),
+            None
+        )
+
+        # Parent read node has been found
+        # solving connections
+        if read_node:
+            dep_nodes = read_node.dependent()
+
+            if len(dep_nodes) > 0:
+                for dn in dep_nodes:
+                    dn.setInput(0, group_node)
+
+            group_node.setInput(0, read_node)
+            group_node.autoplace()
+
+    def reorder_nodes(self, data: dict) -> dict:
+        track_nums = [
+            v["trackIndex"] for v in data.values() if isinstance(v, dict)]
+        sub_track_nums = [
+            v["subTrackIndex"] for v in data.values() if isinstance(v, dict)]
+
+        new_order = {}
+        for track_index in range(min(track_nums), max(track_nums) + 1):
+            for sub_track_index in range(
+                    min(sub_track_nums), max(sub_track_nums) + 1):
+                item = self._get_item(data, track_index, sub_track_index)
+                if item:
+                    new_order.update(item)
+        return new_order
+
+    def _get_item(
+            self, data: dict, track_index: int, sub_track_index: int) -> dict:
+        return {key: val for key, val in data.items()
+                if isinstance(val, dict)
+                if sub_track_index == val["subTrackIndex"]
+                if track_index == val["trackIndex"]}
