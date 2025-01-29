@@ -40,12 +40,14 @@ def get_display_and_view_colorspaces(root_node):
     return _DISPLAY_AND_VIEW_COLORSPACES_CACHE[script_name]
 
 
-def get_colorspace_list(colorspace_knob, node=None):
+def get_colorspace_list(colorspace_knob, node=None, consider_aliases=True):
     """Get available colorspace profile names
 
     Args:
         colorspace_knob (nuke.Knob): nuke knob object
         node (Optional[nuke.Node]): nuke node for caching differentiation
+        consider_aliases (bool): optional flag to indicate if colorspace
+        aliases should be added to results list
 
     Returns:
         list: list of strings names of profiles
@@ -68,7 +70,10 @@ def get_colorspace_list(colorspace_knob, node=None):
         pattern = r"[\t,]+"
         for colorspace in nuke.getColorspaceList(colorspace_knob):
             colorspace_and_aliases = re.split(pattern, colorspace)
-            results.append(colorspace_and_aliases[0])
+            if consider_aliases:
+                results.extend(colorspace_and_aliases)
+            else:
+                results.append(colorspace_and_aliases[0])
 
         _COLORSPACES_CACHE[identifier_key] = results
 
