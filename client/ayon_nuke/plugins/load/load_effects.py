@@ -225,6 +225,8 @@ class LoadEffects(load.LoaderPlugin):
         data = {
             "version": version_entity["version"],
             "colorspaceInput": version_attributes.get("colorSpace"),
+            # For updating
+            "representation": context["representation"]["id"]
         }
         for k in [
             "frameStart",
@@ -235,6 +237,12 @@ class LoadEffects(load.LoaderPlugin):
             "fps"
         ]:
             data[k] = version_attributes[k]
+
+        for key, value in dict(data.items()):
+            if value is None:
+                self.log.warning(
+                    f"Skipping imprinting of key with 'None' value` {key}")
+                data.pop(key)
 
         return data
 
