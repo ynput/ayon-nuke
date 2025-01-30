@@ -6,8 +6,6 @@ import pyblish.api
 from ayon_core.pipeline import publish
 
 from ayon_nuke import api as napi
-from ayon_nuke.api.lib import writes_version_sync
-
 
 
 class CollectNukeWrites(pyblish.api.InstancePlugin,
@@ -60,11 +58,6 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             self._set_expected_files(instance, collected_frames)
 
             self._add_farm_instance_data(instance)
-        else:
-            # change write path only if not reusing existing files
-            if instance.data.get("stagingDir_is_custom"):
-                self.log.debug("Updating versions in write nodes.")
-                writes_version_sync()
 
         if render_target == "farm":
             self._add_farm_instance_data(instance)
