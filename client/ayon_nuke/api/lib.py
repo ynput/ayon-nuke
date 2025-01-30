@@ -22,7 +22,6 @@ from ayon_core.pipeline.workfile.workfile_template_builder import (
 from ayon_core.lib import (
     env_value_to_bool,
     Logger,
-    get_version_from_path,
     StringTemplate,
 )
 
@@ -836,9 +835,12 @@ def check_inventory_versions():
         log.warning(error)
 
 
-def writes_version_sync():
-    ''' Callback synchronizing version of publishable write nodes
-    '''
+def writes_version_sync(write_node, log):
+    """ Callback synchronizing version of publishable write nodes
+
+    Tries to find version string in render path of write node and bump it to
+    workfile version.
+    """
     try:
         rootVersion = get_version_from_path(nuke.root().name())
         padding = len(rootVersion)
@@ -846,32 +848,50 @@ def writes_version_sync():
             int(rootVersion)
         )
     except Exception:
+        log.warning("exception", exc_info=True)
         return
 
-    for each in nuke.allNodes(filter="Write"):
-        # check if the node is avalon tracked
-        if NODE_TAB_NAME not in each.knobs():
-            continue
+    try:
+        write_path = write_node["file"].value()
+        node_version = "v" + get_version_from_path(write_path)
 
-        avalon_knob_data = read_avalon_data(each)
+        log.debug(f"Replacing '{node_version}' with '{new_version}'")
+        node_new_file = write_path.replace(node_version, new_version)
+        write_node["file"].setValue(node_new_file)
+        if not os.path.isdir(os.path.dirname(node_new_file)):
+            log.warning("Path does not exist! I am creating it.")
+            os.makedirs(os.path.dirname(node_new_file))
+    except Exception as e:
+        log.warning(
+            f"Write node: `{write_node.name()}` has no version "
+            f"in path: '{write_path}'. Expected format as `.vXXX` or `_vXXX`.",
+            exc_info=True
+        )
 
-        try:
-            if avalon_knob_data["families"] not in ["render"]:
-                continue
+def get_version_from_path(file):
+    """Find version number in file path string.
 
-            node_file = each["file"].value()
+    Looks for formats:
+    - `_v0001`
+    - `.v001`
+    - `/v001/` - difference from ayon-core.path_tools.get_version_from_path
 
-            node_version = "v" + get_version_from_path(node_file)
+    Args:
+        file (str): file path
 
-            node_new_file = node_file.replace(node_version, new_version)
-            each["file"].setValue(node_new_file)
-            if not os.path.isdir(os.path.dirname(node_new_file)):
-                log.warning("Path does not exist! I am creating it.")
-                os.makedirs(os.path.dirname(node_new_file))
-        except Exception as e:
-            log.warning(
-                "Write node: `{}` has no version in path: {}".format(
-                    each.name(), e))
+    Returns:
+        str: version number in string ('001')
+    """
+
+    pattern = re.compile(r"[\._/]v([0-9]+)", re.IGNORECASE)
+    try:
+        return pattern.findall(file)[-1]
+    except IndexError:
+        log.error(
+            "templates:get_version_from_workfile:"
+            "`{}` missing version string."
+            "Example `v004`".format(file)
+        )
 
 
 def version_up_script():
