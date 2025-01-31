@@ -284,7 +284,7 @@ class PublishPluginsModel(BaseSettingsModel):
         default_factory=OptionalPluginModel,
         section="Integrators",
         description=(
-            "Bumps up version of workfile if all no errors in previous "
+            "Bumps up version of workfile if there are no errors in previous "
             "plugins."
         )
     )
