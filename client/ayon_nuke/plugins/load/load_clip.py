@@ -182,8 +182,9 @@ class LoadClip(plugin.NukeLoader):
 
         # get colorspace
         colorspace = (
-            repre_entity["data"].get("colorspace")
-            or version_attributes.get("colorSpace")
+            repre_entity["data"].get("colorspaceData", {}).get("colorspace")
+            or repre_entity["data"].get("colorspace")
+            or version_attributes.get("colorSpace"),
         )
 
         # to avoid multiple undo steps for rest of process
@@ -544,26 +545,26 @@ class LoadClip(plugin.NukeLoader):
         Returns:
             Any[str,None]: colorspace name or None
         """
-        # Get backward compatible colorspace key.
-        colorspace = repre_entity["data"].get("colorspace")
+        # Get colorspace from representation colorspaceData if colorspace is
+        # not found.
+        colorspace_data = repre_entity["data"].get("colorspaceData", {})
+        colorspace = colorspace_data.get("colorspace")
         self.log.debug(
-            f"Colorspace from representation colorspace: {colorspace}"
+            f"Colorspace from representation colorspaceData: {colorspace}"
         )
+
+        if not colorspace:
+            # Get backward compatible colorspace key.
+            colorspace = repre_entity["data"].get("colorspace")
+            self.log.debug(
+                f"Colorspace from representation colorspace: {colorspace}"
+            )
 
         # Get backward compatible version data key if colorspace is not found.
         if not colorspace:
             colorspace = version_entity["attrib"].get("colorSpace")
             self.log.debug(
                 f"Colorspace from version colorspace: {colorspace}"
-            )
-
-        # Get colorspace from representation colorspaceData if colorspace is
-        # not found.
-        if not colorspace:
-            colorspace_data = repre_entity["data"].get("colorspaceData", {})
-            colorspace = colorspace_data.get("colorspace")
-            self.log.debug(
-                f"Colorspace from representation colorspaceData: {colorspace}"
             )
 
         config_data = get_current_context_imageio_config_preset()
