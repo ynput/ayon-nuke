@@ -861,7 +861,7 @@ def writes_version_sync(write_node, log):
         if not os.path.isdir(os.path.dirname(node_new_file)):
             log.warning("Path does not exist! I am creating it.")
             os.makedirs(os.path.dirname(node_new_file))
-    except Exception as e:
+    except Exception:
         log.warning(
             f"Write node: `{write_node.name()}` has no version "
             f"in path: '{write_path}'. Expected format as `.vXXX` or `_vXXX`.",
