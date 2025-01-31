@@ -180,13 +180,6 @@ class LoadClip(plugin.NukeLoader):
                 inpanel=False
             )
 
-        # get colorspace
-        colorspace = (
-            repre_entity["data"].get("colorspaceData", {}).get("colorspace")
-            or repre_entity["data"].get("colorspace")
-            or version_attributes.get("colorSpace"),
-        )
-
         # to avoid multiple undo steps for rest of process
         # we will switch off undo-ing
         with viewer_update_and_undo_stop():
@@ -210,7 +203,6 @@ class LoadClip(plugin.NukeLoader):
 
             data_imprint = {
                 "version": version_name,
-                "db_colorspace": colorspace
             }
 
             # add attributes from the version to imprint metadata knob
@@ -319,12 +311,6 @@ class LoadClip(plugin.NukeLoader):
 
         repre_id = repre_entity["id"]
 
-        # colorspace profile
-        colorspace = (
-            repre_entity["data"].get("colorspace")
-            or version_attributes.get("colorSpace")
-        )
-
         self.handle_start = version_attributes.get("handleStart", 0)
         self.handle_end = version_attributes.get("handleEnd", 0)
 
@@ -364,7 +350,6 @@ class LoadClip(plugin.NukeLoader):
                 "frameStart": str(first),
                 "frameEnd": str(last),
                 "version": str(version_entity["version"]),
-                "db_colorspace": colorspace,
                 "source": version_attributes.get("source"),
                 "handleStart": str(self.handle_start),
                 "handleEnd": str(self.handle_end),

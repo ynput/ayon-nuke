@@ -10,10 +10,15 @@ from ayon_core.pipeline import (
 from ayon_nuke.api.lib import (
     get_imageio_input_colorspace
 )
+from ayon_core.pipeline.colorspace import (
+    get_imageio_file_rules_colorspace_from_filepath,
+    get_current_context_imageio_config_preset,
+)
 from ayon_nuke.api import (
     containerise,
     update_container,
-    viewer_update_and_undo_stop
+    viewer_update_and_undo_stop,
+    colorspace_exists_on_node,
 )
 from ayon_core.lib.transcoding import (
     IMAGE_EXTENSIONS
@@ -63,6 +68,10 @@ class LoadImage(load.LoaderPlugin):
         return cls.representations_include or cls.representations
 
     def load(self, context, name, namespace, options):
+        project_name = context["project"]["name"]
+        repre_entity = context["representation"]
+        version_entity = context["version"]
+
         self.log.info("__ options: `{}`".format(options))
         frame_number = options.get(
             "frame_number", int(nuke.root()["first_frame"].getValue())
@@ -89,61 +98,56 @@ class LoadImage(load.LoaderPlugin):
                 "Representation id `{}` is failing to load".format(repre_id))
             return
 
-        file = file.replace("\\", "/")
+        filepath = file.replace("\\", "/")
 
         frame = repre_entity["context"].get("frame")
         if frame:
             padding = len(frame)
-            file = file.replace(
-                frame,
-                format(frame_number, "0{}".format(padding)))
+            filepath = filepath.replace(
+                frame, format(frame_number, "0{}".format(padding))
+            )
 
         read_name = self._get_node_name(context)
 
         # Create the Loader with the filename path set
         with viewer_update_and_undo_stop():
-            r = nuke.createNode(
-                "Read",
-                "name {}".format(read_name),
-                inpanel=False
+            read_node = nuke.createNode(
+                "Read", "name {}".format(read_name), inpanel=False
             )
 
-            r["file"].setValue(file)
+            self.set_colorspace_to_node(
+                read_node,
+                filepath,
+                project_name,
+                version_entity,
+                repre_entity
+            )
 
-            # Set colorspace defined in version data
-            colorspace = version_entity["attrib"].get("colorSpace")
-            if colorspace:
-                r["colorspace"].setValue(str(colorspace))
-
-            preset_clrsp = get_imageio_input_colorspace(file)
-
-            if preset_clrsp is not None:
-                r["colorspace"].setValue(preset_clrsp)
-
-            r["origfirst"].setValue(first)
-            r["first"].setValue(first)
-            r["origlast"].setValue(last)
-            r["last"].setValue(last)
+            read_node["file"].setValue(filepath)
+            read_node["origfirst"].setValue(first)
+            read_node["first"].setValue(first)
+            read_node["origlast"].setValue(last)
+            read_node["last"].setValue(last)
 
             # add attributes from the version to imprint metadata knob
-            colorspace = version_attributes["colorSpace"]
             data_imprint = {
                 "frameStart": first,
                 "frameEnd": last,
-                "version": version_entity["version"],
-                "colorspace": colorspace,
+                "version": version_entity["version"]
             }
             for k in ["source", "fps"]:
                 data_imprint[k] = version_attributes.get(k, str(None))
 
-            r["tile_color"].setValue(int("0x4ecd25ff", 16))
+            read_node["tile_color"].setValue(int("0x4ecd25ff", 16))
 
-            return containerise(r,
-                                name=name,
-                                namespace=namespace,
-                                context=context,
-                                loader=self.__class__.__name__,
-                                data=data_imprint)
+            return containerise(
+                read_node,
+                name=name,
+                namespace=namespace,
+                context=context,
+                loader=self.__class__.__name__,
+                data=data_imprint,
+            )
 
     def switch(self, container, context):
         self.update(container, context)
@@ -156,10 +160,10 @@ class LoadImage(load.LoaderPlugin):
         inputs:
 
         """
-        node = container["node"]
-        frame_number = node["first"].value()
+        read_node = container["node"]
+        frame_number = read_node["first"].value()
 
-        assert node.Class() == "Read", "Must be Read"
+        assert read_node.Class() == "Read", "Must be Read"
 
         project_name = context["project"]["name"]
         version_entity = context["version"]
@@ -167,22 +171,22 @@ class LoadImage(load.LoaderPlugin):
 
         repr_cont = repre_entity["context"]
 
-        file = get_representation_path(repre_entity)
+        filepath = get_representation_path(repre_entity)
 
-        if not file:
+        if not filepath:
             repre_id = repre_entity["id"]
             self.log.warning(
                 "Representation id `{}` is failing to load".format(repre_id))
             return
 
-        file = file.replace("\\", "/")
+        filepath = filepath.replace("\\", "/")
 
         frame = repr_cont.get("frame")
         if frame:
             padding = len(frame)
-            file = file.replace(
-                frame,
-                format(frame_number, "0{}".format(padding)))
+            filepath = filepath.replace(
+                frame, format(frame_number, "0{}".format(padding))
+            )
 
         # Get start frame from version data
         last_version_entity = ayon_api.get_last_version_by_product_id(
@@ -191,12 +195,15 @@ class LoadImage(load.LoaderPlugin):
 
         last = first = int(frame_number)
 
+        self.set_colorspace_to_node(
+            read_node, filepath, project_name, version_entity, repre_entity
+        )
         # Set the global in to the start frame of the sequence
-        node["file"].setValue(file)
-        node["origfirst"].setValue(first)
-        node["first"].setValue(first)
-        node["origlast"].setValue(last)
-        node["last"].setValue(last)
+        read_node["file"].setValue(filepath)
+        read_node["origfirst"].setValue(first)
+        read_node["first"].setValue(first)
+        read_node["origlast"].setValue(last)
+        read_node["last"].setValue(last)
 
         version_attributes = version_entity["attrib"]
         updated_dict = {
@@ -204,7 +211,6 @@ class LoadImage(load.LoaderPlugin):
             "frameStart": str(first),
             "frameEnd": str(last),
             "version": str(version_entity["version"]),
-            "colorspace": version_attributes.get("colorSpace"),
             "source": version_attributes.get("source"),
             "fps": str(version_attributes.get("fps")),
         }
@@ -214,10 +220,10 @@ class LoadImage(load.LoaderPlugin):
             color_value = "0x4ecd25ff"
         else:
             color_value = "0xd84f20ff"
-        node["tile_color"].setValue(int(color_value, 16))
+        read_node["tile_color"].setValue(int(color_value, 16))
 
         # Update the imprinted representation
-        update_container(node, updated_dict)
+        update_container(read_node, updated_dict)
         self.log.info("updated to version: {}".format(
             version_entity["version"]
         ))
@@ -252,3 +258,81 @@ class LoadImage(load.LoaderPlugin):
         }
 
         return self.node_name_template.format(**name_data)
+
+    def set_colorspace_to_node(
+        self,
+        read_node,
+        filepath,
+        project_name,
+        version_entity,
+        repre_entity,
+    ):
+        """Set colorspace to read node.
+
+        Sets colorspace with available names validation.
+
+        Args:
+            read_node (nuke.Node): The nuke's read node
+            filepath (str): File path.
+            project_name (str): Project name.
+            version_entity (dict): Version entity.
+            repre_entity (dict): Representation entity.
+
+        """
+        used_colorspace = self._get_colorspace_data(
+            project_name, version_entity, repre_entity, filepath
+        )
+        if (
+            used_colorspace
+            and colorspace_exists_on_node(read_node, used_colorspace)
+        ):
+            self.log.info(f"Used colorspace: {used_colorspace}")
+            read_node["colorspace"].setValue(used_colorspace)
+        else:
+            self.log.info("Colorspace not set...")
+
+    def _get_colorspace_data(
+        self, project_name, version_entity, repre_entity, filepath
+    ):
+        """Get colorspace data from version and representation documents
+
+        Args:
+            project_name (str): Project name.
+            version_entity (dict): Version entity.
+            repre_entity (dict): Representation entity.
+            filepath (str): File path.
+
+        Returns:
+            Any[str,None]: colorspace name or None
+        """
+        # Get colorspace from representation colorspaceData if colorspace is
+        # not found.
+        colorspace_data = repre_entity["data"].get("colorspaceData", {})
+        colorspace = colorspace_data.get("colorspace")
+        self.log.debug(
+            f"Colorspace from representation colorspaceData: {colorspace}")
+
+        if not colorspace:
+            # Get backward compatible colorspace key.
+            colorspace = repre_entity["data"].get("colorspace")
+            self.log.debug(
+                f"Colorspace from representation colorspace: {colorspace}")
+
+        # Get backward compatible version data key if colorspace is not found.
+        if not colorspace:
+            colorspace = version_entity["attrib"].get("colorSpace")
+            self.log.debug(
+                f"Colorspace from version colorspace: {colorspace}")
+
+        config_data = get_current_context_imageio_config_preset()
+        # check if any filerules are not applicable
+        new_parsed_colorspace = get_imageio_file_rules_colorspace_from_filepath(  # noqa
+            filepath, "nuke", project_name, config_data=config_data
+        )
+        self.log.debug(f"Colorspace new filerules: {new_parsed_colorspace}")
+
+        # colorspace from `project_settings/nuke/imageio/regexInputs`
+        old_parsed_colorspace = get_imageio_input_colorspace(filepath)
+        self.log.debug(f"Colorspace old filerules: {old_parsed_colorspace}")
+
+        return new_parsed_colorspace or old_parsed_colorspace or colorspace
