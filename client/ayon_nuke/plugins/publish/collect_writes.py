@@ -1,8 +1,11 @@
 import os
 import nuke
+
 import pyblish.api
-from ayon_nuke import api as napi
+
 from ayon_core.pipeline import publish
+
+from ayon_nuke import api as napi
 
 
 class CollectNukeWrites(pyblish.api.InstancePlugin,
@@ -56,7 +59,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
 
             self._add_farm_instance_data(instance)
 
-        elif render_target == "farm":
+        if render_target == "farm":
             self._add_farm_instance_data(instance)
 
         # set additional instance data
