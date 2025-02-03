@@ -66,7 +66,7 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
         "representations_include": [],
         "node_name_template": "{class_name}_{ext}",
         "options_defaults": {
-            "start_at_workfile": True,
+            "start_at_workfile": False,
             "add_retime": True,
             "deep_exr": False
         }
