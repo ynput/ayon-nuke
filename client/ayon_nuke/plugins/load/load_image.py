@@ -91,14 +91,14 @@ class LoadImage(load.LoaderPlugin):
         if namespace is None:
             namespace = context["folder"]["name"]
 
-        file = self.filepath_from_context(context)
+        filepath = self.filepath_from_context(context)
 
-        if not file:
+        if not filepath:
             self.log.warning(
                 "Representation id `{}` is failing to load".format(repre_id))
             return
 
-        filepath = file.replace("\\", "/")
+        filepath = filepath.replace("\\", "/")
 
         frame = repre_entity["context"].get("frame")
         if frame:
