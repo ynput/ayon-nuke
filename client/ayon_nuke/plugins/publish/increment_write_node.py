@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """Increments render path in write node with actual workfile version"""
+import nuke
+
 import pyblish.api
 from ayon_core.pipeline import OptionalPyblishPluginMixin
 
@@ -48,3 +50,4 @@ class IncrementWriteNodePath(pyblish.api.InstancePlugin,
             return
 
         writes_version_sync(write_node, self.log)
+        nuke.scriptSave()
