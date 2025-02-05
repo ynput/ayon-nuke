@@ -233,7 +233,7 @@ class LoadClip(plugin.NukeLoader):
                 data=data_imprint)
 
         if add_retime and version_data.get("retime"):
-            self._make_retimes(read_node, version_data)
+            self._make_retimes(read_node, version_attributes, version_data)
 
         self.set_as_member(read_node)
 
@@ -373,7 +373,7 @@ class LoadClip(plugin.NukeLoader):
             )
 
         if add_retime and version_data.get("retime"):
-            self._make_retimes(read_node, version_data)
+            self._make_retimes(read_node, version_attributes, version_data)
         else:
             self.clear_members(read_node)
 
@@ -437,7 +437,7 @@ class LoadClip(plugin.NukeLoader):
 
             read_node['frame'].setValue(str(start_frame))
 
-    def _make_retimes(self, parent_node, version_data):
+    def _make_retimes(self, parent_node, version_attributes, version_data):
         ''' Create all retime and timewarping nodes with copied animation '''
         speed = version_data.get('speed', 1)
         time_warp_nodes = version_data.get('timewarps', [])
@@ -455,14 +455,22 @@ class LoadClip(plugin.NukeLoader):
             if speed != 1:
                 rtn = nuke.createNode(
                     "Retime",
-                    "speed {}".format(speed))
+                    "speed {}".format(abs(speed))
+                )
 
                 rtn["before"].setValue("continue")
                 rtn["after"].setValue("continue")
+                rtn["reverse"].setValue(speed < 0)
+
                 rtn["input.first_lock"].setValue(True)
                 rtn["input.first"].setValue(
-                    self.script_start
+                    version_attributes["frameStart"]
                 )
+                rtn["input.last_lock"].setValue(True)
+                rtn["input.last"].setValue(
+                    version_attributes["frameEnd"]
+                )
+
                 self.set_as_member(rtn)
                 last_node = rtn
 
