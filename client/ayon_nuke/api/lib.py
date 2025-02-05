@@ -848,7 +848,7 @@ def writes_version_sync(write_node, log):
             int(rootVersion)
         )
     except Exception:
-        log.warning("exception", exc_info=True)
+        log.warning("Scene name doesn't have version part.", exc_info=True)
         return
 
     try:
