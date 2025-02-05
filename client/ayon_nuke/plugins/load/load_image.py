@@ -3,10 +3,8 @@ import nuke
 import qargparse
 import ayon_api
 
-from ayon_core.pipeline import (
-    load,
-    get_representation_path,
-)
+from ayon_core.pipeline import load
+
 from ayon_nuke.api.lib import (
     get_imageio_input_colorspace
 )
