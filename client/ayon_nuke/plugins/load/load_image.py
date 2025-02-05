@@ -171,7 +171,7 @@ class LoadImage(load.LoaderPlugin):
 
         repr_cont = repre_entity["context"]
 
-        filepath = get_representation_path(repre_entity)
+        filepath = self.filepath_from_context(context)
 
         if not filepath:
             repre_id = repre_entity["id"]
