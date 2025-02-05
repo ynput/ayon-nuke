@@ -180,12 +180,6 @@ class LoadClip(plugin.NukeLoader):
                 inpanel=False
             )
 
-        # get colorspace
-        colorspace = (
-            repre_entity["data"].get("colorspace")
-            or version_attributes.get("colorSpace")
-        )
-
         # to avoid multiple undo steps for rest of process
         # we will switch off undo-ing
         with viewer_update_and_undo_stop():
@@ -209,7 +203,6 @@ class LoadClip(plugin.NukeLoader):
 
             data_imprint = {
                 "version": version_name,
-                "db_colorspace": colorspace
             }
 
             # add attributes from the version to imprint metadata knob
@@ -318,12 +311,6 @@ class LoadClip(plugin.NukeLoader):
 
         repre_id = repre_entity["id"]
 
-        # colorspace profile
-        colorspace = (
-            repre_entity["data"].get("colorspace")
-            or version_attributes.get("colorSpace")
-        )
-
         self.handle_start = version_attributes.get("handleStart", 0)
         self.handle_end = version_attributes.get("handleEnd", 0)
 
@@ -363,7 +350,6 @@ class LoadClip(plugin.NukeLoader):
                 "frameStart": str(first),
                 "frameEnd": str(last),
                 "version": str(version_entity["version"]),
-                "db_colorspace": colorspace,
                 "source": version_attributes.get("source"),
                 "handleStart": str(self.handle_start),
                 "handleEnd": str(self.handle_end),
@@ -552,26 +538,26 @@ class LoadClip(plugin.NukeLoader):
         Returns:
             Any[str,None]: colorspace name or None
         """
-        # Get backward compatible colorspace key.
-        colorspace = repre_entity["data"].get("colorspace")
+        # Get colorspace from representation colorspaceData if colorspace is
+        # not found.
+        colorspace_data = repre_entity["data"].get("colorspaceData", {})
+        colorspace = colorspace_data.get("colorspace")
         self.log.debug(
-            f"Colorspace from representation colorspace: {colorspace}"
+            f"Colorspace from representation colorspaceData: {colorspace}"
         )
+
+        if not colorspace:
+            # Get backward compatible colorspace key.
+            colorspace = repre_entity["data"].get("colorspace")
+            self.log.debug(
+                f"Colorspace from representation colorspace: {colorspace}"
+            )
 
         # Get backward compatible version data key if colorspace is not found.
         if not colorspace:
             colorspace = version_entity["attrib"].get("colorSpace")
             self.log.debug(
                 f"Colorspace from version colorspace: {colorspace}"
-            )
-
-        # Get colorspace from representation colorspaceData if colorspace is
-        # not found.
-        if not colorspace:
-            colorspace_data = repre_entity["data"].get("colorspaceData", {})
-            colorspace = colorspace_data.get("colorspace")
-            self.log.debug(
-                f"Colorspace from representation colorspaceData: {colorspace}"
             )
 
         config_data = get_current_context_imageio_config_preset()
