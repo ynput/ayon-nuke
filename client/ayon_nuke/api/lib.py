@@ -854,9 +854,15 @@ def writes_version_sync(write_node, log):
     try:
         write_path = write_node["file"].value()
         node_version = "v" + get_version_from_path(write_path)
-
-        log.debug(f"Replacing '{node_version}' with '{new_version}'")
         node_new_file = write_path.replace(node_version, new_version)
+
+        def replace_match(match):
+            x_value = int(match.group(1))  # Extract the number X
+            return '#' * x_value  # Return '#' repeated X times
+
+        # Use regex to find all occurrences of '%0Xd' with `#`s
+        node_new_file = re.sub(r'%0*(\d+)d', replace_match, node_new_file)
+
         write_node["file"].setValue(node_new_file)
         if not os.path.isdir(os.path.dirname(node_new_file)):
             log.warning("Path does not exist! I am creating it.")
