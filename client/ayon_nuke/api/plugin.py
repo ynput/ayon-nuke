@@ -365,12 +365,15 @@ class NukeWriteCreator(NukeCreator):
         Raises:
             NukeCreatorError. When the selection contains more than 1 Write node.
         """
+        if not pre_create_data.get("use_selection"):
+            return []
+
         selected_nodes = super()._get_current_selected_nodes(
             pre_create_data,
             class_name=None,
         )
 
-        if pre_create_data.get("use_selection") and not selected_nodes:
+        if not selected_nodes:
             raise NukeCreatorError("No active selection")
 
         elif len(selected_nodes) > 1:
@@ -457,6 +460,12 @@ class NukeWriteCreator(NukeCreator):
         )
 
     def create(self, product_name, instance_data, pre_create_data):
+        if not pre_create_data:
+            # add no selection for headless
+            pre_create_data = {
+                "use_selection": False
+            }
+
         # pass values from precreate to instance
         self._pass_pre_attributes_to_instance(
             instance_data,
