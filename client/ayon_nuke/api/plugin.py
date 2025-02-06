@@ -803,8 +803,7 @@ class NukeGroupLoader(LoaderPlugin):
         if len(viewer) > 0:
             viewer = viewer[0]
         else:
-            msg = str("Please create Viewer node before you "
-                      "run this action again")
+            msg = "Please create Viewer node before you run this action again"
             self.log.error(msg)
             nuke.message(msg)
             return None
