@@ -727,6 +727,8 @@ class NukeGroupLoader(LoaderPlugin):
         Returns:
             nuke.Node: containerised nuke node object
         """
+
+        namespace = namespace or context["folder"]["name"]
         object_name = "{}_{}".format(name, namespace)
 
         group_node = self._create_group(object_name, context)
