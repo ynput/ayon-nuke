@@ -869,7 +869,6 @@ class NukeGroupLoader(LoaderPlugin):
         return data
 
 
-
 class ExporterReview(object):
     """
     Base class object for generating review data from Nuke
