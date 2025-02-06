@@ -30,6 +30,9 @@ class IncrementWriteNodePath(pyblish.api.InstancePlugin,
     active = True
 
     def process(self, instance):
+        if not self.is_active(instance.data):
+            return
+
         if not instance.data.get("stagingDir_is_custom"):
             self.log.info(
                 f"'{instance}' instance doesn't have custom staging dir."
