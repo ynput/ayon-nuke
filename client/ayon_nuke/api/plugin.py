@@ -9,6 +9,7 @@ import random
 import string
 from collections import defaultdict
 
+import ayon_api
 from ayon_core.settings import get_current_project_settings
 from ayon_core.lib import (
     BoolDef,
@@ -35,6 +36,7 @@ from ayon_core.lib.transcoding import (
 from .lib import (
     INSTANCE_DATA_KNOB,
     Knobby,
+    create_backdrop,
     maintained_selection,
     get_avalon_knob_data,
     set_node_knobs_from_settings,
@@ -47,8 +49,11 @@ from .lib import (
 )
 from .pipeline import (
     list_instances,
-    remove_instance
+    remove_instance,
+    containerise,
+    update_container,
 )
+from .command import viewer_update_and_undo_stop
 from .colorspace import (
     get_formatted_display_and_view_as_dict,
     get_formatted_colorspace
@@ -644,6 +649,215 @@ class NukeLoader(LoaderPlugin):
             nuke.delete(member)
 
         return dependent_nodes
+
+
+class NukeGroupLoader(LoaderPlugin):
+    """Loader with basic logic of managing load and updates to what should
+    be encompassed on a Single Group node inside Nuke.
+
+    Child classes usually override only `on_load` and `on_update` to adjust
+    the behavior.
+
+    Exposes 'helper' method `connect_active_viewer` for child classes.
+    This is not used by default but can be used by child classes for easy
+    access to them.
+    """
+    settings_category = "nuke"
+
+    ignore_attr = ["useLifetime"]
+    node_color = "0x3469ffff"
+
+    def on_load(self, group_node: nuke.Node, namespace: str, context: dict):
+        """Logic to be implemented on subclass to describe what to do on load.
+        """
+        # Override to do anything
+        pass
+
+    def on_update(
+        self,
+        group_node: nuke.Node,
+        namespace: str,
+        context: dict
+    ) -> nuke.Node:
+        """Logic to be implemented on subclass to describe what to do on load.
+
+        Returns:
+            nuke.Node: The group node. This can be a new group node if it is
+                to replace the original group node.
+
+        """
+        # Override to do anything
+        return group_node
+
+    def _create_group(self, object_name: str, context: dict):
+        """Create a group node with a unique name
+
+        Arguments:
+            object_name (str): name of the object to create.
+            context (dict): context of version
+
+        Returns:
+            nuke.Node: created group node
+        """
+        return nuke.createNode(
+            "Group",
+            "name {}_1".format(object_name),
+            inpanel=False
+        )
+
+    def load(self, context, name=None, namespace=None, options=None):
+        """
+        Loading function to get the soft effects to particular read node
+
+        Arguments:
+            context (dict): context of version
+            name (str): name of the version
+            namespace (str): namespace name
+            options (dict): compulsory attribute > not used
+
+        Returns:
+            nuke.Node: containerised nuke node object
+        """
+        object_name = "{}_{}".format(name, namespace)
+
+        group_node = self._create_group(object_name, context)
+        self.on_load(group_node, namespace, context)
+        # On load may have deleted the group node. If it did, then we stop here
+        if not group_node:
+            return
+
+        self._set_node_color(group_node, context)
+
+        self.log.info(
+            "Loaded setup: `{}`".format(group_node["name"].value()))
+
+        data_imprint = self._get_imprint_data(context)
+        return containerise(
+            node=group_node,
+            name=name,
+            namespace=namespace,
+            context=context,
+            loader=self.__class__.__name__,
+            data=data_imprint)
+
+    def update(self, container, context):
+        """Update the Loader's path
+
+        Nuke automatically tries to reset some variables when changing
+        the loader's path to a new file. These automatic changes are to its
+        inputs:
+
+        """
+        group_node: nuke.Node = container["node"]  # Group node
+        namespace: str = container["namespace"]
+
+        # Trigger load logic on the created group
+        group_node = self.on_update(group_node, namespace, context)
+
+        # change color of node
+        self._set_node_color(group_node, context)
+
+        # Update the imprinted representation
+        data_imprint = self._get_imprint_data(context)
+        update_container(
+            group_node,
+            data_imprint
+        )
+
+        self.log.info(
+            "updated to version: {}".format(context["version"]["version"])
+        )
+
+    def switch(self, container, context):
+        self.update(container, context)
+
+    def remove(self, container):
+        node = container["node"]
+        with viewer_update_and_undo_stop():
+            nuke.delete(node)
+
+    def connect_active_viewer(self, group_node):
+        """
+        Finds Active viewer and
+        place the node under it, also adds
+        name of group into Input Process of the viewer
+
+        Arguments:
+            group_node (nuke node): nuke group node object
+
+        """
+        group_node_name = group_node["name"].value()
+
+        viewer = [n for n in nuke.allNodes() if "Viewer1" in n["name"].value()]
+        if len(viewer) > 0:
+            viewer = viewer[0]
+        else:
+            msg = str("Please create Viewer node before you "
+                      "run this action again")
+            self.log.error(msg)
+            nuke.message(msg)
+            return None
+
+        # get coordinates of Viewer1
+        xpos = viewer["xpos"].value()
+        ypos = viewer["ypos"].value()
+
+        ypos += 150
+
+        viewer["ypos"].setValue(ypos)
+
+        # set coordinates to group node
+        group_node["xpos"].setValue(xpos)
+        group_node["ypos"].setValue(ypos + 50)
+
+        # add group node name to Viewer Input Process
+        viewer["input_process_node"].setValue(group_node_name)
+
+        # put backdrop under
+        create_backdrop(
+            label="Input Process",
+            layer=2,
+            nodes=[viewer, group_node],
+            color="0x7c7faaff")
+
+        return True
+
+    def _set_node_color(self, node, context):
+        """Set node color based on whether version is latest"""
+        is_latest = ayon_api.version_is_latest(
+            context["project"]["name"], context["version"]["id"]
+        )
+        color_value = self.node_color if is_latest else "0xd84f20ff"
+        node["tile_color"].setValue(int(color_value, 16))
+
+    def _get_imprint_data(self, context: dict) -> dict:
+        """Return data to be imprinted from version."""
+        version_entity = context["version"]
+        version_attributes = version_entity["attrib"]
+        data = {
+            "version": version_entity["version"],
+            "colorspaceInput": version_attributes.get("colorSpace"),
+            # For updating
+            "representation": context["representation"]["id"]
+        }
+        for k in [
+            "frameStart",
+            "frameEnd",
+            "handleStart",
+            "handleEnd",
+            "source",
+            "fps"
+        ]:
+            data[k] = version_attributes[k]
+
+        for key, value in dict(data.items()):
+            if value is None:
+                self.log.warning(
+                    f"Skipping imprinting of key with 'None' value` {key}")
+                data.pop(key)
+
+        return data
+
 
 
 class ExporterReview(object):
