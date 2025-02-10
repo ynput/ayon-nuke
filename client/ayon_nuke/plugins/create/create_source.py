@@ -1,4 +1,3 @@
-import six
 import sys
 from ayon_nuke.api import (
     INSTANCE_DATA_KNOB,
@@ -78,8 +77,5 @@ class CreateSource(NukeCreator):
                     instance.data_to_store()
                 )
 
-        except Exception as er:
-            six.reraise(
-                NukeCreatorError,
-                NukeCreatorError("Creator error: {}".format(er)),
-                sys.exc_info()[2])
+        except Exception as exc:
+            raise NukeCreatorError(f"Creator error: {exc}") from exc
