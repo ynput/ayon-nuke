@@ -145,6 +145,8 @@ def switchExtension():
         filek.setValue(pre + "." + knb.value())
 
 
+
+
 def embedOptions():
     nde = nuke.thisNode()
     knb = nuke.thisKnob()
@@ -234,7 +236,7 @@ def embedOptions():
     clear_temp_outputs_button = nuke.PyScript_Knob(
         "clear",
         "Clear Temp Outputs",
-        "import os;fpath = os.path.dirname(nuke.thisNode().knob('File output').value());[os.remove(os.path.join(fpath, f)) for f in os.listdir(fpath)]",
+        "import os;fpath = os.path.dirname(nuke.thisNode().knob('File output').value());[os.remove(os.path.join(fpath, f)) for f in os.listdir(fpath) if os.path.isfile(os.path.join(fpath, f))]",
     )
     publish_button = nuke.PyScript_Knob(
         "publish",
@@ -285,7 +287,7 @@ def embedOptions():
     concurrentTasks.setValue(2)
     deadlinePool.setValue("local")
     deadlineGroup.setValue("nuke")
-    deadlinePriority.setValue(90)
+    deadlinePriority.setValue(95)
 
     usePublishRange.setFlag(nuke.STARTLINE)
     sub.setFlag(nuke.STARTLINE)

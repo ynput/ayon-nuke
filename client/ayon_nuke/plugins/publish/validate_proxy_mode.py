@@ -27,8 +27,11 @@ class ValidateProxyMode(pyblish.api.ContextPlugin):
 
     settings_category = "nuke"
 
-    def process(self, context):
+    # def process(self, context):
+    def process(self, instance):
 
+        
+        
         rootNode = nuke.root()
         isProxy = rootNode["proxy"].value()
 
@@ -36,3 +39,9 @@ class ValidateProxyMode(pyblish.api.ContextPlugin):
             raise PublishXmlValidationError(
                 self, "Proxy mode should be toggled OFF"
             )
+
+        if "stagingDir" in instance.data.keys():
+            self.log.debug(f"StagingDir: {instance.data.get('stagingDir')}")
+        else:
+            self.log.debug("staging dir not in instance data!")
+        self.log.debug("\n" + '\n'.join([f"    {k}: {v}" for k, v in instance.data.items()]))

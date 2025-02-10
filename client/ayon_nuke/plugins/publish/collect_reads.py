@@ -119,5 +119,11 @@ class CollectNukeReads(pyblish.api.InstancePlugin):
             "step": 1,
             "fps": int(nuke.root()['fps'].value())
         })
+        
+        if "stagingDir" in instance.data.keys():
+            self.log.debug(f"StagingDir: {instance.data.get('stagingDir')}")
+        else:
+            self.log.debug("staging dir not in instance data")
+        
+        self.log.debug([f"{k}: {v}\n" for k, v in instance.data.items()])
 
-        self.log.debug("instance.data: {}".format(instance.data))

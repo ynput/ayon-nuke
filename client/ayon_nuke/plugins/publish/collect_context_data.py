@@ -69,3 +69,7 @@ class CollectContextData(pyblish.api.ContextPlugin):
         context.data.update(script_data)
 
         self.log.debug('Context from Nuke script collected')
+        self.log.debug(f"Context data: {context.data}")
+
+        # printable = [f"{k: v}\n" for k, v in instance.data.items()]
+        # self.log.debug([f"{k: v}\n" for k, v in instance.data.items()])

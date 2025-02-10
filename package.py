@@ -1,7 +1,7 @@
 name = "nuke"
 title = "Nuke"
 
-version = "0.2.6-Alex-staging"
+version = "0.2.7-Alex-staging"
 app_host_name = "nuke"
 client_dir = "ayon_nuke"
 

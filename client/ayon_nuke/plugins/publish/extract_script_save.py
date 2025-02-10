@@ -14,3 +14,9 @@ class ExtractScriptSave(pyblish.api.InstancePlugin):
 
         self.log.debug('Saving current script')
         nuke.scriptSave()
+
+        if "stagingDir" in instance.data.keys():
+            self.log.debug(f"StagingDir: {instance.data.get('stagingDir')}")
+        else:
+            self.log.debug("staging dir not in instance data!")
+        self.log.debug("\n" + '\n'.join([f"    {k}: {v}" for k, v in instance.data.items()]))

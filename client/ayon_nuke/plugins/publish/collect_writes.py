@@ -62,6 +62,14 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         # set additional instance data
         self._set_additional_instance_data(instance, render_target, colorspace)
 
+        
+        
+        if "stagingDir" in instance.data.keys():
+            self.log.debug(f"StagingDir: {instance.data.get('stagingDir')}")
+        else:
+            self.log.debug("staging dir not in instance data!")
+        self.log.debug("\n" + '\n'.join([f"    {k}: {v}" for k, v in instance.data.items()]))
+
     def _set_existing_files_data(self, instance, colorspace):
         """Set existing files data to instance data.
 
@@ -186,7 +194,9 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
 
         # get output paths
         write_file_path = nuke.filename(write_node)
+        self.log.debug(f"write_file_path: {write_file_path}")
         output_dir = os.path.dirname(write_file_path)
+        self.log.debug(f"output_dir: {output_dir}")
 
         # TODO: remove this when we have proper colorspace support
         version_data = {

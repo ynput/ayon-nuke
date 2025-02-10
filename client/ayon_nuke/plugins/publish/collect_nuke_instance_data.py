@@ -59,10 +59,20 @@ class CollectInstanceData(pyblish.api.InstancePlugin):
             "stagingDir_persistent", False
         )
         if staging_dir:
+            self.log.debug("Updating StagingDir: {}".format(staging_dir))
             instance.data.update({
                 "stagingDir": staging_dir,
                 "stagingDir_persistent": staging_dir_persistent
             })
 
-        self.log.debug("Collected instance: {}".format(
-            instance.data))
+        # self.log.debug(f"stagingDir: {instance.data.get('stagingDir')}")
+
+        if "stagingDir" in instance.data.keys():
+            self.log.debug(f"StagingDir: {instance.data.get('stagingDir')}")
+        else:
+            self.log.debug("staging dir not in instance data!")
+        
+        strng = "\n" + '\n'.join([f"    {k}: {v}" for k, v in instance.data.items()])
+
+
+        self.log.debug(strng)
