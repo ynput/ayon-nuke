@@ -797,24 +797,32 @@ class ExporterReview(object):
         by version from workfile, it must be reflected even for baking scripts.
         """
         try:
-            rootVersion = get_version_from_path(current_file)
-            padding = len(rootVersion)
-            new_version = "v" + str("{" + ":0>{}".format(padding) + "}").format(
-                int(rootVersion)
-            )
-            staging_dir_version = "v" + get_version_from_path(staging_dir)
-            self.log.debug(
-                f"Update version in staging dir from {staging_dir_version} "
-                f"to {new_version}"
-            )
-            return staging_dir.replace(staging_dir_version, new_version)
-        except IndexError:
+            root_version = get_version_from_path(current_file)
+            padding = len(root_version)
+            root_version = int(root_version)
+        except (TypeError, IndexError):
             self.log.warning(
-                f"Current file '{current_file}' or staging_dir "
-                f"'{staging_dir}' don't contain version number. "
+                f"Current file '{current_file}' doesn't contain version number. "
                 "No replacement necessary",
                 exc_info=True)
-            return
+            return staging_dir
+        try:
+            staging_dir_version = "v" + get_version_from_path(staging_dir)
+        except (TypeError, IndexError):
+            self.log.warning(
+                f"Staging directory '{staging_dir}' doesn't contain version number. "
+                "No replacement necessary",
+                exc_info=True)
+            return staging_dir
+
+        new_version = "v" + str("{" + ":0>{}".format(padding) + "}").format(
+            root_version
+        )
+        self.log.debug(
+            f"Update version in staging dir from {staging_dir_version} "
+            f"to {new_version}"
+        )
+        return staging_dir.replace(staging_dir_version, new_version)
 
 class ExporterReviewLut(ExporterReview):
     """
