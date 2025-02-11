@@ -1,4 +1,3 @@
-import sys
 from ayon_nuke.api import (
     INSTANCE_DATA_KNOB,
     NukeCreator,

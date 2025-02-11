@@ -1,7 +1,6 @@
 import nuke
 import re
 import os
-import sys
 import copy
 import pathlib
 import random
