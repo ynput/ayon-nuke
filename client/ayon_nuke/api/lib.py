@@ -840,6 +840,11 @@ def writes_version_sync(write_node, log):
 
     Tries to find version string in render path of write node and bump it to
     workfile version.
+
+    Args:
+        write_node (nuke.Node)
+        log (logging.Logger) - logger to output messages into Publisher
+
     """
     try:
         rootVersion = get_version_from_path(nuke.root().name())
