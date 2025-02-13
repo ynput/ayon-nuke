@@ -3,9 +3,13 @@ from ayon_nuke.api import NukeHost
 from hornet_deadline_utils import (
     deadlineNetworkSubmit,
     save_script_with_render,
-    navigate_to_render,
 )
-import read_node_generators
+import read_node_utils
+# from read_node_utils import (
+
+# )
+
+import platform
 
 host = NukeHost()
 install_host(host)
@@ -62,6 +66,7 @@ presets = {
 
 
 def apply_format_presets():
+    # print("apply_format_presets")
     node = nuke.thisNode()
     knob = nuke.thisKnob()
     if knob.name() == "file_type":
@@ -136,6 +141,7 @@ def writes_ver_sync():
 
 
 def switchExtension():
+    # print("switchExtension")
     nde = nuke.thisNode()
     knb = nuke.thisKnob()
     if knb == nde.knob("file_type"):
@@ -148,6 +154,7 @@ def switchExtension():
 
 
 def embedOptions():
+    
     nde = nuke.thisNode()
     knb = nuke.thisKnob()
     # log.info(' knob of type' + str(knb.Class()))
@@ -243,7 +250,7 @@ def embedOptions():
         "Publish",
         "from ayon_core.tools.utils import host_tools;host_tools.show_publisher(tab='Publish')",
     )
-    readfrom_src = "import read_node_generators;read_node_generators.write_to_read(nuke.thisNode(), allow_relative=False)"
+    readfrom_src = "import read_node_utils;read_node_utils.write_to_read(nuke.thisNode(), allow_relative=False)"
     readfrom = nuke.PyScript_Knob(
         "readfrom", "Read From Rendered", readfrom_src
     )
@@ -265,13 +272,19 @@ def embedOptions():
     read_from_publish_button = nuke.PyScript_Knob(
         "readfrompublish",
         "Read From Publish",
-        "read_node_generators.read_from_publish(nuke.thisNode())",
+        "read_node_utils.read_from_publish(nuke.thisNode())",
     )
 
     navigate_to_render_button = nuke.PyScript_Knob(
         "navigate_to_render",
         "Navigate to Render",
-        "navigate_to_render(nuke.thisNode())",
+        "read_node_utils.navigate_to_render(nuke.thisNode())",
+    )
+
+    navigate_to_publish_button = nuke.PyScript_Knob(
+        "navigate_to_publish",
+        "Navigate to Publish",
+        "read_node_utils.navigate_to_publish(nuke.thisNode())",
     )
 
     tempwarn = nuke.Text_Knob(
@@ -313,6 +326,7 @@ def embedOptions():
     group.addKnob(div)
     group.addKnob(publish_button)
     group.addKnob(read_from_publish_button)
+    group.addKnob(navigate_to_publish_button)
     group.addKnob(tempwarn)
 
     endGroup = nuke.Tab_Knob("endpipeline", None, nuke.TABENDGROUP)
@@ -395,7 +409,7 @@ def _quick_write_node(variant, family="render"):
         "CollectFramesFixDef": {"frames_to_fix": "", "rewrite_version": False},
         "ValidateCorrectAssetContext": {"active": True},
         "NukeSubmitDeadline": {
-            "priority": 90,
+            "priority": 95,
             "chunk": 1,
             "concurrency": 1,
             "use_gpu": True,
@@ -419,6 +433,7 @@ def _quick_write_node(variant, family="render"):
 
 
 def enable_disable_frame_range():
+    # print("enable_disable_frame_range")
     nde = nuke.thisNode()
     knb = nuke.thisKnob()
     if not nde.knob("use_limit") or not knb.name() == "use_limit":
@@ -436,10 +451,15 @@ def submit_selected_write():
 
 
 def enable_publish_range():
+
+    # print("enable_publish_range")
+
     nde = nuke.thisNode()
     kb = nuke.thisKnob()
+
     if not kb == nde.knob("usePublishRange"):
         return
+    print("oh no!")
     if kb.value():
         nde.knob("publishFirst").setEnabled(True)
         nde.knob("publishLast").setEnabled(True)

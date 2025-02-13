@@ -6,9 +6,9 @@ import pyblish.api
 from ayon_core.pipeline import publish
 from ayon_nuke.api import plugin
 from ayon_nuke.api.lib import maintained_selection
+from ayon_core.pipeline.publish import OptionalPyblishPluginMixin
 
-
-class ExtractReviewIntermediates(publish.Extractor):
+class ExtractReviewIntermediates(publish.Extractor, OptionalPyblishPluginMixin):
     """Extracting intermediate videos or sequences with
     thumbnail for transcoding.
 
@@ -23,6 +23,7 @@ class ExtractReviewIntermediates(publish.Extractor):
     hosts = ["nuke"]
 
     settings_category = "nuke"
+    optional = True
 
     # presets
     viewer_lut_raw = None
@@ -39,6 +40,7 @@ class ExtractReviewIntermediates(publish.Extractor):
 
         # Add product type to families
         families.add(instance.data["productType"])
+        self.log.debug("Families: {}".format(families))
 
         task_type = instance.context.data["taskType"]
         product_name = instance.data["productName"]
@@ -49,7 +51,7 @@ class ExtractReviewIntermediates(publish.Extractor):
 
         if not instance.data.get("stagingDir"):
             
-            sd =  os.path.normpath(
+            sd = os.path.normpath(
                 os.path.dirname(instance.data["path"]))
 
             instance.data["stagingDir"] = sd
@@ -154,6 +156,13 @@ class ExtractReviewIntermediates(publish.Extractor):
                 generated_repres.extend(data["representations"])
                 self.log.debug(
                     "__ generated_repres: {}".format(generated_repres))
+
+
+        """
+        
+        """
+
+        self.log.debug(f"generated_repres: {generated_repres}")
 
         if generated_repres:
             # assign to representations

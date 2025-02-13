@@ -1,6 +1,5 @@
 import nuke
 import nukescripts
-
 from pathlib import Path
 from datetime import datetime
 from PySide2.QtCore import QTimer
@@ -58,4 +57,4 @@ nukescripts.drop.addDropDataCallback(handle_jesse_send)
 nuke.toolbar("Nodes").addCommand("Alex Dev / Jesse Send", "jesse_send()")
 
 
-# JESSE::P:\dev\alexh_dev\jesseSend\Root_2025-02-10_12-04-18.nk
+# JESSE::P:\dev\alexh_dev\jesseSend\Root_2025-02-10_12-04-18.nkz

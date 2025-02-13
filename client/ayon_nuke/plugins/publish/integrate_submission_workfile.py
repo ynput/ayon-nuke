@@ -21,10 +21,14 @@ class IntegrateSubmissionWorkfile(pyblish.api.InstancePlugin):
         source_dir = source_path.parent
         publish_format = source_path.suffix[1:]
 
-        reps = instance.data["published_representations"].values()
+        # reps = instance.data["published_representations"].values()
 
+        reps = instance.data.get("representations", [])
 
-        for rep in [r['representation'] for r in reps]:
+        for rep in [r.get('representation', None) for r in reps]:
+
+            if not rep:
+                continue
 
             if not rep['name'] == publish_format:
                 continue

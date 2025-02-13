@@ -136,6 +136,7 @@ class IntegrateAsset(pyblish.api.InstancePlugin):
             self.log.debug("Instance is marked to skip integrating. Skipping")
             return
 
+        """
         filtered_repres = self.filter_representations(instance)
         # Skip instance if there are not representations to integrate
         #   all representations should not be integrated
@@ -167,6 +168,38 @@ class IntegrateAsset(pyblish.api.InstancePlugin):
         # Finalizing can't rollback safely so no use for moving it to
         # the try, except.
         file_transactions.finalize()
+        """
+
+        """
+        Hornet:
+
+        Removed the registration of the assets because that collides with the farm publish
+        step which attemptes to re-register the assets and fails.
+
+        Introduced a stripped down method that registers the file transfers only so that 
+        they are available in the publish location faster, which then gets repeated
+        and registered on the farm. 
+        """
+
+
+        filtered_repres = self.filter_representations(instance)
+        if not filtered_repres:
+            self.log.warning("No representations to integrate")
+            return
+
+        try:
+            # Get transaction manager with queued transfers
+            file_transactions = self.register_transfers(instance, filtered_repres)
+            
+            # Process the transfers
+            file_transactions.process()
+            
+        except Exception as exc:
+            # Handle any errors
+            raise
+            
+        # Finalize successful transfers
+        file_transactions.finalize()
 
     def filter_representations(self, instance):
         # Prepare repsentations that should be integrated
@@ -195,6 +228,77 @@ class IntegrateAsset(pyblish.api.InstancePlugin):
             filtered_repres.append(repre)
 
         return filtered_repres
+
+
+    def register_transfers(self, instance, filtered_repres):
+        """Prepare and register file transfers without database registration.
+        
+        Args:
+            instance: The instance being processed
+            filtered_repres: List of filtered representations to process
+        
+        Returns:
+            FileTransaction: The prepared transaction manager with queued transfers
+        """
+        project_name = instance.context.data["projectName"]
+        instance_stagingdir = instance.data.get("stagingDir")
+        
+        if not instance_stagingdir:
+            self.log.debug(
+                "Instance is missing reference to staging directory."
+                " Will try to get it from representation."
+            )
+
+        template_name = self.get_template_name(instance)
+        anatomy = instance.context.data["anatomy"]
+
+        # Create transaction manager
+        file_transactions = FileTransaction(
+            log=self.log,
+            allow_queue_replacements=False
+        )
+
+        try:
+            # Create minimal version entity with required fields and valid UUID
+            minimal_version = {
+                "version": instance.data["version"],
+                "id": create_entity_id(),  # Creates a valid UUID
+                "data": {},
+                "attrib": {}
+            }
+
+            # Process each representation
+            for repre in filtered_repres:
+                # Prepare the representation transfers
+                prepared = self.prepare_representation(
+                    repre,
+                    template_name,
+                    {},  # No existing representations needed
+                    minimal_version,  # Pass complete minimal version entity
+                    instance_stagingdir,
+                    instance
+                )
+
+                # Queue the transfers
+                for src, dst in prepared["transfers"]:
+                    file_transactions.add(src, dst)
+
+            # Add any additional resource transfers
+            for files_type, copy_mode in [
+                ("transfers", FileTransaction.MODE_COPY),
+                ("hardlinks", FileTransaction.MODE_HARDLINK)
+            ]:
+                for src, dst in instance.data.get(files_type, []):
+                    self._validate_path_in_project_roots(anatomy, dst)
+                    file_transactions.add(src, dst, mode=copy_mode)
+
+            return file_transactions
+
+        except Exception:
+            # Clean up on any error
+            file_transactions.rollback()
+            raise
+
 
     def register(self, instance, file_transactions, filtered_repres):
         project_name = instance.context.data["projectName"]

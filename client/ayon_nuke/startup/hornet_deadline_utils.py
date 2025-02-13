@@ -139,7 +139,7 @@ def build_request(knobValues,timestamp):
                     "Name": os.environ['AYON_PROJECT_NAME'].split("_")[0] + "_" + os.environ['AYON_FOLDER_PATH'] + '_' + nuke.thisNode().name(),
                     # pass submitter user
                     "UserName": getpass.getuser(),
-                    "Priority": int(knobValues.get('deadlinePriority')) or 90,
+                    "Priority": int(knobValues.get('deadlinePriority')) or 95,
                     "Pool": knobValues.get('deadlinePool') or "local",
                     "SecondaryPool": '',
                     "Group": knobValues.get('deadlineGroup') or 'nuke',
@@ -218,21 +218,6 @@ def save_script_with_render(write_node_file_path):
     else:
         nuke.tprint("Failed to save script to {}".format(save_path))
 
-def navigate_to_render(write_node):
-    ''' Open explorer at the location of the render file
 
-    Args:
-        Ayon write node
 
-    ''' 
-
-    file_path = Path(write_node['File output'].evaluate()).parent
-    if not file_path.exists():
-        return
-
-    if platform.system() == "Windows":
-        os.startfile(file_path)
-    elif platform.system() == "Darwin":  # macOS
-        subprocess.run(["open", file_path])
-    else:  # Linux
-        subprocess.run(["xdg-open", file_path])
+    
