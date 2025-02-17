@@ -2522,8 +2522,9 @@ def add_scripts_gizmo():
         toolbar_name = gizmo_settings["toolbar_menu_name"]
 
         toolbar_icon_path = gizmo_settings["toolbar_icon_path"][platform_name]
-        toolbar_icon_path = StringTemplate.format_template(
-            toolbar_icon_path, template_data)
+        if toolbar_icon_path:
+            toolbar_icon_path = StringTemplate.format_template(
+                toolbar_icon_path, template_data)
 
         # Create the toolbar
         toolbar_menu = GizmoMenu(
@@ -2539,14 +2540,17 @@ def add_scripts_gizmo():
 
         if option == "gizmo_source_dir":
             gizmo_paths_to_add = gizmos[platform_name]
-            gizmo_paths_to_add = StringTemplate.format_template(
-                gizmo_paths_to_add, template_data)
-            toolbar_menu.add_gizmo_path(gizmo_paths_to_add)
+            if gizmo_paths_to_add:
+                gizmo_paths_to_add = StringTemplate.format_template(
+                    gizmo_paths_to_add, template_data)
+                toolbar_menu.add_gizmo_path(gizmo_paths_to_add)
         elif option == "gizmo_definition":
             for gizmo in gizmos:
                 for gizmo_item in gizmo["sub_gizmo_list"]:
-                    gizmo_item["icon"] = StringTemplate.format_template(
-                        gizmo_item["icon"], template_data)
+                    gizmo_item_icon = gizmo_item["icon"]
+                    if gizmo_item_icon:
+                        gizmo_item["icon"] = StringTemplate.format_template(
+                            gizmo_item_icon, template_data)
             toolbar_menu.build_from_configuration(gizmos)
 
 
