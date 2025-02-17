@@ -29,7 +29,7 @@ from ayon_nuke.api.lib import (
     create_write_node,
 )
 from ayon_core.settings import get_project_settings
-
+from ayon_core.tools.utils.host_tools import show_publisher
 log = Logger.get_logger(__name__)
 # dict mapping extension to list of exposed parameters from write node to top level group node
 knobMatrix = {
@@ -150,6 +150,26 @@ def switchExtension():
         pre, ext = os.path.splitext(old)
         filek.setValue(pre + "." + knb.value())
 
+def check_and_show_publisher():
+
+    # this is supposed to check if there's already a publish to save the user
+    # from submitting one that fails, but the assemble_publish_path() function
+    # doest not currently take version into account and just returns the latest
+    # which causes this to return false positive.
+
+    # Leaving it here because it's on the list to make a btter pubklish bath 
+    # solver, at which point this function will work.
+    
+    # publish_path = read_node_utils.assemble_publish_path(nuke.thisNode())
+    
+    # if publish_path:
+    #     base = publish_path.name.split(".")[0]
+    #     if publish_path.parent.glob(f"{base}.*"):
+    #         if not nuke.ask("Files exist in publish location. Conitue?"):
+    #             return
+    
+    from ayon_core.tools.utils import host_tools;host_tools.show_publisher(tab='Publish')
+
 
 
 
@@ -236,7 +256,7 @@ def embedOptions():
     group.addKnob(publishLast)
     group.addKnob(usePublishRange)
 
-    sub = nuke.PyScript_Knob(
+    submit_to_deadline = nuke.PyScript_Knob(
         "submit", "Submit to Deadline", "deadlineNetworkSubmit()"
     )
 
@@ -248,7 +268,8 @@ def embedOptions():
     publish_button = nuke.PyScript_Knob(
         "publish",
         "Publish",
-        "from ayon_core.tools.utils import host_tools;host_tools.show_publisher(tab='Publish')",
+        "check_and_show_publisher()",
+        # "from ayon_core.tools.utils import host_tools;host_tools.show_publisher(tab='Publish')",
     )
     readfrom_src = "import read_node_utils;read_node_utils.write_to_read(nuke.thisNode(), allow_relative=False)"
     readfrom = nuke.PyScript_Knob(
@@ -300,15 +321,16 @@ def embedOptions():
     concurrentTasks.setValue(2)
     deadlinePool.setValue("local")
     deadlineGroup.setValue("nuke")
-    deadlinePriority.setValue(95)
+    deadlinePriority.setValue(90)
 
     usePublishRange.setFlag(nuke.STARTLINE)
-    sub.setFlag(nuke.STARTLINE)
+    submit_to_deadline.setFlag(nuke.STARTLINE)
     publishFirst.clearFlag(nuke.STARTLINE)
+    publishLast.clearFlag(nuke.STARTLINE)
     render_local_button.setFlag(nuke.STARTLINE)
     deadlinePriority.setFlag(nuke.STARTLINE)
     deadlineChunkSize.clearFlag(nuke.STARTLINE)  # Don't start a new line
-    concurrentTasks.clearFlag(nuke.STARTLINE)
+#    concurrentTasks.clearFlag(nuke.STARTLINE)
     concurrent_warning.clearFlag(nuke.STARTLINE)
 
     group.addKnob(render_local_button)
@@ -322,7 +344,7 @@ def embedOptions():
     group.addKnob(concurrent_warning)
     group.addKnob(deadlinePool)
     group.addKnob(deadlineGroup)
-    group.addKnob(sub)
+    group.addKnob(submit_to_deadline)
     group.addKnob(div)
     group.addKnob(publish_button)
     group.addKnob(read_from_publish_button)

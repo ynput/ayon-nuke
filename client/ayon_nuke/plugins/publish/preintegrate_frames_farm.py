@@ -136,39 +136,72 @@ class IntegrateAsset(pyblish.api.InstancePlugin):
             self.log.debug("Instance is marked to skip integrating. Skipping")
             return
 
-        """
-        filtered_repres = self.filter_representations(instance)
-        # Skip instance if there are not representations to integrate
-        #   all representations should not be integrated
-        if not filtered_repres:
-            self.log.warning((
-                "Skipping, there are no representations"
-                " to integrate for instance {}"
-            ).format(instance.data["productType"]))
-            return
+        render_target = instance.data.get("render_target")
+ 
+        self.log.debug("render target: {}".format(render_target))
+        # if render target is frames farm, register transfers and skip database registration
+        if render_target == "frames_farm":
 
-        file_transactions = FileTransaction(log=self.log,
-                                            # Enforce unique transfers
-                                            allow_queue_replacements=False)
-        try:
-            self.register(instance, file_transactions, filtered_repres)
-        except DuplicateDestinationError as exc:
-            # Raise DuplicateDestinationError as KnownPublishError
-            # and rollback the transactions
-            file_transactions.rollback()
-            raise KnownPublishError(exc).with_traceback(sys.exc_info()[2])
+            self.log.debug("render target is frames farm, registering transfers and skipping database registration")
 
-        except Exception as exc:
-            # clean destination
-            # todo: preferably we'd also rollback *any* changes to the database
-            file_transactions.rollback()
-            self.log.critical("Error when registering", exc_info=True)
-            raise exc
 
-        # Finalizing can't rollback safely so no use for moving it to
-        # the try, except.
-        file_transactions.finalize()
-        """
+            filtered_repres = self.filter_representations(instance)
+            if not filtered_repres:
+                self.log.warning("No representations to integrate")
+                return
+
+            try:
+                # Get transaction manager with queued transfers
+                file_transactions = self.register_transfers(instance, filtered_repres)
+                
+                # Process the transfers
+                file_transactions.process()
+                
+            except Exception as exc:
+                # Handle any errors
+                raise
+            
+            # Finalize successful transfers
+            file_transactions.finalize()
+
+            return 
+
+        else:
+
+            self.log.debug("render target is not frames farm, registering and integrating")
+            
+            filtered_repres = self.filter_representations(instance)
+            # Skip instance if there are not representations to integrate
+            #   all representations should not be integrated
+            if not filtered_repres:
+                self.log.warning((
+                    "Skipping, there are no representations"
+                    " to integrate for instance {}"
+                ).format(instance.data["productType"]))
+                return
+
+            file_transactions = FileTransaction(log=self.log,
+                                                # Enforce unique transfers
+                                                allow_queue_replacements=False)
+            try:
+                self.register(instance, file_transactions, filtered_repres)
+            except DuplicateDestinationError as exc:
+                # Raise DuplicateDestinationError as KnownPublishError
+                # and rollback the transactions
+                file_transactions.rollback()
+                raise KnownPublishError(exc).with_traceback(sys.exc_info()[2])
+
+            except Exception as exc:
+                # clean destination
+                # todo: preferably we'd also rollback *any* changes to the database
+                file_transactions.rollback()
+                self.log.critical("Error when registering", exc_info=True)
+                raise exc
+
+            # Finalizing can't rollback safely so no use for moving it to
+            # the try, except.
+            file_transactions.finalize()
+
 
         """
         Hornet:
@@ -181,25 +214,10 @@ class IntegrateAsset(pyblish.api.InstancePlugin):
         and registered on the farm. 
         """
 
+        # self.log.debug("Instance data: {}".format(instance.data))
 
-        filtered_repres = self.filter_representations(instance)
-        if not filtered_repres:
-            self.log.warning("No representations to integrate")
-            return
 
-        try:
-            # Get transaction manager with queued transfers
-            file_transactions = self.register_transfers(instance, filtered_repres)
-            
-            # Process the transfers
-            file_transactions.process()
-            
-        except Exception as exc:
-            # Handle any errors
-            raise
-            
-        # Finalize successful transfers
-        file_transactions.finalize()
+
 
     def filter_representations(self, instance):
         # Prepare repsentations that should be integrated
