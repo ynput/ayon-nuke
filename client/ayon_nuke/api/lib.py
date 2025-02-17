@@ -31,7 +31,10 @@ from ayon_core.settings import (
     get_current_project_settings,
 )
 from ayon_core.addon import AddonsManager
-from ayon_core.pipeline.template_data import get_template_data_with_names
+from ayon_core.pipeline.template_data import (
+    get_template_data_with_names,
+    get_template_data,
+)
 from ayon_core.pipeline import (
     Anatomy,
     registered_host,
@@ -41,6 +44,7 @@ from ayon_core.pipeline import (
     get_current_task_name,
     AYON_INSTANCE_ID,
     AVALON_INSTANCE_ID,
+    get_current_context,
 )
 from ayon_core.pipeline.load import filter_containers
 from ayon_core.pipeline.context_tools import (
@@ -2511,11 +2515,15 @@ def add_scripts_gizmo():
     project_settings = get_current_project_settings()
     platform_name = platform.system().lower()
 
+    template_data = get_current_context_template_data_and_environ()
+
     for gizmo_settings in project_settings["nuke"]["gizmo"]:
         # Get the toolbar.
         toolbar_name = gizmo_settings["toolbar_menu_name"]
-        # TODO Support template keys and environment variables.
+
         toolbar_icon_path = gizmo_settings["toolbar_icon_path"][platform_name]
+        toolbar_icon_path = StringTemplate.format_template(
+            toolbar_icon_path, template_data)
 
         # Create the toolbar
         toolbar_menu = GizmoMenu(
@@ -2530,11 +2538,51 @@ def add_scripts_gizmo():
             continue
 
         if option == "gizmo_source_dir":
-            # TODO Support template keys and environment variables.
             gizmo_paths_to_add = gizmos[platform_name]
+            gizmo_paths_to_add = StringTemplate.format_template(
+                gizmo_paths_to_add, template_data)
             toolbar_menu.add_gizmo_path(gizmo_paths_to_add)
         elif option == "gizmo_definition":
+            for gizmo in gizmos:
+                for gizmo_item in gizmo["sub_gizmo_list"]:
+                    gizmo_item["icon"] = StringTemplate.format_template(
+                        gizmo_item["icon"], template_data)
             toolbar_menu.build_from_configuration(gizmos)
+
+
+def get_current_context_template_data_and_environ():
+    """Return current context template data and os environ.
+
+    Output contains:
+      - Regular template data from `get_template_data`
+      - Anatomy Roots
+      - os.environ keys
+
+    Returns:
+         dict[str, Any]: Template data to fill templates.
+
+    """
+    context = get_current_context()
+    project_name = context["project_name"]
+    folder_path = context["folder_path"]
+    task_name = context["task_name"]
+    host_name = get_current_host_name()
+
+    project_entity = ayon_api.get_project(project_name)
+    anatomy = Anatomy(project_name, project_entity=project_entity)
+    folder_entity = ayon_api.get_folder_by_path(project_name, folder_path)
+    task_entity = ayon_api.get_task_by_name(
+        project_name, folder_entity["id"], task_name
+    )
+
+    template_data = get_template_data(
+        project_entity, folder_entity, task_entity, host_name
+    )
+    template_data["root"] = anatomy.roots
+
+    template_data.update(os.environ)
+
+    return template_data
 
 
 class NukeDirmap(HostDirmap):
