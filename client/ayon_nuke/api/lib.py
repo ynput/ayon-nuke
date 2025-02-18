@@ -31,7 +31,10 @@ from ayon_core.settings import (
     get_current_project_settings,
 )
 from ayon_core.addon import AddonsManager
-from ayon_core.pipeline.template_data import get_template_data_with_names
+from ayon_core.pipeline.template_data import (
+    get_template_data_with_names,
+    get_template_data,
+)
 from ayon_core.pipeline import (
     Anatomy,
     registered_host,
@@ -41,6 +44,7 @@ from ayon_core.pipeline import (
     get_current_task_name,
     AYON_INSTANCE_ID,
     AVALON_INSTANCE_ID,
+    get_current_context,
 )
 from ayon_core.pipeline.load import filter_containers
 from ayon_core.pipeline.context_tools import (
@@ -50,7 +54,9 @@ from ayon_core.pipeline.colorspace import (
     get_current_context_imageio_config_preset
 )
 from ayon_core.pipeline.workfile import BuildWorkfile
-from . import gizmo_menu
+from ayon_core.resources import get_ayon_icon_filepath
+
+from .gizmo_menu import GizmoMenu
 from .constants import (
     ASSIST,
     LOADER_CATEGORY_COLORS,
@@ -2506,66 +2512,81 @@ def add_scripts_menu():
 def add_scripts_gizmo():
 
     # load configuration of custom menu
-    project_name = get_current_project_name()
-    project_settings = get_project_settings(project_name)
+    project_settings = get_current_project_settings()
     platform_name = platform.system().lower()
 
+    template_data = get_current_context_template_data_and_environ()
+
     for gizmo_settings in project_settings["nuke"]["gizmo"]:
-        gizmo_list_definition = gizmo_settings["gizmo_definition"]
+        # Get the toolbar.
         toolbar_name = gizmo_settings["toolbar_menu_name"]
-        # gizmo_toolbar_path = gizmo_settings["gizmo_toolbar_path"]
-        gizmo_source_dir = gizmo_settings.get(
-            "gizmo_source_dir", {}).get(platform_name)
-        toolbar_icon_path = gizmo_settings.get(
-            "toolbar_icon_path", {}).get(platform_name)
 
-        if not gizmo_source_dir:
-            log.debug("Skipping studio gizmo `{}`, "
-                      "no gizmo path found.".format(toolbar_name)
-                      )
-            return
-
-        if not gizmo_list_definition:
-            log.debug("Skipping studio gizmo `{}`, "
-                      "no definition found.".format(toolbar_name)
-                      )
-            return
-
+        toolbar_icon_path = gizmo_settings["toolbar_icon_path"][platform_name]
         if toolbar_icon_path:
-            try:
-                toolbar_icon_path = toolbar_icon_path.format(**os.environ)
-            except KeyError as e:
-                log.error(
-                    "This environment variable doesn't exist: {}".format(e)
-                )
+            toolbar_icon_path = StringTemplate.format_template(
+                toolbar_icon_path, template_data)
 
-        existing_gizmo_path = []
-        for source_dir in gizmo_source_dir:
-            try:
-                resolve_source_dir = source_dir.format(**os.environ)
-            except KeyError as e:
-                log.error(
-                    "This environment variable doesn't exist: {}".format(e)
-                )
-                continue
-            if not os.path.exists(resolve_source_dir):
-                log.warning(
-                    "The source of gizmo `{}` does not exists".format(
-                        resolve_source_dir
-                    )
-                )
-                continue
-            existing_gizmo_path.append(resolve_source_dir)
+        # Create the toolbar
+        toolbar_menu = GizmoMenu(
+                title=toolbar_name,
+                icon=toolbar_icon_path or get_ayon_icon_filepath()
+            )
 
-        # run the launcher for Nuke toolbar
-        toolbar_menu = gizmo_menu.GizmoMenu(
-            title=toolbar_name,
-            icon=toolbar_icon_path
-        )
+        # Add gizmos based on options
+        option = gizmo_settings["options"]
+        gizmos = gizmo_settings[option]
+        if not gizmos:
+            continue
 
-        # apply configuration
-        toolbar_menu.add_gizmo_path(existing_gizmo_path)
-        toolbar_menu.build_from_configuration(gizmo_list_definition)
+        if option == "gizmo_source_dir":
+            gizmo_paths_to_add = gizmos[platform_name]
+            if gizmo_paths_to_add:
+                gizmo_paths_to_add = StringTemplate.format_template(
+                    gizmo_paths_to_add, template_data)
+                toolbar_menu.add_gizmo_path(gizmo_paths_to_add)
+        elif option == "gizmo_definition":
+            for gizmo in gizmos:
+                for gizmo_item in gizmo["sub_gizmo_list"]:
+                    gizmo_item_icon = gizmo_item["icon"]
+                    if gizmo_item_icon:
+                        gizmo_item["icon"] = StringTemplate.format_template(
+                            gizmo_item_icon, template_data)
+            toolbar_menu.build_from_configuration(gizmos)
+
+
+def get_current_context_template_data_and_environ():
+    """Return current context template data and os environ.
+
+    Output contains:
+      - Regular template data from `get_template_data`
+      - Anatomy Roots
+      - os.environ keys
+
+    Returns:
+         dict[str, Any]: Template data to fill templates.
+
+    """
+    context = get_current_context()
+    project_name = context["project_name"]
+    folder_path = context["folder_path"]
+    task_name = context["task_name"]
+    host_name = get_current_host_name()
+
+    project_entity = ayon_api.get_project(project_name)
+    anatomy = Anatomy(project_name, project_entity=project_entity)
+    folder_entity = ayon_api.get_folder_by_path(project_name, folder_path)
+    task_entity = ayon_api.get_task_by_name(
+        project_name, folder_entity["id"], task_name
+    )
+
+    template_data = get_template_data(
+        project_entity, folder_entity, task_entity, host_name
+    )
+    template_data["root"] = anatomy.roots
+
+    template_data.update(os.environ)
+
+    return template_data
 
 
 class NukeDirmap(HostDirmap):
