@@ -174,11 +174,13 @@ class LoadOcioLookNodes(load.LoaderPlugin):
                 # file path from lut representation
                 extension = ocio_item["ext"]
                 item_name = ocio_item["name"]
+                lut_suffix = ocio_item.get("lut_suffix", "")
 
                 item_lut_file = next(
                     (
                         file for file in all_files
                         if file.endswith(extension)
+                        and lut_suffix in os.path.basename(file)
                     ),
                     None
                 )
@@ -192,7 +194,8 @@ class LoadOcioLookNodes(load.LoaderPlugin):
                     dir_path, item_lut_file).replace("\\", "/")
                 node["file"].setValue(item_lut_path)
                 node["name"].setValue(item_name)
-                node["direction"].setValue(ocio_item["direction"])
+                if ocio_item["direction"] == "inverse":
+                    node["invert"].setValue(True)
                 node["interpolation"].setValue(ocio_item["interpolation"])
                 node["working_space"].setValue(input_space)
 
