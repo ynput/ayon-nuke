@@ -868,6 +868,7 @@ def writes_version_sync(write_node, log):
         # Use regex to find all occurrences of '%0Xd' with `#`s
         node_new_file = re.sub(r'%0*(\d+)d', replace_match, node_new_file)
 
+        log.debug(f"Overwriting Write path to '{node_new_file}'")
         write_node["file"].setValue(node_new_file)
         render_dir = os.path.dirname(node_new_file)
         if not os.path.isdir(render_dir):
