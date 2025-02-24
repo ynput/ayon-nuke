@@ -33,7 +33,7 @@ def get_display_and_view_colorspaces(root_node):
     """
     script_name = nuke.root().name()
     if _DISPLAY_AND_VIEW_COLORSPACES_CACHE.get(script_name) is None:
-        colorspace_knob = root_node["monitorLut"]
+        colorspace_knob = root_node["monitorOutLUT"]
         colorspaces = nuke.getColorspaceList(colorspace_knob)
         _DISPLAY_AND_VIEW_COLORSPACES_CACHE[script_name] = colorspaces
 
