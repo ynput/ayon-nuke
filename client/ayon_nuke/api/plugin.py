@@ -42,6 +42,7 @@ from .lib import (
     get_filenames_without_hash,
     get_work_default_directory,
     link_knobs,
+    get_version_from_path,
 )
 from .pipeline import (
     list_instances,
@@ -683,6 +684,11 @@ class ExporterReview(object):
         self.staging_dir = self.instance.data["stagingDir"]
         self.collection = self.instance.data.get("collection", None)
         self.data = {"representations": []}
+        if self.instance.data.get("stagingDir_is_custom"):
+            self.staging_dir = self._update_staging_dir(
+                self.instance.context.data["currentFile"],
+                self.staging_dir
+            )
 
     def get_file_info(self):
         if self.collection:
@@ -786,6 +792,40 @@ class ExporterReview(object):
                 "display_view": nuke_imageio["viewer"],
             }
 
+    def _update_staging_dir(self, current_file, staging_dir):
+        """Update staging dir with current file version.
+
+        Staging dir is used as a place where intermediate review files should
+        be stored. If render path contains version portion, which is replaced
+        by version from workfile, it must be reflected even for baking scripts.
+        """
+        try:
+            root_version = get_version_from_path(current_file)
+            padding = len(root_version)
+            root_version = int(root_version)
+        except (TypeError, IndexError):
+            self.log.warning(
+                f"Current file '{current_file}' doesn't contain version number. "
+                "No replacement necessary",
+                exc_info=True)
+            return staging_dir
+        try:
+            staging_dir_version = "v" + get_version_from_path(staging_dir)
+        except (TypeError, IndexError):
+            self.log.warning(
+                f"Staging directory '{staging_dir}' doesn't contain version number. "
+                "No replacement necessary",
+                exc_info=True)
+            return staging_dir
+
+        new_version = "v" + str("{" + ":0>{}".format(padding) + "}").format(
+            root_version
+        )
+        self.log.debug(
+            f"Update version in staging dir from {staging_dir_version} "
+            f"to {new_version}"
+        )
+        return staging_dir.replace(staging_dir_version, new_version)
 
 class ExporterReviewLut(ExporterReview):
     """
