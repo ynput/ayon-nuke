@@ -20,6 +20,22 @@ def instance_attributes_enum():
     ]
 
 
+def render_target_enum_local():
+    """Return write render target enum (local only)."""
+    return [
+        {"value": "local", "label": "Local machine rendering"},
+        {"value": "frames", "label": "Use existing frames"},
+    ]
+
+
+def render_target_enum():
+    """Return write render target enum."""
+    return render_target_enum_local() + [
+        {"value": "frames_farm", "label": "Use existing frames - farm"},
+        {"value": "farm", "label": "Farm rendering"}
+    ]
+
+
 class PrenodeModel(BaseSettingsModel):
     name: str = SettingsField(
         title="Node name"
@@ -59,6 +75,12 @@ class CreateWriteRenderModel(BaseSettingsModel):
         enum_resolver=instance_attributes_enum,
         title="Instance attributes"
     )
+    render_target: str = SettingsField(
+        enum_resolver=render_target_enum,
+        conditionalEnum=True,
+        title="Render target",
+        description="Set default render target for renders.",
+    )
     exposed_knobs: list[str] = SettingsField(
         title="Write Node Exposed Knobs",
         default_factory=list
@@ -88,6 +110,12 @@ class CreateWritePrerenderModel(BaseSettingsModel):
         enum_resolver=instance_attributes_enum,
         title="Instance attributes"
     )
+    render_target: str = SettingsField(
+        enum_resolver=render_target_enum,
+        conditionalEnum=True,
+        title="Render target",
+        description="Set default render target for renders.",
+    )
     exposed_knobs: list[str] = SettingsField(
         title="Write Node Exposed Knobs",
         default_factory=list
@@ -116,6 +144,12 @@ class CreateWriteImageModel(BaseSettingsModel):
         default_factory=list,
         enum_resolver=instance_attributes_enum,
         title="Instance attributes"
+    )
+    render_target: str = SettingsField(
+        enum_resolver=render_target_enum_local,  # restrict still image to locals
+        conditionalEnum=True,
+        title="Render target",
+        description="Set default render target for renders.",
     )
     exposed_knobs: list[str] = SettingsField(
         title="Write Node Exposed Knobs",
@@ -159,6 +193,7 @@ DEFAULT_CREATE_SETTINGS = {
             "reviewable",
             "farm_rendering"
         ],
+        "render_target": "local",
         "exposed_knobs": [],
         "prenodes": [
             {
@@ -193,6 +228,7 @@ DEFAULT_CREATE_SETTINGS = {
             "farm_rendering",
             "use_range_limit"
         ],
+        "render_target": "local",
         "exposed_knobs": [],
         "prenodes": []
     },
@@ -206,6 +242,7 @@ DEFAULT_CREATE_SETTINGS = {
         "instance_attributes": [
             "use_range_limit"
         ],
+        "render_target": "local",
         "exposed_knobs": [],
         "prenodes": [
             {

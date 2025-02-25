@@ -305,8 +305,10 @@ class NukeWriteCreator(NukeCreator):
     product_type = "write"
     icon = "sign-out"
 
-    temp_rendering_path_template = (  # default to be applied is settings is missing
+    temp_rendering_path_template = (  # default to be applied if settings is missing
         "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}")
+
+    render_target = "local"  # default to be applied if settings is missing
 
     def get_linked_knobs(self):
         linked_knobs = []
@@ -437,16 +439,24 @@ class NukeWriteCreator(NukeCreator):
             "local": "Local machine rendering",
             "frames": "Use existing frames"
         }
-        if "farm_rendering" in self.instance_attributes:
-            rendering_targets.update({
-                "frames_farm": "Use existing frames - farm",
-                "farm": "Farm rendering",
-            })
+
+        farm_rendering_targets = {
+            "frames_farm": "Use existing frames - farm",
+            "farm": "Farm rendering",
+        }
+
+        if (
+            "farm_rendering" in self.instance_attributes
+            or self.render_target in farm_rendering_targets
+        ):
+            rendering_targets.update(farm_rendering_targets)
 
         return EnumDef(
             "render_target",
             items=rendering_targets,
-            label="Render target"
+            default=self.render_target,
+            label="Render target",
+            tooltip="Define the render target."
         )
 
     def create(self, product_name, instance_data, pre_create_data):
@@ -529,6 +539,8 @@ class NukeWriteCreator(NukeCreator):
         self.prenodes = plugin_settings["prenodes"]
         self.default_variants = plugin_settings.get(
             "default_variants") or self.default_variants
+        self.render_target = plugin_settings.get(
+            "render_target") or self.render_target
         self.temp_rendering_path_template = temp_rendering_path_template
 
 
