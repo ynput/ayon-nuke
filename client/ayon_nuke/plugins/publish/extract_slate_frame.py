@@ -4,7 +4,6 @@ import nuke
 import copy
 
 import pyblish.api
-import six
 
 from ayon_core.pipeline import publish
 from ayon_nuke.api import (
@@ -270,7 +269,7 @@ class ExtractSlateFrame(publish.Extractor):
         for repre in instance.data["representations"]:
             files = repre["files"]
             if (
-                not isinstance(files, six.string_types)
+                not isinstance(files, str)
                 and first_filename in files
             ):
                 matching_repre = repre

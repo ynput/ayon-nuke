@@ -1,8 +1,6 @@
 import nuke
 import re
 import os
-import sys
-import six
 import copy
 import pathlib
 import random
@@ -231,11 +229,8 @@ class NukeCreator(NewCreator):
 
             return instance
 
-        except Exception as er:
-            six.reraise(
-                NukeCreatorError,
-                NukeCreatorError("Creator error: {}".format(er)),
-                sys.exc_info()[2])
+        except Exception as exc:
+            raise NukeCreatorError(f"Creator error: {exc}") from exc
 
     def collect_instances(self):
         cached_instances = _collect_and_cache_nodes(self)
@@ -509,12 +504,8 @@ class NukeWriteCreator(NukeCreator):
 
             return instance
 
-        except Exception as er:
-            six.reraise(
-                NukeCreatorError,
-                NukeCreatorError("Creator error: {}".format(er)),
-                sys.exc_info()[2]
-            )
+        except Exception as exc:
+            raise NukeCreatorError(f"Creator error: {exc}") from exc
 
     def apply_settings(self, project_settings):
         """Method called on initialization of plugin to apply settings."""

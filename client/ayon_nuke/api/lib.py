@@ -1,7 +1,6 @@
 import os
 import re
 import json
-import six
 import functools
 import warnings
 import pathlib
@@ -193,7 +192,7 @@ def get_node_data(node, knobname):
 
     rawdata = node[knobname].getValue()
     if (
-        isinstance(rawdata, six.string_types)
+        isinstance(rawdata, str)
         and rawdata.startswith(JSON_PREFIX)
     ):
         try:
@@ -261,7 +260,7 @@ def create_knobs(data, tab=None):
         int: nuke.Int_Knob
         float: nuke.Double_Knob
         list: nuke.Enumeration_Knob
-        six.string_types: nuke.String_Knob
+        str: nuke.String_Knob
 
         dict: If it's a nested dict (all values are dict), will turn into
             A tabs group. Or just a knobs group.
@@ -310,7 +309,7 @@ def create_knobs(data, tab=None):
             knob = nuke.Int_Knob(name, nice)
             knob.setValue(value)
 
-        elif isinstance(value, six.string_types):
+        elif isinstance(value, str):
             knob = nuke.String_Knob(name, nice)
             knob.setValue(value)
 
