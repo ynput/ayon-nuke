@@ -87,7 +87,11 @@ class NukeRenderLocal(publish.Extractor,
                 int(render_last_frame)
             )
 
-        ext = node["file_type"].value()
+        # Determine defined file type
+        path = node["file"].value()
+        _, ext = os.path.splitext(path)
+        _, ext = ext.split(".", 1)
+
         colorspace = napi.get_colorspace_from_node(node)
 
         if "representations" not in instance.data:
