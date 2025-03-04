@@ -447,8 +447,17 @@ class NukeWriteCreator(NukeCreator):
         }
 
         if (
+            self.render_target in farm_rendering_targets
+            and "farm_rendering" not in self.instance_attributes
+        ):
+            raise NukeCreatorError(
+                "Conflicting settings\nRender target:"
+                f"'{farm_rendering_targets[self.render_target]}'"
+                " but 'farm_rendering' instance attribute is not set."
+            )
+
+        if (
             "farm_rendering" in self.instance_attributes
-            or self.render_target in farm_rendering_targets
         ):
             rendering_targets.update(farm_rendering_targets)
 
