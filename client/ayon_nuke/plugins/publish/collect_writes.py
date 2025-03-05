@@ -164,8 +164,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
 
         # Determine defined file type
         path = write_node["file"].value()
-        _, ext = os.path.splitext(path)
-        ext = ext.lstrip(".")
+        ext = os.path.splitext(path)[1].lstrip(".")
 
         # determine defined channel type
         color_channels = write_node["channels"].value()
