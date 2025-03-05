@@ -1072,22 +1072,39 @@ class ExporterReviewMov(ExporterReview):
             product_name, r_node, "Read...   `{}`"
         )
 
-        # add reformat node
-        reformat_nodes_config = kwargs["reformat_nodes_config"]
-        if reformat_nodes_config["enabled"]:
-            reposition_nodes = reformat_nodes_config["reposition_nodes"]
-            for reposition_node in reposition_nodes:
-                node_class = reposition_node["node_class"]
-                knobs = reposition_node["knobs"]
-                node = nuke.createNode(node_class)
-                set_node_knobs_from_settings(node, knobs)
+        # add stereo and reformat node(s)
+        views_script = nuke.root().knob("views").toScript()
+        is_multi_views = len(views_script.split("\n")) > 1
 
-                # connect in order
-                self._connect_to_above_nodes(
-                    node, product_name, "Reposition node...   `{}`"
-                )
-            # append reformatted tag
-            add_tags.append("reformatted")
+        node_configs = {
+            "stereo_nodes": kwargs["stereo_nodes_config"],
+            "reposition_nodes": kwargs["reformat_nodes_config"]
+        }
+
+        for config_names, config in node_configs.items():
+            if config["enabled"]:
+                if (
+                    not is_multi_views
+                    and config_names == "stereo_nodes"
+                ):
+                    self.log.warning("Skip stereo nodes, not a stereo script.")
+                    continue
+
+                process_nodes = config[config_names]
+                for process_node in process_nodes:
+                    node_class = process_node["node_class"]
+                    knobs = process_node["knobs"]
+                    node = nuke.createNode(node_class)
+                    set_node_knobs_from_settings(node, knobs)
+
+                    # connect in order
+                    self._connect_to_above_nodes(
+                        node, product_name, "Process Node...   `{}`"
+                    )
+
+                # append reformatted tag
+                if config_names == "reposition_nodes":
+                    add_tags.append("reformatted")
 
         # only create colorspace baking if toggled on
         if bake_viewer_process:
@@ -1190,6 +1207,11 @@ class ExporterReviewMov(ExporterReview):
             self.log.info("`mov64_write_timecode` knob was not found")
 
         write_node["raw"].setValue(1)
+
+        # If multi-views, ensure output view is set to "main".
+        # Write node will not render otherwise.
+        if is_multi_views:
+            write_node["views"].setValue("main")
 
         # connect
         write_node.setInput(0, self.previous_node)
