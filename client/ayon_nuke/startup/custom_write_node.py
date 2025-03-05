@@ -98,7 +98,7 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
             ext = knob_names["ext"]["value"]
         else:
             nuke.message(
-                "ERROR: No 'file_type' nor 'ext' found in the subset's knobs."
+                "ERROR: No 'file_type' nor 'ext' found in the product's knobs."
                 "\nPlease add one to complete setting up the node")
             return
 
