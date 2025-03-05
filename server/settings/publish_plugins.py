@@ -114,6 +114,26 @@ class BakingStreamFilterModel(BaseSettingsModel):
         default_factory=list, title="Product names")
 
 
+class StereoNodes(BaseSettingsModel):
+    node_class: str = SettingsField(title="Node class")
+    knobs: list[KnobModel] = SettingsField(
+        default_factory=list,
+        title="Node knobs")
+
+
+class StereoNodesConfigModel(BaseSettingsModel):
+    """Only multiview (stereo) nodes supported.
+
+    You can add multiple nodes and set their knobs.
+    Order of nodes is important.
+    """
+    enabled: bool = SettingsField(False)
+    stereo_nodes: list[StereoNodes] = SettingsField(
+        default_factory=list,
+        title="Stereo knobs"
+    )
+
+
 class ReformatNodesRepositionNodes(BaseSettingsModel):
     node_class: str = SettingsField(title="Node class")
     knobs: list[KnobModel] = SettingsField(
@@ -159,6 +179,9 @@ class IntermediateOutputModel(BaseSettingsModel):
         title="Bake viewer input process node (LUT)",
         section="Baking additional",
     )
+    stereo_nodes_config: StereoNodesConfigModel = SettingsField(
+        default_factory=StereoNodesConfigModel,
+        title="Stereo Nodes")
     reformat_nodes_config: ReformatNodesConfigModel = SettingsField(
         default_factory=ReformatNodesConfigModel,
         title="Reformat Nodes")
@@ -377,6 +400,15 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
                 },
                 "bake_viewer_process": True,
                 "bake_viewer_input_process": True,
+                "stereo_nodes_config": {
+                    "enabled": False,
+                    "stereo_nodes": [
+                        {
+                            "node_class": "Anaglyph",
+                            "knobs": []
+                        }
+                    ]
+                },
                 "reformat_nodes_config": {
                     "enabled": False,
                     "reposition_nodes": [
