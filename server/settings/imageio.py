@@ -258,12 +258,19 @@ class ImageIOSettings(BaseSettingsModel):
     viewer: ViewProcessModel = SettingsField(
         default_factory=ViewProcessModel,
         title="Viewer",
-        description="""Viewer profile is used during
-        Creation of new viewer node at knob viewerProcess"""
+        description=(
+            "Viewer profile is used during Creation of new viewer node at knob"
+            " viewerProcess"
+        )
     )
     monitor: MonitorProcessModel = SettingsField(
         default_factory=MonitorProcessModel,
-        title="Monitor OUT"
+        title="Monitor OUT",
+        description=(
+            "Viewer Monitor Out settings is used during creation of new viewer"
+            " node. This is used for external monitors used with a Nuke"
+            " viewer."
+        )
     )
     baking_target: ColorspaceConfigurationModel = SettingsField(
         default_factory=ColorspaceConfigurationModel,
