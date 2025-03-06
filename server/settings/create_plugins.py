@@ -19,6 +19,24 @@ def instance_attributes_enum():
         }
     ]
 
+instance_attributes_description: str = (
+    """Allows to enable or disable certain features for the instance:
+    
+    - Reviewable: Mark the output as reviewable, allowing transcoding and
+        e.g. uploading as reviewable to production tracker (depending on
+        what tags are sets for reviewables)
+    - Farm rendering: Enables the setting to render the output on the farm.
+        The artist can still decide to render locally or on the farm using
+        attributes in the publisher UI.
+    - Use range Limit: Enables the write node to use the range limit from
+        the created parent instance render node, so that this write node
+        ONLY renders the frames within the frame range.
+    - Render On Farm: Adds a button on the Nuke node that will submit the
+        render of the write node to the farm **without** triggering the
+        regular publish logic. This is useful for quick test renders.
+    """
+)
+
 
 class PrenodeModel(BaseSettingsModel):
     name: str = SettingsField(
@@ -57,7 +75,8 @@ class CreateWriteRenderModel(BaseSettingsModel):
     instance_attributes: list[str] = SettingsField(
         default_factory=list,
         enum_resolver=instance_attributes_enum,
-        title="Instance attributes"
+        title="Instance attributes",
+        description=instance_attributes_description
     )
     exposed_knobs: list[str] = SettingsField(
         title="Write Node Exposed Knobs",
@@ -86,7 +105,8 @@ class CreateWritePrerenderModel(BaseSettingsModel):
     instance_attributes: list[str] = SettingsField(
         default_factory=list,
         enum_resolver=instance_attributes_enum,
-        title="Instance attributes"
+        title="Instance attributes",
+        description = instance_attributes_description
     )
     exposed_knobs: list[str] = SettingsField(
         title="Write Node Exposed Knobs",
