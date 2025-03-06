@@ -65,7 +65,7 @@ class RequiredNodesModel(NodesModel):
 class OverrideNodesModel(NodesModel):
     subsets: list[str] = SettingsField(
         default_factory=list,
-        title="Subsets"
+        title="Products"
     )
 
     knobs: list[KnobModel] = SettingsField(
