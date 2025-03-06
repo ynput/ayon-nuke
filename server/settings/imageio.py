@@ -117,15 +117,23 @@ class WorkfileColorspaceSettings(BaseSettingsModel):
     _isGroup: bool = True
 
     color_management: Literal["Nuke", "OCIO"] = SettingsField(
-        title="Color Management Workflow"
+        title="Color Management Workflow",
+        description=(
+            "Switch between native OCIO configs.\n\n"
+            "This is only used if global color management is **disabled** and"
+            " hence there is no global OCIO environment variable being set."
+        ),
     )
 
     native_ocio_config: str = SettingsField(
         title="Native OpenColorIO Config",
         description=(
-            "Switch between native OCIO configs.\n\n"
+            "Nuke native OCIO config. The number between between the brackets"
+            " after the configs describe which Nuke versions these are"
+            " compatible with.\n\n"
             "This is only used if global color management is **disabled** and"
-            " hence there is no global OCIO environment variable being set."
+            " hence there is no global OCIO environment variable being set"
+            " **AND** Color Management Workflow above is set to 'OCIO'."
         ),
         enum_resolver=ocio_configs_switcher_enum,
         conditionalEnum=True
