@@ -112,7 +112,7 @@ def ocio_configs_switcher_enum():
 
 
 class WorkfileColorspaceSettings(BaseSettingsModel):
-    """Nuke workfile colorspace preset. """
+    """Workfile colorspace for Nuke root's project settings."""
 
     _isGroup: bool = True
 
@@ -122,7 +122,11 @@ class WorkfileColorspaceSettings(BaseSettingsModel):
 
     native_ocio_config: str = SettingsField(
         title="Native OpenColorIO Config",
-        description="Switch between native OCIO configs",
+        description=(
+            "Switch between native OCIO configs.\n\n"
+            "This is only used if global color management is **disabled** and"
+            " hence there is no global OCIO environment variable being set."
+        ),
         enum_resolver=ocio_configs_switcher_enum,
         conditionalEnum=True
     )
