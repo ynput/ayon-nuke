@@ -47,6 +47,11 @@ class NodesModel(BaseSettingsModel):
         title="Nuke Node Class",
         enum_resolver=nuke_node_class_enum
     )
+    custom_class: str = SettingsField(
+        default_factory="",
+        title="Custom Node Class",
+        description="Custom node class not listed above (optional)"
+    )
 
 
 class RequiredNodesModel(NodesModel):
@@ -63,9 +68,9 @@ class RequiredNodesModel(NodesModel):
 
 
 class OverrideNodesModel(NodesModel):
-    subsets: list[str] = SettingsField(
+    products: list[str] = SettingsField(
         default_factory=list,
-        title="Subsets"
+        title="Products"
     )
 
     knobs: list[KnobModel] = SettingsField(
@@ -309,6 +314,7 @@ DEFAULT_IMAGEIO_SETTINGS = {
             {
                 "plugins": ["CreateWriteRender"],
                 "nuke_node_class": "Write",
+                "custom_class": "",
                 "knobs": [
                     {"type": "text", "name": "file_type", "text": "exr"},
                     {"type": "text", "name": "datatype", "text": "16 bit half"},
@@ -327,6 +333,7 @@ DEFAULT_IMAGEIO_SETTINGS = {
             {
                 "plugins": ["CreateWritePrerender"],
                 "nuke_node_class": "Write",
+                "custom_class": "",
                 "knobs": [
                     {"type": "text", "name": "file_type", "text": "exr"},
                     {"type": "text", "name": "datatype", "text": "16 bit half"},
@@ -345,6 +352,7 @@ DEFAULT_IMAGEIO_SETTINGS = {
             {
                 "plugins": ["CreateWriteImage"],
                 "nuke_node_class": "Write",
+                "custom_class": "",
                 "knobs": [
                     {"type": "text", "name": "file_type", "text": "tiff"},
                     {"type": "text", "name": "datatype", "text": "16 bit"},
