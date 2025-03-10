@@ -20,17 +20,11 @@ def instance_attributes_enum():
     ]
 
 
-def render_target_enum_local():
-    """Return write render target enum (local only)."""
+def render_target_enum():
+    """Return write render target enum."""
     return [
         {"value": "local", "label": "Local machine rendering"},
         {"value": "frames", "label": "Use existing frames"},
-    ]
-
-
-def render_target_enum():
-    """Return write render target enum."""
-    return render_target_enum_local() + [
         {"value": "frames_farm", "label": "Use existing frames - farm"},
         {"value": "farm", "label": "Farm rendering"}
     ]
@@ -146,7 +140,7 @@ class CreateWriteImageModel(BaseSettingsModel):
         title="Instance attributes"
     )
     render_target: str = SettingsField(
-        enum_resolver=render_target_enum_local,  # restrict still image to locals
+        enum_resolver=render_target_enum,
         conditionalEnum=True,
         title="Render target",
         description="Set default render target for renders.",

@@ -441,25 +441,11 @@ class NukeWriteCreator(NukeCreator):
             "frames": "Use existing frames"
         }
 
-        farm_rendering_targets = {
-            "frames_farm": "Use existing frames - farm",
-            "farm": "Farm rendering",
-        }
-
-        if (
-            self.render_target in farm_rendering_targets
-            and "farm_rendering" not in self.instance_attributes
-        ):
-            raise NukeCreatorError(
-                "Conflicting settings\nRender target:"
-                f"'{farm_rendering_targets[self.render_target]}'"
-                " but 'farm_rendering' instance attribute is not set."
-            )
-
-        if (
-            "farm_rendering" in self.instance_attributes
-        ):
-            rendering_targets.update(farm_rendering_targets)
+        if "farm_rendering" in self.instance_attributes:
+            rendering_targets.update({
+                "frames_farm": "Use existing frames - farm",
+                "farm": "Farm rendering",
+            })
 
         return EnumDef(
             "render_target",
