@@ -724,7 +724,7 @@ def get_imageio_node_override_setting(
         if plugin_name not in onode["plugins"]:
             continue
 
-        # TODO change 'subsets' to 'product_names' in settings
+
         if (
             onode["products"]
             and not any(
