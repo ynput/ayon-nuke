@@ -16,15 +16,18 @@ from ayon_nuke.api import (
 class AlembicModelLoader(load.LoaderPlugin):
     """
     This will load alembic model or anim into script.
+
+    Note: The class name `AlembicModelLoader` can't be changed for backward
+        compatibility, even though it can read more than just alembic files.
     """
 
-    product_types = {"model", "pointcache", "animation"}
+    product_types = {"model", "pointcache", "animation", "fbx", "usd"}
     representations = {"*"}
-    extensions = {"abc"}
+    extensions = {"abc", "fbx", "obj", "usd", "usda"}
 
     settings_category = "nuke"
 
-    label = "Load Alembic"
+    label = "Load Geo"
     icon = "cube"
     color = "orange"
     node_color = "0x4ecd91ff"
