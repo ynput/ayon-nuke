@@ -32,7 +32,8 @@ def nuke_node_class_enum():
         {"value": "Camera4", "label": "Camera [3D]"},
         {"value": "Camera2", "label": "Camera [3D Classic]"},
         {"value": "Scene", "label": "Scene [3D Classic]"},
-        {"value": "BackdropNode", "label": "Backdrop [Other]"}, 
+        {"value": "BackdropNode", "label": "Backdrop [Other]"},
+        {"value": "custom_class", "label": "Custom Class"},
     ]
 
 
@@ -45,7 +46,8 @@ class NodesModel(BaseSettingsModel):
     )
     nuke_node_class: str = SettingsField(
         title="Nuke Node Class",
-        enum_resolver=nuke_node_class_enum
+        enum_resolver=nuke_node_class_enum,
+        conditionalEnum=True,
     )
     custom_class: str = SettingsField(
         default_factory="",

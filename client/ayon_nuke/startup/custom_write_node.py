@@ -128,7 +128,6 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
         preset_names = []
         knobs_nodes = []
 
-
         settings = [
             node_settings for node_settings
             in get_nuke_imageio_settings()["nodes"]["override_nodes"]
@@ -136,7 +135,8 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
                     node_settings["nuke_node_class"] == "Write" or
                     node_settings["custom_class"] == "Write"
                )
-            and node_settings["subsets"]
+            and node_settings.get(
+                "subsets", node_settings.get("products", []))
         ]
         if not settings:
             return [], []
@@ -146,10 +146,9 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
                 knobs_nodes = settings[i]["knobs"]
 
         for setting in settings:
-            # TODO change 'subsets' to 'product_names' in settings
-            for product_name in setting["subsets"]:
-                preset_names.append(product_name)
-
+            # TODO: (antirotor) deprecate "products" in favor of "subsets"
+            products = setting.get("subsets", setting.get("products", []))
+            preset_names.extend(iter(products))
         return preset_names, knobs_nodes
 
 

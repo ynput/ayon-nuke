@@ -677,7 +677,6 @@ def get_imageio_node_setting(node_class, plugin_name, product_name):
 
     imageio_node = None
     for node in required_nodes:
-        log.info(node)
         node_class_preset = node["nuke_node_class"]
         if node.get("custom_class"):
             node_class_preset = node["custom_class"]
@@ -724,12 +723,13 @@ def get_imageio_node_override_setting(
         if plugin_name not in onode["plugins"]:
             continue
 
+        products = onode.get("subsets", onode.get("products", []))
 
         if (
-            onode["products"]
+            products
             and not any(
                 re.search(s.lower(), product_name.lower())
-                for s in onode["products"]
+                for s in products
             )
         ):
             continue
