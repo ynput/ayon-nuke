@@ -20,7 +20,7 @@ class CreateCamera(NukeCreator):
 
     # plugin attributes
     node_color = "0xff9100ff"
-    node_class_name = "Camera3"
+    node_class_name = "Camera"
 
     def create_instance_node(
         self,
