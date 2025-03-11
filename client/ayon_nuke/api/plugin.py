@@ -1186,7 +1186,11 @@ class ExporterReviewMov(ExporterReview):
             self.render(write_node.name()) # modified to only render one view
 
         # ---------- generate representation data
-        tags = ["review", "need_thumbnail"]
+        # Only add need_thumbnail if skip_thumbnail is not in custom_tags
+        tags = []
+        if "skip_thumbnail" not in add_custom_tags:
+            tags.append("need_thumbnail")
+
 
         if delete:
             tags.append("delete")
