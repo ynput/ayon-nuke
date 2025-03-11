@@ -32,7 +32,8 @@ def nuke_node_class_enum():
         {"value": "Camera4", "label": "Camera [3D]"},
         {"value": "Camera2", "label": "Camera [3D Classic]"},
         {"value": "Scene", "label": "Scene [3D Classic]"},
-        {"value": "BackdropNode", "label": "Backdrop [Other]"}, 
+        {"value": "BackdropNode", "label": "Backdrop [Other]"},
+        {"value": "custom_class", "label": "Custom Class"},
     ]
 
 
@@ -45,7 +46,13 @@ class NodesModel(BaseSettingsModel):
     )
     nuke_node_class: str = SettingsField(
         title="Nuke Node Class",
-        enum_resolver=nuke_node_class_enum
+        enum_resolver=nuke_node_class_enum,
+        conditionalEnum=True,
+    )
+    custom_class: str = SettingsField(
+        default_factory="",
+        title="Custom Node Class",
+        description="Custom node class not listed above (optional)"
     )
 
 
@@ -63,7 +70,7 @@ class RequiredNodesModel(NodesModel):
 
 
 class OverrideNodesModel(NodesModel):
-    subsets: list[str] = SettingsField(
+    products: list[str] = SettingsField(
         default_factory=list,
         title="Products"
     )
@@ -328,6 +335,7 @@ DEFAULT_IMAGEIO_SETTINGS = {
             {
                 "plugins": ["CreateWriteRender"],
                 "nuke_node_class": "Write",
+                "custom_class": "",
                 "knobs": [
                     {"type": "text", "name": "file_type", "text": "exr"},
                     {"type": "text", "name": "datatype", "text": "16 bit half"},
@@ -346,6 +354,7 @@ DEFAULT_IMAGEIO_SETTINGS = {
             {
                 "plugins": ["CreateWritePrerender"],
                 "nuke_node_class": "Write",
+                "custom_class": "",
                 "knobs": [
                     {"type": "text", "name": "file_type", "text": "exr"},
                     {"type": "text", "name": "datatype", "text": "16 bit half"},
@@ -364,6 +373,7 @@ DEFAULT_IMAGEIO_SETTINGS = {
             {
                 "plugins": ["CreateWriteImage"],
                 "nuke_node_class": "Write",
+                "custom_class": "",
                 "knobs": [
                     {"type": "text", "name": "file_type", "text": "tiff"},
                     {"type": "text", "name": "datatype", "text": "16 bit"},
