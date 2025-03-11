@@ -1,7 +1,7 @@
 import os
 import nuke
 import pyblish.api
-from ayon_core.lib import get_version_from_path
+
 import ayon_nuke.api as napi
 from ayon_core.pipeline import KnownPublishError
 
