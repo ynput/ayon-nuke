@@ -191,7 +191,7 @@ class NukeCreator(NewCreator):
             # `Camera3` or `Camera4`.
             if not class_name[-1].isdigit():
                 # Match name with any digit
-                pattern = rf"{class_name}\d*"
+                pattern = rf"^{class_name}\d*$"
             else:
                 pattern = class_name
             regex = re.compile(pattern)
