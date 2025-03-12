@@ -50,7 +50,7 @@ class NodesModel(BaseSettingsModel):
         conditionalEnum=True,
     )
     custom_class: str = SettingsField(
-        default_factory="",
+        default="",
         title="Custom Node Class",
         description="Custom node class not listed above (optional)"
     )
