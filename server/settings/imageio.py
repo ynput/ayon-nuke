@@ -70,9 +70,9 @@ class RequiredNodesModel(NodesModel):
 
 
 class OverrideNodesModel(NodesModel):
-    products: list[str] = SettingsField(
+    product_names: list[str] = SettingsField(
         default_factory=list,
-        title="Products"
+        title="Product names"
     )
 
     knobs: list[KnobModel] = SettingsField(

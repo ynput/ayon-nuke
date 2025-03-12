@@ -171,7 +171,7 @@ def _convert_gizmo_menu_0_3_1(overrides):
 
 
 def _convert_imageio_subsets_0_3_2(overrides: dict) -> None:
-    """Convert subsets key to products."""
+    """Convert subsets key to product_names."""
     if "imageio" not in overrides:
         return
 
@@ -188,9 +188,9 @@ def _convert_imageio_subsets_0_3_2(overrides: dict) -> None:
     if "override_nodes" in imageio_overrides["nodes"]:
         for node in imageio_overrides["nodes"]["override_nodes"]:
             if "subsets" in node:
-                node["products"] = node.pop("subsets")
+                node["product_names"] = node.pop("subsets")
                 logger.debug(
-                    f"Converted 'subsets' to 'products' for node: {node}")
+                    f"Converted 'subsets' to 'product_names' for node: {node}")
             if "custom_class" not in node:
                 node["custom_class"] = ""
 

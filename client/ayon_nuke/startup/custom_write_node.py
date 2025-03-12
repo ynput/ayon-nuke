@@ -135,20 +135,18 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
                     node_settings["nuke_node_class"] == "Write" or
                     node_settings["custom_class"] == "Write"
                )
-            and node_settings.get(
-                "subsets", node_settings.get("products", []))
+            and node_settings.get("product_names", [])
         ]
         if not settings:
             return [], []
 
         for i, _ in enumerate(settings):
-            if selected_preset in settings[i]["subsets"]:
+            if selected_preset in settings[i]["product_names"]:
                 knobs_nodes = settings[i]["knobs"]
 
         for setting in settings:
-            # TODO: (antirotor) deprecate "products" in favor of "subsets"
-            products = setting.get("subsets", setting.get("products", []))
-            preset_names.extend(iter(products))
+            product_names = setting.get("product_names", [])
+            preset_names.extend(iter(product_names))
         return preset_names, knobs_nodes
 
 
