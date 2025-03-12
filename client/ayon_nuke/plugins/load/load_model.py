@@ -65,25 +65,12 @@ class AlembicModelLoader(load.LoaderPlugin):
                     object_name, file),
                 inpanel=False
             )
-
             model_node.forceValidate()
 
-            # Ensure all items are imported and selected.
-            scene_view = model_node.knob('scene_view')
-            scene_view.setImportedItems(scene_view.getAllItems())
-            scene_view.setSelectedItems(scene_view.getAllItems())
-
-            model_node["frame_rate"].setValue(float(fps))
-
-            # workaround because nuke's bug is not adding
-            # animation keys properly
-            xpos = model_node.xpos()
-            ypos = model_node.ypos()
-            nuke.nodeCopy("%clipboard%")
-            nuke.delete(model_node)
-            nuke.nodePaste("%clipboard%")
-            model_node = nuke.toNode(object_name)
-            model_node.setXYpos(xpos, ypos)
+            # Force refresh
+            self._select_all_items(model_node)
+            model_node = self._fix_scene_view_contents(model_node)
+            self._set_fps(model_node, fps)
 
         # color node by correct color by actual version
         self.node_version_color(project_name, version_entity, model_node)
@@ -141,42 +128,11 @@ class AlembicModelLoader(load.LoaderPlugin):
         # getting file path
         file = get_representation_path(repre_entity).replace("\\", "/")
 
+        model_node["file"].setValue(file)
+        self._select_all_items(model_node)
         with maintained_selection():
-            model_node['selected'].setValue(True)
-
-            # collect input output dependencies
-            dependencies = model_node.dependencies()
-            dependent = model_node.dependent()
-
-            model_node["frame_rate"].setValue(float(fps))
-            model_node["file"].setValue(file)
-
-            # Ensure all items are imported and selected.
-            scene_view = model_node.knob('scene_view')
-            scene_view.setImportedItems(scene_view.getAllItems())
-            scene_view.setSelectedItems(scene_view.getAllItems())
-
-            # workaround because nuke's bug is
-            # not adding animation keys properly
-            xpos = model_node.xpos()
-            ypos = model_node.ypos()
-            nuke.nodeCopy("%clipboard%")
-            nuke.delete(model_node)
-
-            # paste the node back and set the position
-            nuke.nodePaste("%clipboard%")
-            model_node = nuke.selectedNode()
-            model_node.setXYpos(xpos, ypos)
-
-            # link to original input nodes
-            for i, input in enumerate(dependencies):
-                model_node.setInput(i, input)
-            # link to original output nodes
-            for d in dependent:
-                index = next((i for i, dpcy in enumerate(
-                              d.dependencies())
-                              if model_node is dpcy), 0)
-                d.setInput(index, model_node)
+            model_node = self._fix_scene_view_contents(model_node)
+        self._set_fps(model_node, fps)
 
         # color node by correct color by actual version
         self.node_version_color(project_name, version_entity, model_node)
@@ -186,6 +142,69 @@ class AlembicModelLoader(load.LoaderPlugin):
         )
 
         return update_container(model_node, data_imprint)
+
+    def _select_all_items(self, node):
+        # Alembic
+        scene_view = node.knob("scene_view")
+        if scene_view is not None:
+            # Ensure all items are imported and selected.
+            scene_view.setImportedItems(scene_view.getAllItems())
+            scene_view.setSelectedItems(scene_view.getAllItems())
+            return
+
+        # USD
+        scene_graph = node.knob("scene_graph")
+        if scene_graph is not None:
+            items = scene_graph.getItems()
+            names = [x[0] for x in items]
+            scene_graph.setSelectedItems(names)
+            return
+
+    def _fix_scene_view_contents(self, node: nuke.Node) -> nuke.Node:
+        """Fix UI not displaying `scene_view` or `scene_graph` correctly."""
+        node['selected'].setValue(True)
+
+        # collect input output dependencies
+        dependencies = node.dependencies()
+        dependent = node.dependent()
+
+        # workaround because nuke's bug is
+        # not adding animation keys properly
+        xpos = node.xpos()
+        ypos = node.ypos()
+        nuke.nodeCopy("%clipboard%")
+        nuke.delete(node)
+
+        # paste the node back and set the position
+        nuke.nodePaste("%clipboard%")
+        node = nuke.selectedNode()
+        node.setXYpos(xpos, ypos)
+
+        # link to original input nodes
+        for i, input in enumerate(dependencies):
+            node.setInput(i, input)
+
+        # link to original output nodes
+        for d in dependent:
+            index = next(
+                (
+                    i
+                    for i, dpcy in enumerate(d.dependencies())
+                    if node is dpcy
+                ),
+                0,
+            )
+            d.setInput(index, node)
+
+        return node
+
+    def _set_fps(self, node, fps):
+        # Loaded USD files don't expose frame rate knob so it may not exist
+        # so we only set `frame_rate` if it's exposed, e.g. on loaded Alembic
+        knob = node.knob("frame_rate")
+        if knob is None:
+            return
+        knob.setValue(float(fps))
 
     def node_version_color(self, project_name, version_entity, node):
         """ Coloring a node by correct color by actual version"""
