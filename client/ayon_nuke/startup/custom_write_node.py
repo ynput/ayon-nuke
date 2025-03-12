@@ -90,15 +90,17 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
             else:
                 knobs = node_knobs_presets
 
-        ext_knob_list = [knob for knob in knobs if knob["name"] == "file_type"]
-        if not ext_knob_list:
+        knob_names = {knob["name"]: knob for knob in knobs}
+
+        if "ext" in knob_names:
+            ext = knob_names["ext"]["value"]
+        elif "file_type" in knob_names:
+            ext = knob_names["ext"]["value"]
+        else:
             nuke.message(
-                "ERROR: No file type found in the subset's knobs."
+                "ERROR: No 'file_type' nor 'ext' found in the product's knobs."
                 "\nPlease add one to complete setting up the node")
             return
-        else:
-            for knob in ext_knob_list:
-                ext = knob["value"]
 
         anatomy = Anatomy(get_current_project_name())
 
