@@ -180,13 +180,19 @@ def _convert_imageio_subsets_0_3_2(overrides: dict) -> None:
     if "nodes" not in imageio_overrides:
         return
 
-    if "override_nodes" not in imageio_overrides["nodes"]:
-        return
+    if "required_nodes" in imageio_overrides["nodes"]:
+        for node in imageio_overrides["nodes"]["required_nodes"]:
+            if "custom_class" not in node:
+                node["custom_class"] = ""
 
-    for node in imageio_overrides["nodes"]["override_nodes"]:
-        if "subsets" in node:
-            node["products"] = node.pop("subsets")
-            logger.debug(f"Converted 'subsets' to 'products' for node: {node}")
+    if "override_nodes" in imageio_overrides["nodes"]:
+        for node in imageio_overrides["nodes"]["override_nodes"]:
+            if "subsets" in node:
+                node["products"] = node.pop("subsets")
+                logger.debug(
+                    f"Converted 'subsets' to 'products' for node: {node}")
+            if "custom_class" not in node:
+                node["custom_class"] = ""
 
 
 def _convert_publish_plugins(overrides):
