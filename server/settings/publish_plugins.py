@@ -101,10 +101,6 @@ class ExtractReviewDataModel(BaseSettingsModel):
     enabled: bool = SettingsField(title="Enabled")
 
 
-class ExtractReviewDataLutModel(BaseSettingsModel):
-    enabled: bool = SettingsField(title="Enabled")
-
-
 class BakingStreamFilterModel(BaseSettingsModel):
     task_types: list[str] = SettingsField(
         default_factory=list,
@@ -267,10 +263,7 @@ class PublishPluginsModel(BaseSettingsModel):
         title="Extract Review Data",
         default_factory=ExtractReviewDataModel
     )
-    ExtractReviewDataLut: ExtractReviewDataLutModel = SettingsField(
-        title="Extract Review Data Lut",
-        default_factory=ExtractReviewDataLutModel
-    )
+
     ExtractReviewIntermediates: ExtractReviewIntermediatesModel = (
         SettingsField(
             title="Extract Review Intermediates",
@@ -354,9 +347,6 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
         "active": True
     },
     "ExtractReviewData": {
-        "enabled": False
-    },
-    "ExtractReviewDataLut": {
         "enabled": False
     },
     "ExtractReviewIntermediates": {

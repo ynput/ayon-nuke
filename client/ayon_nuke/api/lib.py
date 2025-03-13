@@ -723,13 +723,13 @@ def get_imageio_node_override_setting(
         if plugin_name not in onode["plugins"]:
             continue
 
-        products = onode.get("subsets", onode.get("products", []))
+        product_names = onode["product_names"]
 
         if (
-            products
+            product_names
             and not any(
                 re.search(s.lower(), product_name.lower())
-                for s in products
+                for s in product_names
             )
         ):
             continue
@@ -1151,10 +1151,27 @@ def create_write_node(
         product_name=product_name
     )
 
-    for knob in imageio_writes["knobs"]:
-        if knob["name"] == "file_type":
-            knot_type = knob["type"]
-            ext = knob[knot_type]
+    ext = None
+    knobs = imageio_writes["knobs"]
+    knob_names = {knob["name"]: knob for knob in knobs}
+
+    if "ext" in knob_names:
+        knob_type = knob_names["ext"]["type"]
+        ext = knob_names["ext"][knob_type]
+
+    # For most extensions, setting the "file_type"
+    # is enough, however sometimes they differ, e.g.:
+    # ext = sxr / file_type = exr
+    # ext = jpg / file_type = jpeg
+    elif "file_type" in knob_names:
+        knob_type = knob_names["file_type"]["type"]
+        ext = knob_names["file_type"][knob_type]
+
+    if not ext:
+        raise RuntimeError(
+            "Could not determine extension from settings"
+            f"plugin_name={plugin_name} product_name={product_name}"
+        )
 
     data.update({
         "imageio_writes": imageio_writes,

@@ -50,7 +50,7 @@ class NodesModel(BaseSettingsModel):
         conditionalEnum=True,
     )
     custom_class: str = SettingsField(
-        default_factory="",
+        default="",
         title="Custom Node Class",
         description="Custom node class not listed above (optional)"
     )
@@ -70,9 +70,9 @@ class RequiredNodesModel(NodesModel):
 
 
 class OverrideNodesModel(NodesModel):
-    products: list[str] = SettingsField(
+    product_names: list[str] = SettingsField(
         default_factory=list,
-        title="Products"
+        title="Product names"
     )
 
     knobs: list[KnobModel] = SettingsField(
