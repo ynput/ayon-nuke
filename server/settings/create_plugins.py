@@ -6,6 +6,12 @@ from ayon_server.settings import (
 )
 from .common import KnobModel
 
+RENDER_TARGET_DESCRIPTION: str = (
+    "Set default render target for renders.\n\n"
+    "Note: The *farm* related options are only valid if instance attributes "
+    "includes 'Farm Rendering'."
+)
+
 
 def instance_attributes_enum():
     """Return create write instance attributes."""
@@ -73,7 +79,7 @@ class CreateWriteRenderModel(BaseSettingsModel):
         enum_resolver=render_target_enum,
         conditionalEnum=True,
         title="Render target",
-        description="Set default render target for renders.",
+        description=RENDER_TARGET_DESCRIPTION,
     )
     exposed_knobs: list[str] = SettingsField(
         title="Write Node Exposed Knobs",
@@ -108,7 +114,7 @@ class CreateWritePrerenderModel(BaseSettingsModel):
         enum_resolver=render_target_enum,
         conditionalEnum=True,
         title="Render target",
-        description="Set default render target for renders.",
+        description=RENDER_TARGET_DESCRIPTION,
     )
     exposed_knobs: list[str] = SettingsField(
         title="Write Node Exposed Knobs",
@@ -143,7 +149,7 @@ class CreateWriteImageModel(BaseSettingsModel):
         enum_resolver=render_target_enum,
         conditionalEnum=True,
         title="Render target",
-        description="Set default render target for renders.",
+        description=RENDER_TARGET_DESCRIPTION,
     )
     exposed_knobs: list[str] = SettingsField(
         title="Write Node Exposed Knobs",
