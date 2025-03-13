@@ -6,6 +6,28 @@ from ayon_server.settings import (
 )
 from .common import KnobModel
 
+INSTANCE_ATTRIBUTES_DESCRIPTION: str = (
+    """Allows to enable or disable certain features for the instance:
+
+    - Reviewable: Mark the output as reviewable, allowing transcoding and
+        e.g. uploading as reviewable to production tracker (depending on
+        what tags are sets for reviewables)
+    - Farm rendering: Enables the setting to render the output on the farm.
+        The artist can still decide to render locally or on the farm using
+        attributes in the publisher UI.
+    - Use range Limit: Enables the write node to use the range limit from
+        the created parent instance render node, so that this write node
+        ONLY renders the frames within the frame range.
+    - Render On Farm: Adds a button on the Nuke node that will submit the
+        render of the write node to the farm **without** triggering the
+        regular publish logic. This is useful for quick test renders.
+    """
+)
+
+PRENODES_LIST_DESCRIPTION: str = (
+    """List of nodes that should be added before the write node."""
+)
+
 
 def instance_attributes_enum():
     """Return create write instance attributes."""
@@ -32,16 +54,25 @@ def render_target_enum():
 
 class PrenodeModel(BaseSettingsModel):
     name: str = SettingsField(
-        title="Node name"
+        title="Node name",
+        description=(
+            "Node name, use this as the name in 'Incoming dependency' on other"
+            " preceding nodes if a connection is needed."
+        )
     )
 
     nodeclass: str = SettingsField(
         "",
-        title="Node class"
+        title="Node class",
+        description="Nuke node class (type) of the node to add."
     )
     dependent: str = SettingsField(
         "",
-        title="Incoming dependency"
+        title="Incoming dependency",
+        description=(
+            "Input node name of another preceding node that should"
+            "come before this node."
+        ),
     )
 
     knobs: list[KnobModel] = SettingsField(
@@ -67,7 +98,8 @@ class CreateWriteRenderModel(BaseSettingsModel):
     instance_attributes: list[str] = SettingsField(
         default_factory=list,
         enum_resolver=instance_attributes_enum,
-        title="Instance attributes"
+        title="Instance attributes",
+        description=INSTANCE_ATTRIBUTES_DESCRIPTION
     )
     render_target: str = SettingsField(
         enum_resolver=render_target_enum,
@@ -82,6 +114,7 @@ class CreateWriteRenderModel(BaseSettingsModel):
     prenodes: list[PrenodeModel] = SettingsField(
         default_factory=list,
         title="Preceding nodes",
+        description=PRENODES_LIST_DESCRIPTION
     )
 
     @validator("prenodes")
@@ -102,7 +135,8 @@ class CreateWritePrerenderModel(BaseSettingsModel):
     instance_attributes: list[str] = SettingsField(
         default_factory=list,
         enum_resolver=instance_attributes_enum,
-        title="Instance attributes"
+        title="Instance attributes",
+        description = INSTANCE_ATTRIBUTES_DESCRIPTION
     )
     render_target: str = SettingsField(
         enum_resolver=render_target_enum,
@@ -117,6 +151,7 @@ class CreateWritePrerenderModel(BaseSettingsModel):
     prenodes: list[PrenodeModel] = SettingsField(
         default_factory=list,
         title="Preceding nodes",
+        description=PRENODES_LIST_DESCRIPTION,
     )
 
     @validator("prenodes")
@@ -152,6 +187,7 @@ class CreateWriteImageModel(BaseSettingsModel):
     prenodes: list[PrenodeModel] = SettingsField(
         default_factory=list,
         title="Preceding nodes",
+        description=PRENODES_LIST_DESCRIPTION,
     )
 
     @validator("prenodes")
