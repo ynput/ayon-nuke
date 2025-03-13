@@ -92,6 +92,12 @@ class ValidateKnobsModel(BaseSettingsModel):
 
 
 class ExtractReviewDataModel(BaseSettingsModel):
+    """Add a raw reviewable representation from the output of a write node.
+
+    This can be useful when you don't want to use e.g. Extract Review
+    Intermediates with baking streams but are already writing ready for
+    review images that don't need custom baking.
+    """
     enabled: bool = SettingsField(title="Enabled")
 
 

@@ -14,7 +14,7 @@ class DirmapPathsSubmodel(BaseSettingsModel):
 
 
 class DirmapSettings(BaseSettingsModel):
-    """Nuke color management project settings."""
+    """Nuke directory map source paths to destination paths."""
     _isGroup: bool = True
 
     enabled: bool = SettingsField(title="enabled")
