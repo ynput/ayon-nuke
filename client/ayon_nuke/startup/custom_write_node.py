@@ -90,15 +90,17 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
             else:
                 knobs = node_knobs_presets
 
-        ext_knob_list = [knob for knob in knobs if knob["name"] == "file_type"]
-        if not ext_knob_list:
+        knob_names = {knob["name"]: knob for knob in knobs}
+
+        if "ext" in knob_names:
+            ext = knob_names["ext"]["value"]
+        elif "file_type" in knob_names:
+            ext = knob_names["ext"]["value"]
+        else:
             nuke.message(
-                "ERROR: No file type found in the subset's knobs."
+                "ERROR: No 'file_type' nor 'ext' found in the product's knobs."
                 "\nPlease add one to complete setting up the node")
             return
-        else:
-            for knob in ext_knob_list:
-                ext = knob["value"]
 
         anatomy = Anatomy(get_current_project_name())
 
@@ -135,20 +137,18 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
                     node_settings["nuke_node_class"] == "Write" or
                     node_settings["custom_class"] == "Write"
                )
-            and node_settings.get(
-                "subsets", node_settings.get("products", []))
+            and node_settings.get("product_names", [])
         ]
         if not settings:
             return [], []
 
         for i, _ in enumerate(settings):
-            if selected_preset in settings[i]["subsets"]:
+            if selected_preset in settings[i]["product_names"]:
                 knobs_nodes = settings[i]["knobs"]
 
         for setting in settings:
-            # TODO: (antirotor) deprecate "products" in favor of "subsets"
-            products = setting.get("subsets", setting.get("products", []))
-            preset_names.extend(iter(products))
+            product_names = setting.get("product_names", [])
+            preset_names.extend(iter(product_names))
         return preset_names, knobs_nodes
 
 
