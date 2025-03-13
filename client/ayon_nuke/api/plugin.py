@@ -186,10 +186,19 @@ class NukeCreator(NewCreator):
             selected_nodes = nuke.allNodes()
 
         if class_name:
+            # Allow class name implicit last versions of class names like
+            # `Camera` to match any of its explicit versions, e.g.
+            # `Camera3` or `Camera4`.
+            if not class_name[-1].isdigit():
+                # Match name with any digit
+                pattern = rf"^{class_name}\d*$"
+            else:
+                pattern = class_name
+            regex = re.compile(pattern)
             selected_nodes = [
                 node
                 for node in selected_nodes
-                if node.Class() == class_name
+                if regex.match(node.Class())
             ]
 
         if class_name and use_selection and not selected_nodes:

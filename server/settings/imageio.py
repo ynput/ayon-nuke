@@ -50,7 +50,7 @@ class NodesModel(BaseSettingsModel):
         conditionalEnum=True,
     )
     custom_class: str = SettingsField(
-        default_factory="",
+        default="",
         title="Custom Node Class",
         description="Custom node class not listed above (optional)"
     )
@@ -70,9 +70,9 @@ class RequiredNodesModel(NodesModel):
 
 
 class OverrideNodesModel(NodesModel):
-    products: list[str] = SettingsField(
+    product_names: list[str] = SettingsField(
         default_factory=list,
-        title="Products"
+        title="Product names"
     )
 
     knobs: list[KnobModel] = SettingsField(
@@ -119,17 +119,29 @@ def ocio_configs_switcher_enum():
 
 
 class WorkfileColorspaceSettings(BaseSettingsModel):
-    """Nuke workfile colorspace preset. """
+    """Workfile colorspace for Nuke root's project settings."""
 
     _isGroup: bool = True
 
     color_management: Literal["Nuke", "OCIO"] = SettingsField(
-        title="Color Management Workflow"
+        title="Color Management Workflow",
+        description=(
+            "Switch between native OCIO configs.\n\n"
+            "This is only used if global color management is **disabled** and"
+            " hence there is no global OCIO environment variable being set."
+        ),
     )
 
     native_ocio_config: str = SettingsField(
         title="Native OpenColorIO Config",
-        description="Switch between native OCIO configs",
+        description=(
+            "Nuke native OCIO config. The number between between the brackets"
+            " after the configs describe which Nuke versions these are"
+            " compatible with.\n\n"
+            "This is only used if global color management is **disabled** and"
+            " hence there is no global OCIO environment variable being set"
+            " **AND** Color Management Workflow above is set to 'OCIO'."
+        ),
         enum_resolver=ocio_configs_switcher_enum,
         conditionalEnum=True
     )
@@ -261,12 +273,19 @@ class ImageIOSettings(BaseSettingsModel):
     viewer: ViewProcessModel = SettingsField(
         default_factory=ViewProcessModel,
         title="Viewer",
-        description="""Viewer profile is used during
-        Creation of new viewer node at knob viewerProcess"""
+        description=(
+            "Viewer profile is used during Creation of new viewer node at knob"
+            " viewerProcess"
+        )
     )
     monitor: MonitorProcessModel = SettingsField(
         default_factory=MonitorProcessModel,
-        title="Monitor OUT"
+        title="Monitor OUT",
+        description=(
+            "Viewer Monitor Out settings is used during creation of new viewer"
+            " node. This is used for external monitors used with a Nuke"
+            " viewer."
+        )
     )
     baking_target: ColorspaceConfigurationModel = SettingsField(
         default_factory=ColorspaceConfigurationModel,
