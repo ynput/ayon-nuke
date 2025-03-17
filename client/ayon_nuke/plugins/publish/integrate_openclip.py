@@ -47,7 +47,7 @@ class IntegrateOpenclip(pyblish.api.InstancePlugin):
             regex = re.compile('(?<=[/._])v\d{3}(?=[/._])')
             versions = regex.sub('v{version}', patternStripped) if ext not in ['mov', 'mp4'] else patternStripped
 
-            clip_path_win = os.path.join(workf, f"{instance.data['name']}_{rep['ext']}.clip")
+            clip_path_win = os.path.join(workf, f"{instance.data['folder']['name']}_{instance.data['name']}_{rep['ext']}.clip")
             tree = xmlt.fromstring(self.template)
             tree.find('.//ScanPattern').text = f"{versions}.{ext}"
 
