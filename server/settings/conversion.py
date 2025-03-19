@@ -1,7 +1,6 @@
 import re
 from typing import Any
 from copy import deepcopy
-from ayon_server.logging import logger
 
 
 def _get_viewer_config_from_string(input_string):
@@ -189,8 +188,6 @@ def _convert_imageio_subsets_0_3_2(overrides: dict) -> None:
         for node in imageio_overrides["nodes"]["override_nodes"]:
             if "subsets" in node:
                 node["product_names"] = node.pop("subsets")
-                logger.debug(
-                    f"Converted 'subsets' to 'product_names' for node: {node}")
             if "custom_class" not in node:
                 node["custom_class"] = ""
 
