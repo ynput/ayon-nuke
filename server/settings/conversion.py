@@ -169,6 +169,29 @@ def _convert_gizmo_menu_0_3_1(overrides):
     overrides["gizmo"] = new_gizmos          
 
 
+def _convert_imageio_subsets_0_3_2(overrides: dict) -> None:
+    """Convert subsets key to product_names."""
+    if "imageio" not in overrides:
+        return
+
+    imageio_overrides = overrides["imageio"]
+
+    if "nodes" not in imageio_overrides:
+        return
+
+    if "required_nodes" in imageio_overrides["nodes"]:
+        for node in imageio_overrides["nodes"]["required_nodes"]:
+            if "custom_class" not in node:
+                node["custom_class"] = ""
+
+    if "override_nodes" in imageio_overrides["nodes"]:
+        for node in imageio_overrides["nodes"]["override_nodes"]:
+            if "subsets" in node:
+                node["product_names"] = node.pop("subsets")
+            if "custom_class" not in node:
+                node["custom_class"] = ""
+
+
 def _convert_publish_plugins(overrides):
     if "publish" not in overrides:
         return
@@ -182,4 +205,5 @@ def convert_settings_overrides(
     _convert_gizmo_menu_0_3_1(overrides)
     _convert_imageio_configs_0_2_3(overrides)
     _convert_publish_plugins(overrides)
+    _convert_imageio_subsets_0_3_2(overrides)
     return overrides
