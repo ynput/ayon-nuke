@@ -92,10 +92,12 @@ class ValidateKnobsModel(BaseSettingsModel):
 
 
 class ExtractReviewDataModel(BaseSettingsModel):
-    enabled: bool = SettingsField(title="Enabled")
+    """Add a raw reviewable representation from the output of a write node.
 
-
-class ExtractReviewDataLutModel(BaseSettingsModel):
+    This can be useful when you don't want to use e.g. Extract Review
+    Intermediates with baking streams but are already writing ready for
+    review images that don't need custom baking.
+    """
     enabled: bool = SettingsField(title="Enabled")
 
 
@@ -261,10 +263,7 @@ class PublishPluginsModel(BaseSettingsModel):
         title="Extract Review Data",
         default_factory=ExtractReviewDataModel
     )
-    ExtractReviewDataLut: ExtractReviewDataLutModel = SettingsField(
-        title="Extract Review Data Lut",
-        default_factory=ExtractReviewDataLutModel
-    )
+
     ExtractReviewIntermediates: ExtractReviewIntermediatesModel = (
         SettingsField(
             title="Extract Review Intermediates",
@@ -348,9 +347,6 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
         "active": True
     },
     "ExtractReviewData": {
-        "enabled": False
-    },
-    "ExtractReviewDataLut": {
         "enabled": False
     },
     "ExtractReviewIntermediates": {

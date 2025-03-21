@@ -723,13 +723,13 @@ def get_imageio_node_override_setting(
         if plugin_name not in onode["plugins"]:
             continue
 
-        products = onode.get("subsets", onode.get("products", []))
+        product_names = onode["product_names"]
 
         if (
-            products
+            product_names
             and not any(
                 re.search(s.lower(), product_name.lower())
-                for s in products
+                for s in product_names
             )
         ):
             continue
