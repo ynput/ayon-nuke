@@ -16,6 +16,7 @@ class GeoImportLoader(load.LoaderPlugin):
     product_types = {"*"}
     representations = {"*"}
     extensions = {"abc", "usd", "usda", "usdc"}
+    order = 2
 
     settings_category = "nuke"
 
@@ -89,6 +90,7 @@ class GeoImportLoader(load.LoaderPlugin):
 class GeoReferenceLoader(GeoImportLoader):
     """This will load files to GeoReference node."""
     label = "Load GeoReference"
+    order = 3
 
     node_class = "GeoReference"
     node_file_knob = "file_path"
