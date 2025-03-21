@@ -1,6 +1,10 @@
 from ayon_server.settings import BaseSettingsModel, SettingsField
 
 
+class LoaderEnabledModel(BaseSettingsModel):
+    enabled: bool = SettingsField(True, title="Enabled")
+
+
 class LoadImageModel(BaseSettingsModel):
     enabled: bool = SettingsField(
         title="Enabled"
@@ -53,6 +57,14 @@ class LoaderPluginsModel(BaseSettingsModel):
         default_factory=LoadClipModel,
         title="Load Clip"
     )
+    GeoImportLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load GeoImport"
+    )
+    GeoReferenceLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load GeoReference"
+    )
 
 
 DEFAULT_LOADER_PLUGINS_SETTINGS = {
@@ -70,5 +82,11 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
             "add_retime": True,
             "deep_exr": False
         }
+    },
+    "GeoImportLoader": {
+        "enabled": True
+    },
+    "GeoReferenceLoader": {
+        "enabled": True
     }
 }
