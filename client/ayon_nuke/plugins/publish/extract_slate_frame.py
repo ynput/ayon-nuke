@@ -247,6 +247,18 @@ class ExtractSlateFrame(publish.Extractor):
         last_frame = instance.data["frameEndHandle"]
         slate_first_frame = first_frame - 1
 
+        # - get write node
+        write_node = instance.data["transientData"]["writeNode"]
+
+        # termporarily turn off frame range limit
+        limit_on = False
+        if "use_limit" in write_node.knobs():
+            if bool(write_node["use_limit"].value()):
+                limit_on = True
+                # turn limit off for rendering the slate
+                write_node["use_limit"].setValue(0)
+                self.log.debug("__Setting render node limit")
+
         # render slate as sequence frame
         nuke.execute(
             instance.data["name"],
@@ -254,9 +266,11 @@ class ExtractSlateFrame(publish.Extractor):
             int(slate_first_frame)
         )
 
+        # turn the frame range limit back on
+        if limit_on:
+            write_node["use_limit"].setValue(1)
+
         # Add file to representation files
-        # - get write node
-        write_node = instance.data["transientData"]["writeNode"]
         # - evaluate filepaths for first frame and slate frame
         first_filename = os.path.basename(
             write_node["file"].evaluate(first_frame))
