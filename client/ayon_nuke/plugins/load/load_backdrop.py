@@ -19,9 +19,9 @@ from ayon_nuke.api import containerise, update_container
 
 
 class LoadBackdropNodes(load.LoaderPlugin):
-    """Loading Published Backdrop nodes (workfile, nukenodes)"""
+    """Loading published .nk files to backdrop nodes"""
 
-    product_types = {"workfile", "nukenodes"}
+    product_types = {"*"}
     representations = {"*"}
     extensions = {"nk"}
 
