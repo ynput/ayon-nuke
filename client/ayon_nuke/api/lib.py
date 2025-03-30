@@ -2117,9 +2117,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             )
 
     def set_context_settings(self):
-        # replace reset resolution from avalon core to pype's
         self.reset_resolution()
-        # replace reset resolution from avalon core to pype's
         self.reset_frame_range_handles()
         # add colorspace menu item
         self.set_colorspace()
@@ -2169,7 +2167,7 @@ def get_write_node_template_attr(node):
         "create_write_prerender": "CreateWritePrerender",
         "create_write_render": "CreateWriteRender"
     }
-    # get avalon data from node
+    # get AYON data from node
     node_data = get_node_data(node, INSTANCE_DATA_KNOB)
     identifier = node_data["creator_identifier"]
 
@@ -2739,7 +2737,7 @@ def node_tempfile():
     """
 
     tmp_file = tempfile.NamedTemporaryFile(
-        mode="w", prefix="openpype_nuke_temp_", suffix=".nk", delete=False
+        mode="w", prefix="AYON_nuke_temp_", suffix=".nk", delete=False
     )
     tmp_file.close()
     node_tempfile_path = tmp_file.name
