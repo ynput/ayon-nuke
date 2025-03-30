@@ -500,7 +500,7 @@ def get_avalon_knob_data(node, prefix="avalon:", create=True):
 
     Arguments:
         node (obj): Nuke node to search for data,
-        prefix (str, optional): filtering prefix
+        prefix (str | list[str]): filtering prefix
 
     Returns:
         data (dict)
@@ -540,7 +540,10 @@ def add_write_node(name, file_path, knobs, **kwarg):
 
     Arguments:
         name (str): nuke node name
-        kwarg (attrs): data for nuke knobs
+        file_path (str): file path to write
+        knobs (list[dict]): nuke knobs to be set from settings
+        kwarg (dict): formatting attributes data for nuke knobs,
+            must at least include `frame_range` key.
 
     Returns:
         node (obj): nuke write node
