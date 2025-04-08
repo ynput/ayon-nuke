@@ -55,7 +55,7 @@ from .colorspace import (
 
 
 def _collect_and_cache_nodes(creator):
-    key = "openpype.nuke.nodes"
+    key = "ayon.nuke.nodes"
     if key not in creator.collection_shared_data:
         instances_by_identifier = defaultdict(list)
         for item in list_instances():
@@ -1281,7 +1281,7 @@ def convert_to_valid_instaces():
     # save into new workfile
     current_file = workio.current_file()
 
-    # add file suffex if not
+    # add file suffix if not
     if "_publisherConvert" not in current_file:
         new_workfile = (
             current_file[:-3]
@@ -1392,8 +1392,8 @@ def convert_to_valid_instaces():
 def _remove_old_knobs(node):
     remove_knobs = [
         "review", "publish", "render", "suspend_publish", "warn", "divd",
-        "OpenpypeDataGroup", "OpenpypeDataGroup_End", "deadlinePriority",
-        "deadlineChunkSize", "deadlineConcurrentTasks", "Deadline"
+        "deadlinePriority", "deadlineChunkSize", "deadlineConcurrentTasks",
+        "Deadline"
     ]
 
     # remove all old knobs

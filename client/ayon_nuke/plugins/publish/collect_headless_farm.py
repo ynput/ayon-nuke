@@ -20,7 +20,7 @@ class CollectRenderOnFarm(pyblish.api.ContextPlugin):
             return
 
         for instance in context:
-            if instance.data["family"] == "workfile":
+            if instance.data["productType"] == "workfile":
                 instance.data["active"] = False
                 continue
 
