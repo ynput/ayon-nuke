@@ -40,6 +40,15 @@ def nuke_export_formats_enum():
     ]
 
 
+def _handle_missing_frames_enum():
+    return [
+        {"value": "0", "label": "Fail on missing"},
+        {"value": "1", "label": "Generate blank frame"},
+        {"value": "2", "label": "Use checkerboard"},
+        {"value": "3", "label": "Use closest existing"},
+    ]
+
+
 class NodeModel(BaseSettingsModel):
     name: str = SettingsField(
         title="Node name"
@@ -168,6 +177,14 @@ class IntermediateOutputModel(BaseSettingsModel):
     )
     add_custom_tags: list[str] = SettingsField(
         title="Custom tags", default_factory=list)
+
+    fill_missing_frames:str = SettingsField(
+        title="Handle missing frames",
+        default="0",
+        description="What to do about missing frames from entity frame range."
+                    "Used for filling gaps for Custom Frames",
+        enum_resolver=_handle_missing_frames_enum
+    )
 
 
 class ExtractReviewIntermediatesModel(BaseSettingsModel):
@@ -404,7 +421,8 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
                     ]
                 },
                 "extension": "mov",
-                "add_custom_tags": []
+                "add_custom_tags": [],
+                "fill_missing_frames": "0"
             }
         ]
     },
