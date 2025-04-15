@@ -1026,6 +1026,7 @@ class ExporterReviewMov(ExporterReview):
         r_node["last"].setValue(self.last_frame)
         r_node["origlast"].setValue(self.last_frame)
         r_node["colorspace"].setValue(self.write_colorspace)
+        r_node["on_error"].setValue(kwargs.get("fill_missing_frames", "0"))
 
         # do not rely on defaults, set explicitly
         # to be sure it is set correctly
