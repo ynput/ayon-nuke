@@ -1,5 +1,6 @@
 import re
 from typing import Any
+from copy import deepcopy
 
 
 def _get_viewer_config_from_string(input_string):
@@ -128,6 +129,69 @@ def _convert_extract_intermediate_files_0_2_3(publish_overrides):
             }
 
 
+def _convert_gizmo_menu_0_3_1(overrides):
+    if "gizmo" not in overrides:
+        return
+    
+    old_gizmos = overrides["gizmo"]
+    new_gizmos = []
+    
+    # Gizmo menu settings prior to the Nuke addon version `0.3.1` 
+    # included a combined setting for both `Gizmo directory path`
+    # and `Gizmo definitions`. 
+    # In the new, simplified settings, the gizmo menu was split
+    # so that each menu item is either `Gizmo directory path` or
+    # `Gizmo definitions`, with the `option` reflecting the selection.
+    # This conversion code reconstructs the gizmo menu settings to 
+    # achieve that.
+
+    for gizmo in old_gizmos:
+        # Already new setting
+        if "options" in gizmo:
+            return
+        
+        # Check if it has `Gizmo Directory Path`
+        if any(gizmo["gizmo_source_dir"].values()):
+            tmp_gizmo = deepcopy(gizmo)
+            tmp_gizmo["options"] = "gizmo_source_dir"
+            tmp_gizmo.pop("gizmo_definition")
+            new_gizmos.append(tmp_gizmo)
+
+        # Check if it has `Gizmo Definition`
+        gizmo_definition = gizmo["gizmo_definition"]
+        if gizmo_definition:
+            tmp_gizmo = deepcopy(gizmo)
+            tmp_gizmo["options"] = "gizmo_definition"
+            tmp_gizmo.pop("gizmo_source_dir")
+            new_gizmos.append(tmp_gizmo)
+    
+    # Override using the new gizmo
+    overrides["gizmo"] = new_gizmos          
+
+
+def _convert_imageio_subsets_0_3_2(overrides: dict) -> None:
+    """Convert subsets key to product_names."""
+    if "imageio" not in overrides:
+        return
+
+    imageio_overrides = overrides["imageio"]
+
+    if "nodes" not in imageio_overrides:
+        return
+
+    if "required_nodes" in imageio_overrides["nodes"]:
+        for node in imageio_overrides["nodes"]["required_nodes"]:
+            if "custom_class" not in node:
+                node["custom_class"] = ""
+
+    if "override_nodes" in imageio_overrides["nodes"]:
+        for node in imageio_overrides["nodes"]["override_nodes"]:
+            if "subsets" in node:
+                node["product_names"] = node.pop("subsets")
+            if "custom_class" not in node:
+                node["custom_class"] = ""
+
+
 def _convert_publish_plugins(overrides):
     if "publish" not in overrides:
         return
@@ -138,6 +202,8 @@ def convert_settings_overrides(
     source_version: str,
     overrides: dict[str, Any],
 ) -> dict[str, Any]:
+    _convert_gizmo_menu_0_3_1(overrides)
     _convert_imageio_configs_0_2_3(overrides)
     _convert_publish_plugins(overrides)
+    _convert_imageio_subsets_0_3_2(overrides)
     return overrides

@@ -101,10 +101,12 @@ class ValidateKnobsModel(BaseSettingsModel):
 
 
 class ExtractReviewDataModel(BaseSettingsModel):
-    enabled: bool = SettingsField(title="Enabled")
+    """Add a raw reviewable representation from the output of a write node.
 
-
-class ExtractReviewDataLutModel(BaseSettingsModel):
+    This can be useful when you don't want to use e.g. Extract Review
+    Intermediates with baking streams but are already writing ready for
+    review images that don't need custom baking.
+    """
     enabled: bool = SettingsField(title="Enabled")
 
 
@@ -243,12 +245,6 @@ class ExtractSlateFrameModel(BaseSettingsModel):
     )
 
 
-class IncrementScriptVersionModel(BaseSettingsModel):
-    enabled: bool = SettingsField(title="Enabled")
-    optional: bool = SettingsField(title="Optional")
-    active: bool = SettingsField(title="Active")
-
-
 class PublishPluginsModel(BaseSettingsModel):
     CollectInstanceData: CollectInstanceDataModel = SettingsField(
         title="Collect Instance Version",
@@ -284,10 +280,7 @@ class PublishPluginsModel(BaseSettingsModel):
         title="Extract Review Data",
         default_factory=ExtractReviewDataModel
     )
-    ExtractReviewDataLut: ExtractReviewDataLutModel = SettingsField(
-        title="Extract Review Data Lut",
-        default_factory=ExtractReviewDataLutModel
-    )
+
     ExtractReviewIntermediates: ExtractReviewIntermediatesModel = (
         SettingsField(
             title="Extract Review Intermediates",
@@ -302,10 +295,25 @@ class PublishPluginsModel(BaseSettingsModel):
         title="Extract Slate Frame",
         default_factory=ExtractSlateFrameModel
     )
-    IncrementScriptVersion: IncrementScriptVersionModel = SettingsField(
+    IncrementScriptVersion: OptionalPluginModel = SettingsField(
         title="Increment Workfile Version",
-        default_factory=IncrementScriptVersionModel,
-        section="Integrators"
+        default_factory=OptionalPluginModel,
+        section="Integrators",
+        description=(
+            "Bumps up version of workfile if there are no errors in previous "
+            "plugins."
+        )
+    )
+    IncrementWriteNodePath: OptionalPluginModel = SettingsField(
+        title="Increment path in Write node",
+        default_factory=OptionalPluginModel,
+        section="Integrators",
+        description=(
+            "Updates version portion of path in Write node with current "
+            "workfile version. This allows have versioned intermediate "
+            "`renders` subfolders. "
+            "It depends on setting `ayon+settings://core/tools/publish/custom_staging_dir_profiles/0`"
+        )
     )
 
 
@@ -356,9 +364,6 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
         "active": True
     },
     "ExtractReviewData": {
-        "enabled": False
-    },
-    "ExtractReviewDataLut": {
         "enabled": False
     },
     "ExtractReviewIntermediates": {
@@ -448,6 +453,11 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
     },
     "IncrementScriptVersion": {
         "enabled": True,
+        "optional": True,
+        "active": True
+    },
+    "IncrementWriteNodePath": {
+        "enabled": False,
         "optional": True,
         "active": True
     }
