@@ -98,11 +98,10 @@ def get_target_path(instance):
     publish_dir = instance.data.get('publishDir')
     
     # Get the filename components
-    folder_name = instance.data['folder']['name']
-    product_name = instance.data['product']['name']
+    folder_name = instance.data['folderPath'].split('/')[-1]
+    product_name = instance.data['name']
     version = f"v{str(instance.data['version']).zfill(3)}"
     extension = instance.data.get('ext', 'exr')
-    
     # Construct filename
     # Format: {folder_name}_{product_name}_{version}.{frame}.{ext}
     filename = f"{folder_name}_{product_name}_{version}.####.{extension}"
