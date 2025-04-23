@@ -30,8 +30,8 @@ jobs:
           echo "Current version: $CURRENT_VERSION"
 
           # Split the version to get parts
-          VERSION_BASE=$(echo $CURRENT_VERSION | sed 's/\(.*\)\.[0-9]*$/\1/')
-          SUFFIX_NUMBER=$(echo $CURRENT_VERSION | sed 's/.*\.\([0-9]*\)$/\1/')
+	  VERSION_BASE=$(echo "$CURRENT_VERSION" | rev | cut -d. -f2- | rev)
+	  SUFFIX_NUMBER=$(echo "$CURRENT_VERSION" | rev | cut -d. -f1 | rev)
 
           # Increment suffix number
           NEW_SUFFIX_NUMBER=$((SUFFIX_NUMBER+1))
