@@ -51,7 +51,7 @@ jobs:
               package_content = f.read()
 
           # Find the version in package.py
-          package_version_match = re.search(r'^version\s*=\s*"([^"]+)"', package_content)
+          package_version_match = re.search(r'^version\s*=\s*"([^"]+)"', package_content, re.MULTILINE)
           if not package_version_match:
               print("Error: Could not find version in package.py")
               sys.exit(1)
