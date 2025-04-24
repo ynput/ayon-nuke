@@ -1,7 +1,6 @@
 ---
 name: Build and Release Package
 on:
-  workflow_dispatch,
   push:
     branches:
       - develop
@@ -25,11 +24,13 @@ jobs:
         run: >
           # Extract current version from package.py
           CURRENT_VERSION=$(grep "^version = \"" package.py | head -1 | cut -d'"' -f2)
+
           echo "Current version: $CURRENT_VERSION"
 
           # Split the version to get parts
 
           VERSION_BASE=$(echo "$CURRENT_VERSION" | rev | cut -d. -f2- | rev)
+
           SUFFIX_NUMBER=$(echo "$CURRENT_VERSION" | rev | cut -d. -f1 | rev)
 
           NEW_SUFFIX_NUMBER=$((SUFFIX_NUMBER+1))
