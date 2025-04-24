@@ -1,6 +1,7 @@
 ---
 name: Build and Release Package
 on:
+  workflow_dispatch,
   push:
     branches:
       - develop
@@ -23,20 +24,13 @@ jobs:
         id: increment_version
         run: >
           # Extract current version from package.py
-
           CURRENT_VERSION=$(grep "^version = " package.py | sed 's/version = "\(.*\)"/\1/')
-
           echo "Current version: $CURRENT_VERSION"
-
 
           # Split the version to get parts
 
           VERSION_BASE=$(echo "$CURRENT_VERSION" | rev | cut -d. -f2- | rev)
-
           SUFFIX_NUMBER=$(echo "$CURRENT_VERSION" | rev | cut -d. -f1 | rev)
-
-
-          # Increment suffix number
 
           NEW_SUFFIX_NUMBER=$((SUFFIX_NUMBER+1))
 
@@ -44,18 +38,11 @@ jobs:
 
           echo "New version: $NEW_VERSION"
 
-
           # Update package.py
 
           sed -i "s/version = \".*\"/version = \"$NEW_VERSION\"/" package.py
 
-
-          # Update client/ayon_nuke/version.py
-
-          # Use the main part of the version (before the dash)
-
           NEW_CLIENT_VERSION=$(echo $NEW_VERSION | cut -d'-' -f1)
-
 
           # Update the client version file
 
@@ -64,7 +51,6 @@ jobs:
           else
             sed -i "s/__version__ = \".*\"/__version__ = \"$NEW_CLIENT_VERSION\"/" client/ayon_nuke/version.py
           fi
-
 
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
       - name: Create package
@@ -90,11 +76,7 @@ jobs:
       - name: Commit version changes
         run: >
           git config --local user.email "action@github.com"
-
           git config --local user.name "GitHub Action"
-
           git add package.py client/ayon_nuke/version.py
-
           git commit -m "CI bump version to ${{ steps.increment_version.outputs.version }}"
-
           git push
