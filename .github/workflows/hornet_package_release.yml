@@ -74,7 +74,7 @@ jobs:
             package/nuke-${{ steps.increment_version.outputs.version }}.zip
           generate_release_notes: true
       - name: Commit version changes
-        run: >
+        run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add package.py client/ayon_nuke/version.py
