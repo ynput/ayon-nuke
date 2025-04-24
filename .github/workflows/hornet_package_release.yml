@@ -1,7 +1,6 @@
 name: Build and Release Package
 
 on:
-  workflow_dispatch:  # Manual trigger
   push:
     branches:
       - main
