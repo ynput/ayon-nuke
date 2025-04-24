@@ -1,11 +1,11 @@
 name = "nuke"
 title = "Nuke"
 
-version = ".1"
+version = "0.2.9-hornet.7"
 app_host_name = "nuke"
 client_dir = "ayon_nuke"
 
-ayon_server_version = ".1"
+ayon_server_version = ">=1.1.2"
 ayon_required_addons = {
     "core": ">=1.0.12",
 }
