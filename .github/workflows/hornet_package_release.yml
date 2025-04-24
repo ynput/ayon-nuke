@@ -24,7 +24,7 @@ jobs:
         id: increment_version
         run: >
           # Extract current version from package.py
-          CURRENT_VERSION=$(grep "^version = " package.py | sed 's/version = "\(.*\)"/\1/')
+          CURRENT_VERSION=$(grep "^version = \"" package.py | head -1 | cut -d'"' -f2)
           echo "Current version: $CURRENT_VERSION"
 
           # Split the version to get parts
