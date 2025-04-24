@@ -41,16 +41,16 @@ jobs:
 
           # Update package.py
 
-          sed -i "s/version = \".*\"/version = \"$NEW_VERSION\"/" package.py
+          sed -i "s/^version = \".*\"/version = \"$NEW_VERSION\"/" package.py
 
           NEW_CLIENT_VERSION=$(echo $NEW_VERSION | cut -d'-' -f1)
 
           # Update the client version file
 
           if grep -q "\*\*version\*\*" client/ayon_nuke/version.py; then
-            sed -i "s/\*\*version\*\* = \".*\"/\*\*version\*\* = \"$NEW_CLIENT_VERSION\"/" client/ayon_nuke/version.py
+            sed -i "s/\*\*version\*\* = \".*\"/\*\*version\*\* = \"$NEW_VERSION\"/" client/ayon_nuke/version.py
           else
-            sed -i "s/__version__ = \".*\"/__version__ = \"$NEW_CLIENT_VERSION\"/" client/ayon_nuke/version.py
+            sed -i "s/__version__ = \".*\"/__version__ = \"$NEW_VERSION\"/" client/ayon_nuke/version.py
           fi
 
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
