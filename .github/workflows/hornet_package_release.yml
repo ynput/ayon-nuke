@@ -3,7 +3,7 @@ name: Build and Release Package
 on:
   push:
     branches:
-      - main
+      - develop
     paths-ignore:
       - 'package.py'
       - 'client/ayon_nuke/version.py'
