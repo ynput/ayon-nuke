@@ -109,7 +109,13 @@ class ValidateNukeWriteNode(
 
             key = knob_data["name"]
             values = values_by_name[key]
-            node_value = write_node[key].value()
+
+            try:
+                node_value = write_node[key].value()
+
+            except NameError:
+                self.log.warning("Missing knob %s in write node.", key)
+                continue
 
             # fix type differences
             fixed_values = []
