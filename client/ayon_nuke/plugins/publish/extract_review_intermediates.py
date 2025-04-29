@@ -44,13 +44,11 @@ class ExtractReviewIntermediates(publish.Extractor, OptionalPyblishPluginMixin):
 
         task_type = instance.context.data["taskType"]
         product_name = instance.data["productName"]
-        self.log.debug("Creating staging dir...")
 
         if "representations" not in instance.data:
             instance.data["representations"] = []
 
         if not instance.data.get("stagingDir"):
-            
             sd = os.path.normpath(
                 os.path.dirname(instance.data["path"]))
 

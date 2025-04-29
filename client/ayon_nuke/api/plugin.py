@@ -1,8 +1,6 @@
 import nuke
 import re
 import os
-import sys
-import six
 import copy
 import pathlib
 import random
@@ -44,6 +42,7 @@ from .lib import (
     get_filenames_without_hash,
     get_work_default_directory,
     link_knobs,
+    get_version_from_path,
 )
 from .pipeline import (
     list_instances,
@@ -187,10 +186,19 @@ class NukeCreator(NewCreator):
             selected_nodes = nuke.allNodes()
 
         if class_name:
+            # Allow class name implicit last versions of class names like
+            # `Camera` to match any of its explicit versions, e.g.
+            # `Camera3` or `Camera4`.
+            if not class_name[-1].isdigit():
+                # Match name with any digit
+                pattern = rf"^{class_name}\d*$"
+            else:
+                pattern = class_name
+            regex = re.compile(pattern)
             selected_nodes = [
                 node
                 for node in selected_nodes
-                if node.Class() == class_name
+                if regex.match(node.Class())
             ]
 
         if class_name and use_selection and not selected_nodes:
@@ -230,11 +238,8 @@ class NukeCreator(NewCreator):
 
             return instance
 
-        except Exception as er:
-            six.reraise(
-                NukeCreatorError,
-                NukeCreatorError("Creator error: {}".format(er)),
-                sys.exc_info()[2])
+        except Exception as exc:
+            raise NukeCreatorError(f"Creator error: {exc}") from exc
 
     def collect_instances(self):
         cached_instances = _collect_and_cache_nodes(self)
@@ -311,8 +316,10 @@ class NukeWriteCreator(NukeCreator):
     product_type = "write"
     icon = "sign-out"
 
-    temp_rendering_path_template = (  # default to be applied is settings is missing
+    temp_rendering_path_template = (  # default to be applied if settings is missing
         "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}")
+
+    render_target = "local"  # default to be applied if settings is missing
 
     def get_linked_knobs(self):
         linked_knobs = []
@@ -361,12 +368,15 @@ class NukeWriteCreator(NukeCreator):
         Raises:
             NukeCreatorError. When the selection contains more than 1 Write node.
         """
+        if not pre_create_data.get("use_selection"):
+            return []
+
         selected_nodes = super()._get_current_selected_nodes(
             pre_create_data,
             class_name=None,
         )
 
-        if pre_create_data.get("use_selection") and not selected_nodes:
+        if not selected_nodes:
             raise NukeCreatorError("No active selection")
 
         elif len(selected_nodes) > 1:
@@ -399,7 +409,8 @@ class NukeWriteCreator(NukeCreator):
         instance_node = created_inst.transient_data["node"]
         formatting_data = copy.deepcopy(data)
         write_node = nuke.allNodes(group=instance_node, filter="Write")[0]
-        formatting_data.update({"ext": write_node["file_type"].value()})
+        _, ext = os.path.splitext(write_node["file"].value())
+        formatting_data.update({"ext": ext[1:]})
 
         # Retieve render template and staging directory.
         fpath_template = self.temp_rendering_path_template
@@ -440,6 +451,7 @@ class NukeWriteCreator(NukeCreator):
             # "local": "Local machine rendering", # HPIPE-713 Rqequest to remove unused options
             "frames": "Use existing frames"
         }
+
         if "farm_rendering" in self.instance_attributes:
             rendering_targets.update({
                 "frames_farm": "Use existing frames - farm",
@@ -450,10 +462,17 @@ class NukeWriteCreator(NukeCreator):
             "render_target",
             items=rendering_targets,
             label="Render target",
-            default="frames"  # HPIPE-713 Rqequest to set default to "Use existing frames"
+            default="frames",  # HPIPE-713 Rqequest to set default to "Use existing frames"
+            tooltip="Define the render target."
         )
 
     def create(self, product_name, instance_data, pre_create_data):
+        if not pre_create_data:
+            # add no selection for headless
+            pre_create_data = {
+                "use_selection": False
+            }
+
         # pass values from precreate to instance
         self._pass_pre_attributes_to_instance(
             instance_data,
@@ -501,12 +520,8 @@ class NukeWriteCreator(NukeCreator):
 
             return instance
 
-        except Exception as er:
-            six.reraise(
-                NukeCreatorError,
-                NukeCreatorError("Creator error: {}".format(er)),
-                sys.exc_info()[2]
-            )
+        except Exception as exc:
+            raise NukeCreatorError(f"Creator error: {exc}") from exc
 
     def apply_settings(self, project_settings):
         """Method called on initialization of plugin to apply settings."""
@@ -531,6 +546,8 @@ class NukeWriteCreator(NukeCreator):
         self.prenodes = plugin_settings["prenodes"]
         self.default_variants = plugin_settings.get(
             "default_variants") or self.default_variants
+        self.render_target = plugin_settings.get(
+            "render_target") or self.render_target
         self.temp_rendering_path_template = temp_rendering_path_template
 
 
@@ -673,6 +690,11 @@ class ExporterReview(object):
         self.staging_dir = self.instance.data["stagingDir"]
         self.collection = self.instance.data.get("collection", None)
         self.data = {"representations": []}
+        if self.instance.data.get("stagingDir_is_custom"):
+            self.staging_dir = self._update_staging_dir(
+                self.instance.context.data["currentFile"],
+                self.staging_dir
+            )
 
     def get_file_info(self):
         if self.collection:
@@ -776,6 +798,40 @@ class ExporterReview(object):
                 "display_view": nuke_imageio["viewer"],
             }
 
+    def _update_staging_dir(self, current_file, staging_dir):
+        """Update staging dir with current file version.
+
+        Staging dir is used as a place where intermediate review files should
+        be stored. If render path contains version portion, which is replaced
+        by version from workfile, it must be reflected even for baking scripts.
+        """
+        try:
+            root_version = get_version_from_path(current_file)
+            padding = len(root_version)
+            root_version = int(root_version)
+        except (TypeError, IndexError):
+            self.log.warning(
+                f"Current file '{current_file}' doesn't contain version number. "
+                "No replacement necessary",
+                exc_info=True)
+            return staging_dir
+        try:
+            staging_dir_version = "v" + get_version_from_path(staging_dir)
+        except (TypeError, IndexError):
+            self.log.warning(
+                f"Staging directory '{staging_dir}' doesn't contain version number. "
+                "No replacement necessary",
+                exc_info=True)
+            return staging_dir
+
+        new_version = "v" + str("{" + ":0>{}".format(padding) + "}").format(
+            root_version
+        )
+        self.log.debug(
+            f"Update version in staging dir from {staging_dir_version} "
+            f"to {new_version}"
+        )
+        return staging_dir.replace(staging_dir_version, new_version)
 
 class ExporterReviewLut(ExporterReview):
     """
