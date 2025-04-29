@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 """Package declaring AYON addon 'nuke' version."""
-__version__ = "0.3.4-hornet.9"
+__version__ = "0.3.4-hornet.10"
