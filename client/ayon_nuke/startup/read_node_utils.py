@@ -1,3 +1,5 @@
+
+
 import re
 import os
 import glob
@@ -124,32 +126,47 @@ def create_read_node(ndata, comp_start):
     return
 
 
-def write_to_read(gn, allow_relative=False):
+def write_to_read(write_group_node, allow_relative=False):
     comp_start = nuke.Root().knob("first_frame").value()
     project_dir = nuke.Root().knob("project_directory").getValue()
     if not os.path.exists(project_dir):
         project_dir = nuke.Root().knob("project_directory").evaluate()
 
     group_read_nodes = []
-    with gn:
-        height = gn.screenHeight()  # get group height and position
-        new_xpos = int(gn.knob("xpos").value())
-        new_ypos = int(gn.knob("ypos").value()) + height + 20
+    with write_group_node:
+        height = write_group_node.screenHeight()  # get group height and position
+        new_xpos = int(write_group_node.knob("xpos").value())
+        new_ypos = int(write_group_node.knob("ypos").value()) + height + 20
         group_writes = [n for n in nuke.allNodes() if n.Class() == "Write"]
         if group_writes != []:
             # there can be only 1 write node, taking first
             n = group_writes[0]
 
             if n.knob("file") is not None:
-                myfile, firstFrame, lastFrame = evaluate_filepath_new(
+
+                result = evaluate_filepath_new(
                     n.knob("file").getValue(),
                     n.knob("file").evaluate(),
                     project_dir,
                     comp_start,
                     allow_relative,
                 )
-                if not myfile:
+
+                if result is not None:
+                    myfile, firstFrame, lastFrame = result
+                else:
+                    nuke.message("No render found")
                     return
+
+                # myfile, firstFrame, lastFrame = evaluate_filepath_new(
+                #     n.knob("file").getValue(),
+                #     n.knob("file").evaluate(),
+                #     project_dir,
+                #     comp_start,
+                #     allow_relative,
+                # )
+                # if not myfile:
+                #     return
 
                 # get node data
                 ndata = {
@@ -226,14 +243,19 @@ def assemble_publish_path(ayon_write_node):
         )
     ).parent
 
+    print(f"Publish path: {publish_path}")
+    nuke.tprint(f"Publish path: {publish_path}")
+
     try:
         newest_version = Path(
             sorted([d.name for d in publish_path.iterdir() if d.is_dir()])[-1]
         )
     except IndexError:
+        print("No versions, has it been published?")
         log.error("No versions, has it been published?")
         return
     except Exception as e:
+        print(f"Unexpected error: {e}")
         log.error(f"Unexpected error: {e}")
         return
 
@@ -274,12 +296,17 @@ def assemble_publish_path(ayon_write_node):
     )
 
     if not seqs:
+        print("No sequence found")
         return
 
     sequence = seqs[0]
     string = sequence.sequence_string(sequence.StringVariant.NUKE)
 
     result = publish_path / string
+    
+    print(f"Publish path: {result}")
+    nuke.tprint(f"Publish path: {result}")
+    
     # return str(result)
     return result
 
@@ -365,3 +392,18 @@ def navigate_to_publish(write_node):
     else:  # Linux
         subprocess.run(["xdg-open", path])
         
+
+
+
+
+def filter_write_nodes(nodes):
+
+    filtered_nodes = [n for n in nodes if n.Class() == "Group" and 'publish_instance' in n.knobs() and "submit" in n.knobs()]
+
+    return filtered_nodes
+
+
+
+
+
+

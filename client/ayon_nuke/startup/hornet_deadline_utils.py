@@ -84,9 +84,30 @@ def getNodeSubmissionInfo():
     knob_values['last'] = inside_write.knob('last').value()
     return knob_values
 
-def deadlineNetworkSubmit(dev=False):
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+def deadlineNetworkSubmit(dev=False, batch=None, silent=False):
+
+
+    #TODO I added miliseconds to allow for batch submissions, otherwise it fails beacuse it tries to 
+    # overwrite the same file each time.
+    # Would be better to save once per batch which requires refactor
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
     body = build_request(getNodeSubmissionInfo(),timestamp)
+    
+
+
+
+    if batch is not None:
+        body["JobInfo"]["BatchName"] = batch
+
+    if(dev):
+        nuke.tprint(body)
+        print(body)
+        return
+
+
+
+
     file_path = body["PluginInfo"]["OutputFilePath"]
     nuke.tprint(f"File path: {file_path}")
 
@@ -126,7 +147,9 @@ def deadlineNetworkSubmit(dev=False):
         nuke.alert("Failed to submit to Deadline: {}".format(response.text))
         raise Exception(response.text)
     else:
-        nuke.alert("Submitted to Deadline Sucessfully")
+        if not silent:
+            nuke.alert("Submitted to Deadline Sucessfully")
+        return True
 
 
 def build_request(knobValues,timestamp):
@@ -220,4 +243,5 @@ def save_script_with_render(write_node_file_path):
 
 
 
+    
     

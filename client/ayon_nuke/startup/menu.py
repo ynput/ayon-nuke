@@ -454,15 +454,24 @@ def quick_write_node(family="render"):
 #     return qnode
 
 
+
 def _quick_write_node(variant, family="render"):
     """
     Separated this from the nuke.getInput call to allow calls from other scripts,
     such as a loop in the Kroger versioning script
     """
 
+
+    if not os.path.exists(nuke.Root().name()):
+        nuke.message("You must save script first")
+        return
+    
+
+
     variant = variant.title()
 
-    print("quick write node")
+    
+
     nuke.tprint("quick write node")
 
     if "/" in os.environ["AYON_FOLDER_PATH"]:
