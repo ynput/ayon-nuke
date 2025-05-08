@@ -19,7 +19,7 @@ class ExtractReviewIntermediates(publish.Extractor, OptionalPyblishPluginMixin):
     order = pyblish.api.ExtractorOrder + 0.01
     label = "Extract Review Intermediates"
 
-    families = ["review"]
+    families = ["review", "render.farm"]
     hosts = ["nuke"]
 
     settings_category = "nuke"

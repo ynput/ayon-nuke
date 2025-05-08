@@ -127,7 +127,7 @@ class NukeHost(
 
         # add script menu
         add_scripts_menu()
-        add_scripts_gizmo()
+        #add_scripts_gizmo()
 
         add_nuke_callbacks()
 
