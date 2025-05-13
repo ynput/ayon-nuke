@@ -62,7 +62,7 @@ class LoadEffects(load.LoaderPlugin):
             "colorspaceInput": colorspace,
         }
 
-        # add additional metadata from the version to imprint to Avalon knob
+        # add additional metadata from the version to imprint to AYON knob
         for k in [
             "frameStart",
             "frameEnd",
