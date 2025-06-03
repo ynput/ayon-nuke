@@ -2570,7 +2570,6 @@ def add_scripts_menu():
         return
 
     # load configuration of custom menu
-    project_name = get_current_project_name()
     project_settings = DirmapCache.project_settings()
     config = project_settings["nuke"]["scriptsmenu"]["definition"]
     _menu = project_settings["nuke"]["scriptsmenu"]["name"]
