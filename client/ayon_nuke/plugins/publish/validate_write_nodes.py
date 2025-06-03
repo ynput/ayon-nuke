@@ -61,6 +61,12 @@ class ValidateNukeWriteNode(
 
     settings_category = "nuke"
 
+    product_types_mapping = {
+        "render": "CreateWriteRender",
+        "prerender": "CreateWritePrerender",
+        "image": "CreateWriteImage"
+    }
+
     def process(self, instance):
         if not self.is_active(instance.data):
             return
@@ -80,6 +86,13 @@ class ValidateNukeWriteNode(
 
         if write_node is None:
             return
+
+        # gather exposed knobs to remove them from knobs check.
+        nuke_settings = instance.context.data["project_settings"]["nuke"]
+        product_type = instance.data["productType"]
+        plugin = self.product_types_mapping[product_type]
+        create_settings = nuke_settings["create"][plugin]
+        exposed_knobs = create_settings.get("exposed_knobs", [])
 
         correct_data = get_write_node_template_attr(write_group_node)
 
@@ -137,8 +150,8 @@ class ValidateNukeWriteNode(
 
             if (
                 node_value not in fixed_values
-                and key != "file"
-                and key != "tile_color"
+                and key not in exposed_knobs
+                and key not in ("file", "tile_color")
             ):
                 check.append([key, fixed_values, write_node[key].value()])
 

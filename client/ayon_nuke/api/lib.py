@@ -666,7 +666,7 @@ def get_node_path(path, padding=4):
 
 
 def get_nuke_imageio_settings():
-    return get_project_settings(Context.project_name)["nuke"]["imageio"]
+    return DirmapCache.project_settings()["nuke"]["imageio"]
 
 
 def get_imageio_node_setting(node_class, plugin_name, product_name):
@@ -1897,8 +1897,27 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             if not write_node:
                 return
 
-            set_node_knobs_from_settings(
-                write_node, nuke_imageio_writes["knobs"])
+            # Exclude exposed knobs from colorspace nodes.
+            # This ensures that any values overwritten by the user is
+            # not changed by the colorspace knobs set.
+            colorspace_knobs = nuke_imageio_writes["knobs"]
+            all_create_settings = DirmapCache.project_settings()["nuke"]["create"]
+            plugin_names_mapping = {
+                "create_write_image": "CreateWriteImage",
+                "create_write_prerender": "CreateWritePrerender",
+                "create_write_render": "CreateWriteRender"
+            }
+            node_data = get_node_data(node, INSTANCE_DATA_KNOB)
+            identifier = node_data["creator_identifier"]
+            creator_settings = all_create_settings[plugin_names_mapping[identifier]]
+            exposed_knobs = creator_settings.get("exposed_knobs")
+
+            colorspace_knobs = [
+                entry for entry in colorspace_knobs
+                if entry["name"] not in exposed_knobs
+            ]
+
+            set_node_knobs_from_settings(write_node, colorspace_knobs)
 
     # TODO: move into ./colorspace.py
     def set_reads_colorspace(self, read_clrs_inputs):
@@ -2552,7 +2571,7 @@ def add_scripts_menu():
 
     # load configuration of custom menu
     project_name = get_current_project_name()
-    project_settings = get_project_settings(project_name)
+    project_settings = DirmapCache.project_settings()
     config = project_settings["nuke"]["scriptsmenu"]["definition"]
     _menu = project_settings["nuke"]["scriptsmenu"]["name"]
 
