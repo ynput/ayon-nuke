@@ -666,7 +666,7 @@ def get_node_path(path, padding=4):
 
 
 def get_nuke_imageio_settings():
-    return DirmapCache.project_settings()["nuke"]["imageio"]
+    return  get_project_settings(Context.project_name)["nuke"]["imageio"]
 
 
 def get_imageio_node_setting(node_class, plugin_name, product_name):
@@ -1901,7 +1901,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             # This ensures that any values overwritten by the user is
             # not changed by the colorspace knobs set.
             colorspace_knobs = nuke_imageio_writes["knobs"]
-            all_create_settings = DirmapCache.project_settings()["nuke"]["create"]
+            all_create_settings =  get_project_settings(Context.project_name)["nuke"]["create"]
             plugin_names_mapping = {
                 "create_write_image": "CreateWriteImage",
                 "create_write_prerender": "CreateWritePrerender",
