@@ -666,7 +666,7 @@ def get_node_path(path, padding=4):
 
 
 def get_nuke_imageio_settings():
-    return  get_project_settings(Context.project_name)["nuke"]["imageio"]
+    return get_project_settings(Context.project_name)["nuke"]["imageio"]
 
 
 def get_imageio_node_setting(node_class, plugin_name, product_name):
