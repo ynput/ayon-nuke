@@ -1,8 +1,11 @@
 import os
 import nuke
+
 import pyblish.api
-from ayon_nuke import api as napi
+
 from ayon_core.pipeline import publish
+
+from ayon_nuke import api as napi
 
 
 class CollectNukeWrites(pyblish.api.InstancePlugin,
@@ -56,7 +59,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
 
             self._add_farm_instance_data(instance)
 
-        elif render_target == "farm":
+        if render_target == "farm":
             self._add_farm_instance_data(instance)
 
         # set additional instance data
@@ -160,7 +163,8 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         write_node = self._write_node_helper(instance)
 
         # Determine defined file type
-        ext = write_node["file_type"].value()
+        path = write_node["file"].value()
+        ext = os.path.splitext(path)[1].lstrip(".")
 
         # determine defined channel type
         color_channels = write_node["channels"].value()
@@ -266,7 +270,8 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         output_dir = os.path.dirname(write_file_path)
 
         # Determine defined file type
-        ext = write_node["file_type"].value()
+        path = write_node["file"].value()
+        ext = os.path.splitext(path)[1].lstrip(".")
 
         representation = {
             "name": ext,

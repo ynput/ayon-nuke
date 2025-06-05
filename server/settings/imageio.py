@@ -32,7 +32,8 @@ def nuke_node_class_enum():
         {"value": "Camera4", "label": "Camera [3D]"},
         {"value": "Camera2", "label": "Camera [3D Classic]"},
         {"value": "Scene", "label": "Scene [3D Classic]"},
-        {"value": "BackdropNode", "label": "Backdrop [Other]"}, 
+        {"value": "BackdropNode", "label": "Backdrop [Other]"},
+        {"value": "custom_class", "label": "Custom Class"},
     ]
 
 
@@ -45,7 +46,13 @@ class NodesModel(BaseSettingsModel):
     )
     nuke_node_class: str = SettingsField(
         title="Nuke Node Class",
-        enum_resolver=nuke_node_class_enum
+        enum_resolver=nuke_node_class_enum,
+        conditionalEnum=True,
+    )
+    custom_class: str = SettingsField(
+        default="",
+        title="Custom Node Class",
+        description="Custom node class not listed above (optional)"
     )
 
 
@@ -63,9 +70,9 @@ class RequiredNodesModel(NodesModel):
 
 
 class OverrideNodesModel(NodesModel):
-    subsets: list[str] = SettingsField(
+    product_names: list[str] = SettingsField(
         default_factory=list,
-        title="Subsets"
+        title="Product names"
     )
 
     knobs: list[KnobModel] = SettingsField(
@@ -112,17 +119,29 @@ def ocio_configs_switcher_enum():
 
 
 class WorkfileColorspaceSettings(BaseSettingsModel):
-    """Nuke workfile colorspace preset. """
+    """Workfile colorspace for Nuke root's project settings."""
 
     _isGroup: bool = True
 
     color_management: Literal["Nuke", "OCIO"] = SettingsField(
-        title="Color Management Workflow"
+        title="Color Management Workflow",
+        description=(
+            "Switch between native OCIO configs.\n\n"
+            "This is only used if global color management is **disabled** and"
+            " hence there is no global OCIO environment variable being set."
+        ),
     )
 
     native_ocio_config: str = SettingsField(
         title="Native OpenColorIO Config",
-        description="Switch between native OCIO configs",
+        description=(
+            "Nuke native OCIO config. The number between between the brackets"
+            " after the configs describe which Nuke versions these are"
+            " compatible with.\n\n"
+            "This is only used if global color management is **disabled** and"
+            " hence there is no global OCIO environment variable being set"
+            " **AND** Color Management Workflow above is set to 'OCIO'."
+        ),
         enum_resolver=ocio_configs_switcher_enum,
         conditionalEnum=True
     )
@@ -254,12 +273,19 @@ class ImageIOSettings(BaseSettingsModel):
     viewer: ViewProcessModel = SettingsField(
         default_factory=ViewProcessModel,
         title="Viewer",
-        description="""Viewer profile is used during
-        Creation of new viewer node at knob viewerProcess"""
+        description=(
+            "Viewer profile is used during Creation of new viewer node at knob"
+            " viewerProcess"
+        )
     )
     monitor: MonitorProcessModel = SettingsField(
         default_factory=MonitorProcessModel,
-        title="Monitor OUT"
+        title="Monitor OUT",
+        description=(
+            "Viewer Monitor Out settings is used during creation of new viewer"
+            " node. This is used for external monitors used with a Nuke"
+            " viewer."
+        )
     )
     baking_target: ColorspaceConfigurationModel = SettingsField(
         default_factory=ColorspaceConfigurationModel,
@@ -309,6 +335,7 @@ DEFAULT_IMAGEIO_SETTINGS = {
             {
                 "plugins": ["CreateWriteRender"],
                 "nuke_node_class": "Write",
+                "custom_class": "",
                 "knobs": [
                     {"type": "text", "name": "file_type", "text": "exr"},
                     {"type": "text", "name": "datatype", "text": "16 bit half"},
@@ -327,6 +354,7 @@ DEFAULT_IMAGEIO_SETTINGS = {
             {
                 "plugins": ["CreateWritePrerender"],
                 "nuke_node_class": "Write",
+                "custom_class": "",
                 "knobs": [
                     {"type": "text", "name": "file_type", "text": "exr"},
                     {"type": "text", "name": "datatype", "text": "16 bit half"},
@@ -345,6 +373,7 @@ DEFAULT_IMAGEIO_SETTINGS = {
             {
                 "plugins": ["CreateWriteImage"],
                 "nuke_node_class": "Write",
+                "custom_class": "",
                 "knobs": [
                     {"type": "text", "name": "file_type", "text": "tiff"},
                     {"type": "text", "name": "datatype", "text": "16 bit"},

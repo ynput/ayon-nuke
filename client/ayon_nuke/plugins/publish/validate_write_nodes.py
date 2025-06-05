@@ -61,6 +61,12 @@ class ValidateNukeWriteNode(
 
     settings_category = "nuke"
 
+    product_types_mapping = {
+        "render": "CreateWriteRender",
+        "prerender": "CreateWritePrerender",
+        "image": "CreateWriteImage"
+    }
+
     def process(self, instance):
         if not self.is_active(instance.data):
             return
@@ -80,6 +86,13 @@ class ValidateNukeWriteNode(
 
         if write_node is None:
             return
+
+        # gather exposed knobs to remove them from knobs check.
+        nuke_settings = instance.context.data["project_settings"]["nuke"]
+        product_type = instance.data["productType"]
+        plugin = self.product_types_mapping[product_type]
+        create_settings = nuke_settings["create"][plugin]
+        exposed_knobs = set(create_settings.get("exposed_knobs", []))
 
         correct_data = get_write_node_template_attr(write_group_node)
 
@@ -108,8 +121,19 @@ class ValidateNukeWriteNode(
                 )
 
             key = knob_data["name"]
+            if key in exposed_knobs or key in ("file", "tile_color"):
+                # This is not a knob we need to validate as it is likely
+                # not matching default value but edited by user.
+                continue
+
             values = values_by_name[key]
-            node_value = write_node[key].value()
+
+            try:
+                node_value = write_node[key].value()
+
+            except NameError:
+                self.log.warning("Missing knob %s in write node.", key)
+                continue
 
             # fix type differences
             fixed_values = []
@@ -129,11 +153,7 @@ class ValidateNukeWriteNode(
 
                 fixed_values.append(value)
 
-            if (
-                node_value not in fixed_values
-                and key != "file"
-                and key != "tile_color"
-            ):
+            if node_value not in fixed_values:
                 check.append([key, fixed_values, write_node[key].value()])
 
         if check:
