@@ -1169,7 +1169,7 @@ def create_write_node(
 
     if not ext:
         raise RuntimeError(
-            "Could not determine extension from settings"
+            "Could not determine extension from settings for "
             f"plugin_name={plugin_name} product_name={product_name}"
         )
 
