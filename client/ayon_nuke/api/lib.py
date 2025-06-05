@@ -337,7 +337,8 @@ def create_knobs(data, tab=None):
             continue
 
         else:
-            raise TypeError("Unsupported type: %r" % type(value))
+            raise TypeError(
+                f"Unsupported type for key: '{key}': {type(value)}")
 
         knobs.append(knob)
 
