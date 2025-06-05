@@ -1900,8 +1900,27 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             if not write_node:
                 return
 
-            set_node_knobs_from_settings(
-                write_node, nuke_imageio_writes["knobs"])
+            # Exclude exposed knobs from colorspace nodes.
+            # This ensures that any values overwritten by the user is
+            # not changed by the colorspace knobs set.
+            colorspace_knobs = nuke_imageio_writes["knobs"]
+            all_create_settings =  get_project_settings(Context.project_name)["nuke"]["create"]
+            plugin_names_mapping = {
+                "create_write_image": "CreateWriteImage",
+                "create_write_prerender": "CreateWritePrerender",
+                "create_write_render": "CreateWriteRender"
+            }
+            node_data = get_node_data(node, INSTANCE_DATA_KNOB)
+            identifier = node_data["creator_identifier"]
+            creator_settings = all_create_settings[plugin_names_mapping[identifier]]
+            exposed_knobs = creator_settings.get("exposed_knobs")
+
+            colorspace_knobs = [
+                entry for entry in colorspace_knobs
+                if entry["name"] not in exposed_knobs
+            ]
+
+            set_node_knobs_from_settings(write_node, colorspace_knobs)
 
     # TODO: move into ./colorspace.py
     def set_reads_colorspace(self, read_clrs_inputs):
