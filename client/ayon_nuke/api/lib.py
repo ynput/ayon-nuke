@@ -500,7 +500,7 @@ def get_avalon_knob_data(node, prefix="avalon:", create=True):
 
     Arguments:
         node (obj): Nuke node to search for data,
-        prefix (str, optional): filtering prefix
+        prefix (str | list[str]): filtering prefix
 
     Returns:
         data (dict)
@@ -540,7 +540,10 @@ def add_write_node(name, file_path, knobs, **kwarg):
 
     Arguments:
         name (str): nuke node name
-        kwarg (attrs): data for nuke knobs
+        file_path (str): file path to write
+        knobs (list[dict]): nuke knobs to be set from settings
+        kwarg (dict): formatting attributes data for nuke knobs,
+            must at least include `frame_range` key.
 
     Returns:
         node (obj): nuke write node
@@ -2136,9 +2139,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             )
 
     def set_context_settings(self):
-        # replace reset resolution from avalon core to pype's
         self.reset_resolution()
-        # replace reset resolution from avalon core to pype's
         self.reset_frame_range_handles()
         # add colorspace menu item
         self.set_colorspace()
@@ -2188,7 +2189,7 @@ def get_write_node_template_attr(node):
         "create_write_prerender": "CreateWritePrerender",
         "create_write_render": "CreateWriteRender"
     }
-    # get avalon data from node
+    # get AYON data from node
     node_data = get_node_data(node, INSTANCE_DATA_KNOB)
     identifier = node_data["creator_identifier"]
 
@@ -2758,7 +2759,7 @@ def node_tempfile():
     """
 
     tmp_file = tempfile.NamedTemporaryFile(
-        mode="w", prefix="openpype_nuke_temp_", suffix=".nk", delete=False
+        mode="w", prefix="AYON_nuke_temp_", suffix=".nk", delete=False
     )
     tmp_file.close()
     node_tempfile_path = tmp_file.name
