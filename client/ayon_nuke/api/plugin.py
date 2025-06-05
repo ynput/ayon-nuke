@@ -869,7 +869,7 @@ class NukeGroupLoader(LoaderPlugin):
         ]:
             data[k] = version_attributes[k]
 
-        for key, value in dict(data.items()):
+        for key, value in dict(**data).items():
             if value is None:
                 self.log.warning(
                     f"Skipping imprinting of key with 'None' value` {key}")
