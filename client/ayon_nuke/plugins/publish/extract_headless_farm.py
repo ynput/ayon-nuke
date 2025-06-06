@@ -24,7 +24,7 @@ class ExtractRenderOnFarm(pyblish.api.InstancePlugin):
         host = registered_host()
         current_datetime = datetime.now()
         formatted_timestamp = current_datetime.strftime("%Y%m%d%H%M%S")
-        base, ext = os.path.splitext(host.current_file())
+        base, ext = os.path.splitext(host.get_current_workfile())
 
         directory = os.path.join(os.path.dirname(base), "farm_submissions")
         if not os.path.exists(directory):
@@ -35,4 +35,4 @@ class ExtractRenderOnFarm(pyblish.api.InstancePlugin):
         )
         path = os.path.join(directory, filename).replace("\\", "/")
         instance.context.data["currentFile"] = path
-        shutil.copy(host.current_file(), path)
+        shutil.copy(host.get_current_workfile(), path)

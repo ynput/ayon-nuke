@@ -71,7 +71,7 @@ def main():
         project_settings=project_settings
     )
     # Save current workfile.
-    current_file = host.current_file()
+    current_file = host.get_current_workfile()
     host.save_file(current_file)
 
     for container in host.ls():
