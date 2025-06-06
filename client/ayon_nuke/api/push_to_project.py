@@ -71,8 +71,8 @@ def main():
         project_settings=project_settings
     )
     # Save current workfile.
-    current_file = host.current_file()
-    host.save_file(current_file)
+    current_file = host.get_current_workfile()
+    host.save_workfile(current_file)
 
     for container in host.ls():
         bake_container(container)
@@ -110,9 +110,9 @@ def main():
     # Save current workfile to new context.
     pushed_workfile = os.path.join(
         workdir, os.path.basename(current_file))
-    host.save_file(pushed_workfile)
+    host.save_workfile(pushed_workfile)
 
     # Open current context workfile.
-    host.open_file(current_file)
+    host.open_workfile(current_file)
 
     nuke.message(f"Pushed to project: \n{pushed_workfile}")
