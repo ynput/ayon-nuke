@@ -113,6 +113,6 @@ def main():
     host.save_file(pushed_workfile)
 
     # Open current context workfile.
-    host.open_file(current_file)
+    host.open_workfile(current_file)
 
     nuke.message(f"Pushed to project: \n{pushed_workfile}")
