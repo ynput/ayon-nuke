@@ -94,7 +94,7 @@ class KnobModel(BaseSettingsModel):
         title="Type",
         description="Switch between different knob types",
         enum_resolver=lambda: knob_types_enum,
-        conditionalEnum=True
+        conditional_enum=True
     )
 
     name: str = SettingsField(
@@ -184,7 +184,7 @@ class ColorspaceConfigurationModel(BaseSettingsModel):
         title="Target baking type",
         description="Switch between different knob types",
         enum_resolver=lambda: colorspace_types_enum,
-        conditionalEnum=True,
+        conditional_enum=True,
     )
 
     colorspace: str = SettingsField(
