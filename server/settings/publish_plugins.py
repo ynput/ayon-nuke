@@ -216,7 +216,7 @@ class FVFXScopeOfWorkModel(BaseSettingsModel):
 class ExtractCameraFormatModel(BaseSettingsModel):
     export_camera_format: str = SettingsField(
         enum_resolver=nuke_export_formats_enum,
-        conditionalEnum=True,
+        conditional_enum=True,
         title="Camera export format",
         description="Switch between different camera export formats",
     )
