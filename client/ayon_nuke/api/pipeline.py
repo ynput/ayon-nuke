@@ -420,7 +420,7 @@ def containerise(node,
     """
     data = OrderedDict(
         [
-            ("schema", "openpype:container-2.0"),
+            ("schema", "ayon:container-3.0"),
             ("id", AVALON_CONTAINER_ID),
             ("name", name),
             ("namespace", namespace),

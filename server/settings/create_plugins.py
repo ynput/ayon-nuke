@@ -109,7 +109,7 @@ class CreateWriteRenderModel(BaseSettingsModel):
     )
     render_target: str = SettingsField(
         enum_resolver=render_target_enum,
-        conditionalEnum=True,
+        conditional_enum=True,
         title="Render target",
         description=RENDER_TARGET_DESCRIPTION,
     )
@@ -146,7 +146,7 @@ class CreateWritePrerenderModel(BaseSettingsModel):
     )
     render_target: str = SettingsField(
         enum_resolver=render_target_enum,
-        conditionalEnum=True,
+        conditional_enum=True,
         title="Render target",
         description=RENDER_TARGET_DESCRIPTION,
     )
@@ -182,7 +182,7 @@ class CreateWriteImageModel(BaseSettingsModel):
     )
     render_target: str = SettingsField(
         enum_resolver=render_target_enum,
-        conditionalEnum=True,
+        conditional_enum=True,
         title="Render target",
         description=RENDER_TARGET_DESCRIPTION,
     )

@@ -62,7 +62,7 @@ class GizmoItem(BaseSettingsModel):
         title="Gizmo Menu Options",
         description="Switch between gizmo menu options",
         enum_resolver=gizmo_enum_options,
-        conditionalEnum=True,
+        conditional_enum=True,
         section="Gizmos"
     )
     gizmo_source_dir: MultiplatformPathListModel = SettingsField(

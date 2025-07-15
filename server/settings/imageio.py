@@ -47,7 +47,7 @@ class NodesModel(BaseSettingsModel):
     nuke_node_class: str = SettingsField(
         title="Nuke Node Class",
         enum_resolver=nuke_node_class_enum,
-        conditionalEnum=True,
+        conditional_enum=True,
     )
     custom_class: str = SettingsField(
         default="",
@@ -143,7 +143,7 @@ class WorkfileColorspaceSettings(BaseSettingsModel):
             " **AND** Color Management Workflow above is set to 'OCIO'."
         ),
         enum_resolver=ocio_configs_switcher_enum,
-        conditionalEnum=True
+        conditional_enum=True
     )
 
     working_space: str = SettingsField(
