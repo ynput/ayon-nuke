@@ -71,7 +71,7 @@ class SetFrameRangeWithHandlesLoader(load.LoaderPlugin):
             return
 
         # Include handles
-        start -= version_attributes.get("handleStart", 0)
-        end += version_attributes.get("handleEnd", 0)
+        start -= version_attributes.get("handleStart") or 0
+        end += version_attributes.get("handleEnd") or 0
 
         lib.update_frame_range(start, end)
