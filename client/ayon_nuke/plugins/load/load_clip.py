@@ -129,8 +129,8 @@ class LoadClip(plugin.NukeLoader):
         self.log.debug(
             "Representation id `{}` ".format(repre_id))
 
-        self.handle_start = version_attributes.get("handleStart", 0)
-        self.handle_end = version_attributes.get("handleEnd", 0)
+        self.handle_start = version_attributes.get("handleStart") or 0
+        self.handle_end = version_attributes.get("handleEnd") or 0
 
         first = version_attributes.get("frameStart")
         last = version_attributes.get("frameEnd")
@@ -311,8 +311,8 @@ class LoadClip(plugin.NukeLoader):
 
         repre_id = repre_entity["id"]
 
-        self.handle_start = version_attributes.get("handleStart", 0)
-        self.handle_end = version_attributes.get("handleEnd", 0)
+        self.handle_start = version_attributes.get("handleStart") or 0
+        self.handle_end = version_attributes.get("handleEnd") or 0
 
         first = version_attributes.get("frameStart")
         last = version_attributes.get("frameEnd")
