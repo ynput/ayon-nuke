@@ -162,6 +162,9 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         )
 
         write_node = self._write_node_helper(instance)
+        if instance.data.get("stagingDir_is_custom", False):
+            self.log.info("Custom staging dir detected. Syncing write nodes output path.")
+            napi.lib.writes_version_sync(write_node, self.log)
 
         # Determine defined file type
         path = write_node["file"].value()
