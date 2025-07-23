@@ -1,0 +1,870 @@
+import os
+import pyblish.api
+import nuke
+import hornet_publish
+
+from ayon_core.pipeline import publish
+from ayon_core.pipeline.publish import OptionalPyblishPluginMixin
+
+
+class ExtractProresReview(publish.Extractor, OptionalPyblishPluginMixin):
+    """Generate ProRes review files using Nuke templates.
+
+    Creates ProRes files directly from rendered frames without AYON registration.
+    Runs only locally - ProRes files are created during local publish and then
+    transferred during farm publishing.
+    """
+
+    label = "Extract ProRes Review"
+    order = pyblish.api.ExtractorOrder + 0.1
+    families = ["render", "prerender"]
+    hosts = ["nuke"]
+
+    # ProRes variants configuration
+    # prores_variants = {
+    #     "prores_444_rec709": {
+    #         "codec": "ap4h",  # ProRes 444
+    #         "quality": 80,  # Integer for local UI
+    #         "quality_script": 0.8,  # Float for script generation
+    #         "suffix": "_prores444_rec709",
+    #         "template": "prores_444_rec709_template.nk",  # Template filename
+    #     },
+    #     "prores_444_srgb": {
+    #         "codec": "ap4h",  # ProRes 444 (same as rec709)
+    #         "quality": 80,  # Integer for local UI
+    #         "quality_script": 0.8,  # Float for script generation
+    #         "suffix": "_prores444_srgb",
+    #         "template": "prores_444_srgb_template.nk",  # Template filename
+    #     },
+    # }
+
+    def process(self, instance):
+        """Main processing entry point - create ProRes files based on render target."""
+
+        render_target = instance.data.get("render_target")
+
+        # Debug logging for render target
+        self.log.info("=== PRORES DEBUG ===")
+        self.log.info(f"render_target: {render_target}")
+        self.log.info(f"render_target type: {type(render_target)}")
+        self.log.info(f"instance.data keys: {list(instance.data.keys())}")
+        self.log.info(f"families: {instance.data.get('families', [])}")
+        self.log.info("==================")
+
+        # Get source files and validate first
+        source_files, staging_dir = self._get_source_files(instance)
+        if not source_files or not staging_dir:
+            self.log.warning("No source files found for ProRes generation")
+            return
+
+        # Debug source files information
+        self.log.debug(f"Source files type: {type(source_files)}")
+        if isinstance(source_files, list):
+            self.log.debug(f"Source files count: {len(source_files)}")
+            self.log.debug(f"First file: {source_files[0]}")
+            if len(source_files) > 1:
+                self.log.debug(f"Last file: {source_files[-1]}")
+        else:
+            self.log.debug(f"Single source file: {source_files}")
+        self.log.debug(f"Staging directory: {staging_dir}")
+
+        # Handle based on render target
+        if render_target in ["farm", "frames_farm"]:
+            self.log.info(
+                f"Farm mode: Submitting ProRes jobs directly to Deadline (render_target: {render_target})"
+            )
+            self._submit_to_deadline_directly(
+                instance, source_files, staging_dir
+            )
+        else:
+            # Generate ProRes files locally
+            self.log.info(
+                f"Local mode: Generating ProRes files locally (render_target: {render_target})"
+            )
+            self._generate_prores_local(instance, source_files, staging_dir)
+
+    def _get_source_files(self, instance):
+        """Extract source files from instance representations."""
+        ext = instance.data.get("ext")
+        if not ext:
+            return None, None
+
+        representations = instance.data.get("representations", [])
+
+        for repre in representations:
+            if repre["name"] == ext:
+                files = repre["files"]
+                staging_dir = repre.get("stagingDir")
+
+                if isinstance(files, list) and files and staging_dir:
+                    return files, staging_dir
+
+        return None, None
+
+    def _get_output_directory(self, instance):
+        """Get destination directory for ProRes files."""
+
+        # Use publish directory structure - create viewables folder alongside EXRs
+        # Using 'viewables' instead of 'review' to avoid auto-collection by CollectRenderedFiles
+        publish_dir = instance.data.get("publishDir")
+        if publish_dir:
+            # Create viewables subfolder INSIDE the publish location (alongside EXRs)
+            viewables_dir = os.path.join(publish_dir, "viewables")
+            os.makedirs(viewables_dir, exist_ok=True)
+            return viewables_dir
+
+        # Fallback to staging directory
+        staging_dir = instance.data.get("stagingDir")
+        if staging_dir:
+            viewables_dir = os.path.join(staging_dir, "viewables")
+            os.makedirs(viewables_dir, exist_ok=True)
+            return viewables_dir
+
+        raise RuntimeError(
+            "Could not determine output directory for ProRes files"
+        )
+
+    def _get_template_directory(self):
+        """Get the directory containing ProRes templates."""
+        # Templates located in plugin directory
+        plugin_dir = os.path.dirname(__file__)
+        template_dir = os.path.join(plugin_dir, "prores_templates")
+
+        # Create template directory if it doesn't exist
+        os.makedirs(template_dir, exist_ok=True)
+
+        return template_dir
+
+    def _load_template(self, template_filename):
+        """Load and return template content."""
+        template_dir = self._get_template_directory()
+        template_path = os.path.join(template_dir, template_filename)
+
+        if not os.path.exists(template_path):
+            # Create default template if it doesn't exist
+            self._create_default_template(template_path, template_filename)
+
+        with open(template_path, "r") as f:
+            return f.read()
+
+    def _create_default_template(self, template_path, template_filename):
+        """Create a default template file."""
+        self.log.info(f"Creating default template: {template_path}")
+
+        # Default template content with placeholders
+        default_content = """#! P:/util/hpipe/builds/win/nuke/Nuke14.1v5/nuke-14.1.5.dll -nx
+version 14.1 v5
+
+Root {{
+ inputs 0
+ name Root
+ colorManagement OCIO
+ OCIO_config aces_1.2
+ defaultViewerLUT "OCIO LUTs"
+ workingSpaceLUT scene_linear
+ monitorLut "ACES/sRGB"
+ monitorOutLUT "ACES/sRGB"
+ int8Lut matte_paint
+ int16Lut texture_paint
+ logLut compositing_log
+ floatLut scene_linear
+}}
+
+Read {{
+ inputs 0
+ file {{INPUT_FILE_PATH}}
+ first {{FIRST_FRAME}}
+ last {{LAST_FRAME}}
+ origfirst {{FIRST_FRAME}}
+ origlast {{LAST_FRAME}}
+ raw {{{{ENABLE_RAW}}}}
+ colorspace scene_linear
+ name Read_Source
+ xpos -100
+ ypos 0
+}}
+
+# Add any reformats, text nodes, or other processing here
+# Example reformat (commented out):
+# Reformat {
+#  inputs 1
+#  type "to box"
+#  box_width 1920
+#  box_height 1080
+#  box_fixed true
+#  name Reformat_HD
+#  xpos -100
+#  ypos 50
+# }
+
+# Example text node (commented out):
+# Text2 {
+#  inputs 1
+#  font_size_toolbar 100
+#  font_width_toolbar 100
+#  font_height_toolbar 100
+#  message "{PRODUCT_NAME} v{VERSION}"
+#  old_message "{{3ds::pipeline::shot}} {{3ds::pipeline::shot_version}}"
+#  box {{0 0} {input.width} {100}}
+#  transforms {{0 2}}
+#  cursor_position 22
+#  font {{Arial : Regular}}
+#  global_font_scale 1
+#  scale {{1 1}}
+#  cursor_initialised true
+#  autofit_bbox false
+#  initial_cursor_position {{0 1080}}
+#  group_animations {{0}}
+#  animation_layers {{1 1 960 540 0 0 1 1 0 0 0 0}}
+#  enable_background true
+#  background_opacity 0.5
+#  background_border_x 20
+#  background_border_y 10
+#  name Text_Overlay
+#  xpos -100
+#  ypos 100
+# }
+
+Write {
+ inputs 1
+ file_type mov
+ file {OUTPUT_FILE_PATH}
+ meta_codec {PRORES_CODEC}
+ mov64_quality {PRORES_QUALITY}
+ colorspace "Output - Rec.709"
+ checkHashOnRead false
+ version 4
+ first {FIRST_FRAME}
+ last {LAST_FRAME}
+ use_limit true
+ name Write_ProRes
+ xpos -100
+ ypos 150
+}
+"""
+
+        with open(template_path, "w") as f:
+            f.write(default_content)
+
+    def _populate_template(self, template_content, replacements):
+        """Replace placeholders in template with actual values."""
+        populated = template_content
+        for placeholder, value in replacements.items():
+            populated = populated.replace(f"{{{placeholder}}}", str(value))
+        return populated
+
+    def _submit_to_deadline_directly(
+        self, instance, source_files, staging_dir
+    ):
+        """Submit ProRes generation directly to Deadline as separate render jobs."""
+
+        output_dir = self._get_output_directory(instance)
+
+        # Debug deadline data
+        self.log.info("=== DEADLINE DEBUG ===")
+        self.log.info(
+            f"instance.data.get('deadline'): {instance.data.get('deadline')}"
+        )
+        deadline_data = instance.data.get("deadline", {})
+        self.log.info(
+            f"deadline_data keys: {list(deadline_data.keys()) if deadline_data else 'None'}"
+        )
+        if deadline_data:
+            self.log.info(f"deadline_data: {deadline_data}")
+        self.log.info("====================")
+
+        # Get deadline settings from instance - try both methods
+        deadline_server = None
+        deadline_url = None
+
+        if instance.data.get("deadline"):
+            deadline_server = instance.data["deadline"].get("serverName")
+            deadline_url = instance.data["deadline"].get("url")
+
+        if not deadline_server and not deadline_url:
+            # Try context deadline data
+            context_deadline = instance.context.data.get("deadline", {})
+            deadline_server = context_deadline.get("defaultServerName")
+            deadline_url = context_deadline.get("defaultUrl")
+            self.log.info(f"Using context deadline server: {deadline_server}")
+            self.log.info(f"Using context deadline URL: {deadline_url}")
+
+        # Use URL if we have it (like hornet_deadline_utils.py does)
+        if deadline_url and not deadline_server:
+            deadline_server = deadline_url
+            self.log.info(f"Using deadline URL as server: {deadline_server}")
+
+        if not deadline_server:
+            self.log.error(
+                "No Deadline server configured. Check deadline settings."
+            )
+            self.log.error(
+                f"Instance deadline data: {instance.data.get('deadline')}"
+            )
+            self.log.error(
+                f"Context deadline data: {instance.context.data.get('deadline')}"
+            )
+            return
+
+        self.log.info(f"Using Deadline server: {deadline_server}")
+
+        # Get deadline addon for job submission
+        context = instance.context
+        deadline_addon = context.data["ayonAddonsManager"]["deadline"]
+
+        for variant_name, variant_config in self.prores_variants.items():
+            # Generate output filename
+            product_name = instance.data["productName"]
+            output_filename = f"{product_name}{variant_config['suffix']}.mov"
+            output_path = os.path.join(output_dir, output_filename)
+
+            # Create Nuke script from template
+            script_path = self._create_script_from_template(
+                instance,
+                source_files,
+                staging_dir,
+                output_path,
+                variant_config,
+                variant_name,
+            )
+
+            # Verify script file exists before submission
+            if not os.path.exists(script_path):
+                self.log.error(f"Script file not found: {script_path}")
+                continue
+
+            # Use forward slashes for all paths in Deadline submission (cross-platform compatibility)
+            script_path_deadline = script_path.replace("\\", "/")
+            output_dir_deadline = output_dir.replace("\\", "/")
+
+            # Include critical environment variables (like hornet_deadline_utils.py)
+            submission_env_vars = [
+                "HORNET_ROOT",
+                "NUKE_PATH",
+                "OCIO",
+                "OPTICAL_FLARES_PATH",
+                "peregrinel_LICENSE",
+                "OFX_PLUGIN_PATH",
+                "RVL_SERVER",
+                "neatlab_LICENSE",
+                "AYON_PROJECT_NAME",
+                "AYON_FOLDER_PATH",
+                "AYON_TASK_NAME",
+                "AYON_USERNAME",
+                "AYON_HOST_NAME",
+                "AYON_BUNDLE_NAME",
+                "AYON_WORKDIR",
+            ]
+            environment = {
+                k: os.environ[k]
+                for k in submission_env_vars
+                if k in os.environ
+            }
+
+            # Create job info using plain dict (like hornet_deadline_utils.py)
+            job_info = {
+                "Name": f"ProRes {variant_name} - {product_name}",
+                "BatchName": f"ProRes - {instance.data.get('folderPath', 'Unknown')}",
+                "Plugin": "Nuke",
+                "Frames": "1",  # Single frame job
+                "Priority": 30,  # Lower priority than main render (which is usually 50)
+                "Group": "prores",  # Put in separate group
+                "Pool": "nuke",  # Use nuke pool
+                "ChunkSize": 1,
+                "Comment": f"ProRes {variant_name} generation for {product_name}",
+                "UserName": context.data.get("user", "unknown"),
+                "Department": "comp",
+                "OutputDirectory0": output_dir_deadline,
+                "OutputFilename0": output_filename,
+            }
+
+            # Add environment variables to job info (following hornet_deadline_utils.py pattern)
+            for index, key in enumerate(environment):
+                job_info[f"EnvironmentKeyValue{index}"] = (
+                    f"{key}={environment[key]}"
+                )
+
+            # Create plugin info for Nuke
+            plugin_info = {
+                "SceneFile": script_path_deadline,
+                "WriteNode": "Write_ProRes",  # This should match the write node name in your template
+                "Version": context.data.get(
+                    "hostVersion", "14.1"
+                ),  # Get actual Nuke version
+                "Threads": 0,  # Auto-detect
+                "ContinueOnError": "false",
+                "OutputFilePath": output_dir_deadline,
+                "ProjectPath": script_path_deadline,
+                "UseGpu": True,
+            }
+
+            try:
+                # Submit job directly to Deadline using requests (like hornet_deadline_utils.py)
+                # Note: Don't include AuxFiles - let Deadline access script from shared path
+                payload = {
+                    "JobInfo": job_info,
+                    "PluginInfo": plugin_info,
+                    "AuxFiles": [],  # Empty like hornet_deadline_utils.py
+                }
+
+                # Get auth and verify settings from instance
+                auth = instance.data["deadline"].get("auth")
+                verify = instance.data["deadline"].get("verify", True)
+
+                # Submit directly via HTTP (like hornet_deadline_utils.py does)
+                import requests
+
+                deadline_url = f"{deadline_server}/api/jobs"
+                self.log.info(f"Submitting to: {deadline_url}")
+
+                # Additional debugging for script file
+                self.log.debug(
+                    f"Script file exists: {os.path.exists(script_path)}"
+                )
+                self.log.debug(f"Script file path (original): {script_path}")
+                self.log.debug(
+                    f"Script file path (deadline): {script_path_deadline}"
+                )
+                if os.path.exists(script_path):
+                    self.log.debug(
+                        f"Script file size: {os.path.getsize(script_path)} bytes"
+                    )
+
+                self.log.debug(f"Payload JobInfo: {payload['JobInfo']}")
+                self.log.debug(f"Payload PluginInfo: {payload['PluginInfo']}")
+                self.log.debug(f"Payload AuxFiles: {payload['AuxFiles']}")
+
+                response = requests.post(
+                    deadline_url,
+                    json=payload,
+                    auth=auth,
+                    verify=verify,
+                    timeout=10,
+                )
+
+                self.log.debug(f"Response status: {response.status_code}")
+                self.log.debug(f"Response headers: {dict(response.headers)}")
+                self.log.debug(f"Response content: {response.text}")
+
+                if not response.ok:
+                    raise Exception(
+                        f"HTTP {response.status_code}: {response.text}"
+                    )
+
+                # Check if response has content
+                if not response.text.strip():
+                    raise Exception(
+                        f"Empty response from Deadline server. Status: {response.status_code}"
+                    )
+
+                try:
+                    result = response.json()
+                except ValueError as e:
+                    self.log.error(f"Failed to parse JSON response: {e}")
+                    self.log.error(f"Response text: '{response.text}'")
+                    self.log.error(f"Response status: {response.status_code}")
+                    self.log.error(f"Payload sent: {payload}")
+                    raise Exception(
+                        f"Invalid JSON response from Deadline: {e}"
+                    )
+
+                if "_id" not in result:
+                    self.log.error(f"No job ID in response: {result}")
+                    raise Exception("No job ID returned from Deadline")
+
+                job_id = result["_id"]
+                self.log.info(
+                    f"✓ Submitted {variant_name} to Deadline: Job {job_id}"
+                )
+                self.log.debug(f"  Script: {script_path}")
+                self.log.debug(f"  Output: {output_path}")
+
+            except Exception as e:
+                self.log.error(
+                    f"✗ Failed to submit {variant_name} to Deadline: {e}"
+                )
+                # Continue with other variants even if one fails
+
+    def _create_script_from_template(
+        self,
+        instance,
+        source_files,
+        staging_dir,
+        output_path,
+        variant_config,
+        variant_name,
+    ):
+        """Create a Nuke script from template for farm execution."""
+
+        # Create script in submission directory
+        submission_dir = self._get_submission_directory(instance)
+        script_filename = (
+            f"prores_{variant_name}_{instance.data['productName']}.nk"
+        )
+        script_path = os.path.join(submission_dir, script_filename)
+
+        # Load template
+        template_content = self._load_template(variant_config["template"])
+
+        # Prepare replacements for farm
+        replacements = self._prepare_template_replacements(
+            instance,
+            source_files,
+            staging_dir,
+            os.path.dirname(output_path),
+            variant_config,
+            variant_name,
+            for_farm=True,
+        )
+
+        # Populate template
+        populated_script = self._populate_template(
+            template_content, replacements
+        )
+
+        # Write script file and ensure directory exists
+        os.makedirs(submission_dir, exist_ok=True)
+
+        # Save current Nuke script state
+        current_script = nuke.root().name()
+
+        try:
+            # Create temporary script in memory by importing the template
+            with open(script_path, "w") as f:
+                f.write(populated_script)
+
+            # Alternative approach: Save using Nuke's built-in save function
+            # which might be more reliable for Deadline
+            if os.path.exists(script_path):
+                # Read back and verify we can parse as Nuke script
+                with open(script_path, "r") as f:
+                    content = f.read()
+                if not content.strip():
+                    raise RuntimeError(
+                        f"Generated script is empty: {script_path}"
+                    )
+
+            # Double-check file exists and is accessible
+            if not os.path.exists(script_path):
+                raise RuntimeError(
+                    f"Failed to create script file: {script_path}"
+                )
+
+            # Verify file size is reasonable
+            file_size = os.path.getsize(script_path)
+            if file_size < 100:  # Scripts should be at least 100 bytes
+                raise RuntimeError(
+                    f"Script file too small ({file_size} bytes): {script_path}"
+                )
+
+        except Exception as e:
+            raise RuntimeError(
+                f"Error creating script file {script_path}: {e}"
+            )
+
+        self.log.debug(f"Created Nuke script from template: {script_path}")
+        self.log.debug(
+            f"Script file size: {os.path.getsize(script_path)} bytes"
+        )
+        return script_path
+
+    def _get_submission_directory(self, instance):
+        """Get directory for submission scripts (consistent with AYON patterns)."""
+
+        # Use AYON workdir if available
+        workdir = os.environ.get("AYON_WORKDIR")
+        if workdir:
+            return os.path.join(workdir, "submission")
+
+        # Fallback to current file directory
+        current_file = instance.data.get(
+            "path", instance.context.data.get("currentFile")
+        )
+        if current_file:
+            return os.path.join(os.path.dirname(current_file), "submission")
+
+        # Final fallback
+        return os.path.join(os.getcwd(), "submission")
+
+    def _generate_prores_local(self, instance, source_files, staging_dir):
+        """Generate ProRes files locally using templates - files only, no AYON registration."""
+
+        # Get output directory
+        output_dir = self._get_output_directory(instance)
+
+        for variant_name, variant_config in self.prores_variants.items():
+            try:
+                self.log.info(
+                    f"Creating {variant_name} locally (files only, no AYON registration)..."
+                )
+
+                # Load template
+                template_content = self._load_template(
+                    variant_config["template"]
+                )
+
+                # Prepare replacements
+                replacements = self._prepare_template_replacements(
+                    instance,
+                    source_files,
+                    staging_dir,
+                    output_dir,
+                    variant_config,
+                    variant_name,
+                    for_farm=False,
+                )
+
+                # Populate template
+                populated_script = self._populate_template(
+                    template_content, replacements
+                )
+
+                # Execute template in current session
+                self._execute_template_local(populated_script, variant_name)
+
+                # Verify output (but don't create representation)
+                output_path = replacements["OUTPUT_FILE_PATH"]
+
+                if os.path.exists(output_path):
+                    file_size = os.path.getsize(output_path)
+                    self.log.info(f"✓ Created {variant_name}: {output_path}")
+                    self.log.debug(f"ProRes file created: {file_size} bytes")
+                    self.log.info(
+                        f"ProRes viewable available at: {output_path}"
+                    )
+                else:
+                    self.log.error(f"✗ Failed to create {variant_name}")
+
+            except Exception as e:
+                self.log.error(f"Exception during ProRes creation: {e}")
+                self.log.error(f"✗ Failed to create {variant_name}")
+
+    def _execute_template_local(self, script_content, variant_name):
+        """Execute template script in current Nuke session."""
+
+        # Save current script state
+        current_nodes = set(nuke.allNodes())
+
+        # Create temporary script file
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".nk", delete=False
+        ) as temp_file:
+            temp_file.write(script_content)
+            temp_script_path = temp_file.name
+
+        try:
+            # Import nodes from temporary script
+            nuke.nodePaste(temp_script_path)
+
+            # Find the Write node that was created
+            new_nodes = set(nuke.allNodes()) - current_nodes
+            write_nodes = [
+                n
+                for n in new_nodes
+                if n.Class() == "Write" and n.name() == "Write_ProRes"
+            ]
+
+            if write_nodes:
+                write_node = write_nodes[0]
+                # Execute the render
+                nuke.execute(
+                    write_node,
+                    int(write_node["first"].value()),  # type: ignore
+                    int(write_node["last"].value()),  # type: ignore
+                )
+            else:
+                self.log.error(
+                    f"No Write_ProRes node found in template for {variant_name}"
+                )
+
+        finally:
+            # Clean up: remove temporary nodes
+            new_nodes = set(nuke.allNodes()) - current_nodes
+            for node in new_nodes:
+                try:
+                    nuke.delete(node)
+                except:
+                    pass
+
+            # Clean up temporary file
+            try:
+                os.unlink(temp_script_path)
+            except:
+                pass
+
+    def _prepare_template_replacements(
+        self,
+        instance,
+        source_files,
+        staging_dir,
+        output_dir,
+        variant_config,
+        variant_name,
+        for_farm=True,
+    ):
+        """Prepare replacement values for template placeholders."""
+
+        # Build sequence path
+        if isinstance(source_files, list) and len(source_files) > 1:
+            sequence_path = self._build_sequence_path(
+                staging_dir, source_files[0]
+            )
+        else:
+            single_file = (
+                source_files[0]
+                if isinstance(source_files, list)
+                else source_files
+            )
+            sequence_path = os.path.join(staging_dir, single_file)
+
+        # Normalize path for Nuke
+        sequence_path = sequence_path.replace("\\", "/")
+
+        # Build output path
+        product_name = instance.data["productName"]
+        output_filename = f"{product_name}{variant_config['suffix']}.mov"
+        output_path = os.path.join(output_dir, output_filename).replace(
+            "\\", "/"
+        )
+
+        # Get frame range
+        first_frame = instance.data.get("frameStartHandle", 1001)
+        last_frame = instance.data.get("frameEndHandle", 1100)
+
+        # Prepare replacements dictionary
+        replacements = {
+            "INPUT_FILE_PATH": sequence_path,
+            "OUTPUT_FILE_PATH": output_path,
+            "FIRST_FRAME": first_frame,
+            "LAST_FRAME": last_frame,
+            "PRORES_CODEC": variant_config["codec"],
+            "PRORES_QUALITY": variant_config[
+                "quality_script"
+            ],  # Always use float format for script
+            "ENABLE_RAW": "false",  # Default, can be made configurable
+            "PRODUCT_NAME": product_name,
+            "VERSION": instance.data.get("version", 1),
+        }
+
+        return replacements
+
+    def _build_nuke_script_content(
+        self,
+        sequence_path,
+        output_path,
+        variant_config,
+        variant_name,
+        first_frame,
+        last_frame,
+        fps,
+    ):
+        """Build the content of the Nuke script."""
+
+        return f"""#! /Applications/Nuke14.0v4/Nuke14.0v4.app/Contents/MacOS/Nuke14.0v4
+version {nuke.NUKE_VERSION_MAJOR}.{nuke.NUKE_VERSION_MINOR} v{nuke.NUKE_VERSION_RELEASE}
+
+Root {{
+ inputs 0
+ name Root
+ fps {fps}
+ format "1920 1080 0 0 1920 1080 1 HD_1080"
+ first_frame {first_frame}
+ last_frame {last_frame}
+}}
+
+Read {{
+ inputs 0
+ file_type exr
+ file {sequence_path.replace(os.sep, "/")}
+ format "1920 1080 0 0 1920 1080 1"
+ first {first_frame}
+ last {last_frame}
+ origfirst {first_frame}
+ origlast {last_frame}
+ origset true
+ name Read1
+ xpos 0
+ ypos 0
+}}
+
+Write {{
+ inputs 1
+ file_type mov
+ file {output_path.replace(os.sep, "/")}
+ meta_codec {variant_config["codec"]}
+ mov64_quality {variant_config["quality_script"]}
+ colorspace "Output - Rec.709"
+ checkHashOnRead false
+ version 4
+ first {first_frame}
+ last {last_frame}
+ use_limit true
+ name Write_ProRes_{variant_name}
+ xpos 0
+ ypos 100
+}}
+"""
+
+    def _build_sequence_path(self, staging_dir, first_file):
+        """Build a Nuke-compatible sequence path from the first file."""
+        import re
+
+        # Extract base name and frame number
+        base_name = os.path.splitext(first_file)[0]
+        extension = os.path.splitext(first_file)[1]
+
+        # Find frame number pattern (e.g., .1001, .0001, etc.)
+        frame_match = re.search(r"\.(\d+)$", base_name)
+        if frame_match:
+            frame_number = frame_match.group(1)
+            padding = len(frame_number)
+
+            # Replace frame number with Nuke sequence pattern
+            sequence_base = re.sub(r"\.\d+$", "", base_name)
+            sequence_pattern = f"{sequence_base}.%{padding:02d}d{extension}"
+
+            sequence_path = os.path.join(staging_dir, sequence_pattern)
+            self.log.debug(f"Frame pattern: {frame_number} -> %{padding:02d}d")
+            return sequence_path
+        else:
+            # No frame number found, use as-is
+            self.log.warning(
+                f"No frame pattern found in {first_file}, using single file"
+            )
+            return os.path.join(staging_dir, first_file)
+
+    def _verify_source_files(self, sequence_path, staging_dir, source_files):
+        """Verify that source files are accessible."""
+        try:
+            if isinstance(source_files, list):
+                # Check if at least the first file exists
+                first_file_path = os.path.join(staging_dir, source_files[0])
+                if not os.path.exists(first_file_path):
+                    self.log.error(
+                        f"First source file not found: {first_file_path}"
+                    )
+                    return False
+
+                # Log some file info for debugging
+                self.log.debug(f"First file exists: {first_file_path}")
+                self.log.debug(
+                    f"File size: {os.path.getsize(first_file_path)} bytes"
+                )
+                return True
+            else:
+                # Single file
+                single_file_path = os.path.join(staging_dir, source_files)
+                exists = os.path.exists(single_file_path)
+                if not exists:
+                    self.log.error(
+                        f"Source file not found: {single_file_path}"
+                    )
+                else:
+                    self.log.debug(f"Source file exists: {single_file_path}")
+                return exists
+
+        except Exception as e:
+            self.log.error(f"Error verifying source files: {e}")
+            return False

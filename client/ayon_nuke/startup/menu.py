@@ -1,22 +1,9 @@
-from ayon_core.pipeline import install_host
-from ayon_nuke.api import NukeHost
-from hornet_deadline_utils import (
-    deadlineNetworkSubmit,
-    save_script_with_render,
-)
-import read_node_utils
-# from read_node_utils import (
-
-# )
-
-import platform
-
-host = NukeHost()
-install_host(host)
 import nuke
 import os
-import json
-from pathlib import Path
+# import json
+
+from ayon_core.pipeline import install_host
+from ayon_nuke.api import NukeHost
 
 from ayon_core.lib import Logger
 from ayon_nuke import api
@@ -28,9 +15,30 @@ from ayon_nuke.api.lib import (
     add_scripts_gizmo,
     create_write_node,
 )
+from pathlib import Path
 from ayon_core.settings import get_project_settings
 from ayon_core.tools.utils.host_tools import show_publisher
+from quick_write import quick_write_node, _quick_write_node
+from view_manager import show as show_view_manager
+
+
+from hornet_deadline_utils import (
+    deadlineNetworkSubmit,
+    save_script_with_render,
+)
+import read_node_utils
+# from read_node_utils import (
+
+# )
+
+import platform
+# import nuke_loader
+
+host = NukeHost()
+install_host(host)
+
 log = Logger.get_logger(__name__)
+
 # dict mapping extension to list of exposed parameters from write node to top level group node
 knobMatrix = {
     "exr": ["autocrop", "datatype", "heroview", "metadata", "interleave"],
@@ -39,6 +47,9 @@ knobMatrix = {
     "tiff": ["datatype", "compression"],
     "jpeg": [],
 }
+
+
+print("alex harding dev menu.py")
 
 
 universalKnobs = ["colorspace", "views"]
@@ -150,31 +161,30 @@ def switchExtension():
         pre, ext = os.path.splitext(old)
         filek.setValue(pre + "." + knb.value())
 
-def check_and_show_publisher():
 
+def check_and_show_publisher():
     # this is supposed to check if there's already a publish to save the user
     # from submitting one that fails, but the assemble_publish_path() function
     # doest not currently take version into account and just returns the latest
     # which causes this to return false positive.
 
-    # Leaving it here because it's on the list to make a btter pubklish bath 
+    # Leaving it here because it's on the list to make a btter pubklish bath
     # solver, at which point this function will work.
-    
+
     # publish_path = read_node_utils.assemble_publish_path(nuke.thisNode())
-    
+
     # if publish_path:
     #     base = publish_path.name.split(".")[0]
     #     if publish_path.parent.glob(f"{base}.*"):
     #         if not nuke.ask("Files exist in publish location. Conitue?"):
     #             return
-    
-    from ayon_core.tools.utils import host_tools;host_tools.show_publisher(tab='Publish')
 
+    from ayon_core.tools.utils import host_tools
 
+    host_tools.show_publisher(tab="Publish")
 
 
 def embedOptions():
-    
     nde = nuke.thisNode()
     knb = nuke.thisKnob()
     # log.info(' knob of type' + str(knb.Class()))
@@ -330,7 +340,7 @@ def embedOptions():
     render_local_button.setFlag(nuke.STARTLINE)
     deadlinePriority.setFlag(nuke.STARTLINE)
     deadlineChunkSize.clearFlag(nuke.STARTLINE)  # Don't start a new line
-#    concurrentTasks.clearFlag(nuke.STARTLINE)
+    #    concurrentTasks.clearFlag(nuke.STARTLINE)
     concurrent_warning.clearFlag(nuke.STARTLINE)
 
     group.addKnob(render_local_button)
@@ -356,26 +366,34 @@ def embedOptions():
     group.addKnob(endGroup)
 
 
-def quick_write_node(family="render"):
-    variant = nuke.getInput("Variant for Quick Write Node", "Main").title()
-    _quick_write_node(variant, family)
+# def quick_write_node(family="render"):
+#     variant = nuke.getInput("Variant for Quick Write Node", "Main").title()
+#     _quick_write_node(variant, family, inpanel = True)
 
 
-# def _quick_write_node(variant, family="render"):
+# def _quick_write_node(variant, family="render", inpanel = True):
 #     """
 #     Separated this from the nuke.getInput call to allow calls from other scripts,
 #     such as a loop in the Kroger versioning script
 #     """
 
+#     if not os.path.exists(nuke.Root().name()):
+#         nuke.message("You must save script first")
+#         return
+
 #     variant = variant.title()
 
-#     print("quick write node")
 #     nuke.tprint("quick write node")
 
 #     if "/" in os.environ["AYON_FOLDER_PATH"]:
 #         ayon_asset_name = os.environ["AYON_FOLDER_PATH"].split("/")[-1]
 #     else:
 #         ayon_asset_name = os.environ["AYON_FOLDER_PATH"]
+
+#     # ayon_asset_name = os.environ["AYON_FOLDER_PATH"]
+#     folder_path = os.environ["AYON_FOLDER_PATH"]
+#     print(folder_path)
+#     print(type(folder_path))
 
 #     if any(
 #         var is None or var == ""
@@ -412,13 +430,20 @@ def quick_write_node(family="render"):
 #         "folder": {"name": os.environ["AYON_FOLDER_PATH"].split("/")[-1]},
 #         "fpath_template": "{work}/renders/nuke/{subset}/{subset}.{frame}.{ext}",
 #     }
+
+#     print("inpanelVal2:", inpanel)
+
 #     qnode = create_write_node(
 #         family + os.environ["AYON_TASK_NAME"] + variant,
 #         data,
 #         prerender=True if family == "prerender" else False,
+#         inpanel = inpanel
 #     )
+
+
 #     qnode = nuke.toNode(family + os.environ["AYON_TASK_NAME"] + variant)
 #     print(f"Created Write Node: {qnode.name()}")
+#     data["folderPath"] = os.environ["AYON_FOLDER_PATH"]
 #     api.set_node_data(qnode, api.INSTANCE_DATA_KNOB, data)
 #     instance_data = json.loads(qnode.knob(api.INSTANCE_DATA_KNOB).value()[7:])
 #     instance_data.pop("version", None)
@@ -451,118 +476,9 @@ def quick_write_node(family="render"):
 #         )
 #         inside_write.knob("file_type").setValue("exr")
 
+
 #     return qnode
 
-
-
-def _quick_write_node(variant, family="render"):
-    """
-    Separated this from the nuke.getInput call to allow calls from other scripts,
-    such as a loop in the Kroger versioning script
-    """
-
-
-    if not os.path.exists(nuke.Root().name()):
-        nuke.message("You must save script first")
-        return
-    
-
-
-    variant = variant.title()
-
-    
-
-    nuke.tprint("quick write node")
-
-    if "/" in os.environ["AYON_FOLDER_PATH"]:
-        ayon_asset_name = os.environ["AYON_FOLDER_PATH"].split("/")[-1]
-    else:
-        ayon_asset_name = os.environ["AYON_FOLDER_PATH"]
-
-    # ayon_asset_name = os.environ["AYON_FOLDER_PATH"]
-    folder_path = os.environ["AYON_FOLDER_PATH"]
-    print(folder_path)
-    print(type(folder_path))
-
-
-    if any(
-        var is None or var == ""
-        for var in [os.environ["AYON_TASK_NAME"], ayon_asset_name]
-    ):
-        nuke.alert(
-            "missing AYON_TASK_NAME and AYON_FOLDER_PATH, can't make quick write"
-        )
-
-    # variant = nuke.getInput('Variant for Quick Write Node','Main').title()
-    variant = "_" + variant if variant[0] != "_" else variant
-    if variant == "_" or variant == None or variant == "":
-        nuke.message("No Variant Specified, will not create Write Node")
-        return
-    for nde in nuke.allNodes("Write"):
-        if (
-            nde.knob("name").value()
-            == family + os.environ["AYON_TASK_NAME"] + variant
-        ):
-            nuke.message("Write Node already exists")
-            return
-    data = {
-        "subset": family + os.environ["AYON_TASK_NAME"] + variant,
-        "variant": variant,
-        "id": "pyblish.avalon.instance",
-        "creator": f"create_write_{family}",
-        "creator_identifier": f"create_write_{family}",
-        "folderPath": ayon_asset_name,
-        "task": os.environ["AYON_TASK_NAME"],
-        "productType": family,
-        "task": {"name": os.environ["AYON_TASK_NAME"]},
-        "productName": family + os.environ["AYON_TASK_NAME"] + variant,
-        "hierarchy": "/".join(os.environ["AYON_FOLDER_PATH"].split("/")[:-1]),
-        "folder": {"name": os.environ["AYON_FOLDER_PATH"].split("/")[-1]},
-        "fpath_template": "{work}/renders/nuke/{subset}/{subset}.{frame}.{ext}",
-    }
-    qnode = create_write_node(
-        family + os.environ["AYON_TASK_NAME"] + variant,
-        data,
-        prerender=True if family == "prerender" else False,
-    )
-    qnode = nuke.toNode(family + os.environ["AYON_TASK_NAME"] + variant)
-    print(f"Created Write Node: {qnode.name()}")
-    data["folderPath"] = os.environ["AYON_FOLDER_PATH"]
-    api.set_node_data(qnode, api.INSTANCE_DATA_KNOB, data)
-    instance_data = json.loads(qnode.knob(api.INSTANCE_DATA_KNOB).value()[7:])
-    instance_data.pop("version", None)
-    instance_data["task"] = os.environ["AYON_TASK_NAME"]
-    instance_data["creator_attributes"] = {
-        "render_taget": "frames_farm",
-        "review": True,
-    }
-    instance_data["publish_attributes"] = {
-        "CollectFramesFixDef": {"frames_to_fix": "", "rewrite_version": False},
-        "ValidateCorrectAssetContext": {"active": True},
-        "NukeSubmitDeadline": {
-            "priority": 95,
-            "chunk": 1,
-            "concurrency": 1,
-            "use_gpu": True,
-            "suspend_publish": False,
-            "workfile_dependency": True,
-            "use_published_workfile": True,
-        },
-    }
-    qnode.knob(api.INSTANCE_DATA_KNOB).setValue(
-        "JSON:::" + json.dumps(instance_data)
-    )
-    if family == "prerender":
-        qnode.knob("tile_color").setValue(2880113407)
-    with qnode.begin():
-        inside_write = nuke.toNode(
-            "inside_" + family + os.environ["AYON_TASK_NAME"] + variant.title()
-        )
-        inside_write.knob("file_type").setValue("exr")
-
-
-
-    return qnode
 
 def enable_disable_frame_range():
     # print("enable_disable_frame_range")
@@ -583,7 +499,6 @@ def submit_selected_write():
 
 
 def enable_publish_range():
-
     # print("enable_publish_range")
 
     nde = nuke.thisNode()
@@ -622,7 +537,6 @@ nuke.addOnCreate(WorkfileSettings().set_colorspace, nodeClass="Root")
 
 ### View Manager
 
-from view_manager import show as show_view_manager
 
 toolbar = nuke.toolbar("Nodes")
 toolbar.addCommand("Alex Dev / View Manager", "show_view_manager()")

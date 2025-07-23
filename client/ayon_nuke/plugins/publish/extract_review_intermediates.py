@@ -1,179 +1,200 @@
-import os
-import re
-from pprint import pformat
-import pyblish.api
+# import os
+# import re
+# from pprint import pformat
+# import pyblish.api
 
-from ayon_core.pipeline import publish
-from ayon_nuke.api import plugin
-from ayon_nuke.api.lib import maintained_selection
-from ayon_core.pipeline.publish import OptionalPyblishPluginMixin
-
-class ExtractReviewIntermediates(publish.Extractor, OptionalPyblishPluginMixin):
-    """Extracting intermediate videos or sequences with
-    thumbnail for transcoding.
-
-    must be run after extract_render_local.py
-
-    """
-
-    order = pyblish.api.ExtractorOrder + 0.01
-    label = "Extract Review Intermediates"
-
-    families = ["review", "render.farm"]
-    hosts = ["nuke"]
-
-    settings_category = "nuke"
-    optional = True
-
-    # presets
-    viewer_lut_raw = None
-    outputs = {}
-
-    def process(self, instance):
-
-        self.log.info(f"PLUGIN LOCATION: {plugin.__file__}")
-        # return
+# from ayon_core.pipeline import publish
+# from ayon_nuke.api import plugin
+# from ayon_nuke.api.lib import maintained_selection
+# from ayon_core.pipeline.publish import OptionalPyblishPluginMixin
 
 
-        # TODO 'families' should not be included for filtering of outputs
-        families = set(instance.data["families"])
+# class ExtractReviewIntermediates(
+#     publish.Extractor, OptionalPyblishPluginMixin
+# ):
+#     """Extracting intermediate videos or sequences with
+#     thumbnail for transcoding.
 
-        # Add product type to families
-        families.add(instance.data["productType"])
-        self.log.debug("Families: {}".format(families))
+#     must be run after extract_render_local.py
 
-        task_type = instance.context.data["taskType"]
-        product_name = instance.data["productName"]
+#     """
 
-        if "representations" not in instance.data:
-            instance.data["representations"] = []
+#     order = pyblish.api.ExtractorOrder + 0.01
+#     label = "Extract Review Intermediates"
 
-        if not instance.data.get("stagingDir"):
-            sd = os.path.normpath(
-                os.path.dirname(instance.data["path"]))
+#     families = ["review", "render.farm"]
+#     hosts = ["nuke"]
 
-            instance.data["stagingDir"] = sd
-            self.log.debug(f" failed to get stating dir, using {sd}")
+#     settings_category = "nuke"
+#     optional = True
 
-        self.log.debug(
-            "StagingDir `{0}`...".format(instance.data["stagingDir"]))
+#     # presets
+#     viewer_lut_raw = None
+#     outputs = {}
 
-        self.log.debug("Outputs: {}".format(self.outputs))
+#     def process(self, instance):
+#         # Skip if ExtractProresReview has already processed this instance
+#         # ExtractProresReview is the replacement for this plugin
+#         if instance.data.get("bakingNukeScripts"):
+#             self.log.info(
+#                 "Skipping ExtractReviewIntermediates as ExtractProresReview "
+#                 "has already processed this instance (bakingNukeScripts found)"
+#             )
+#             return
 
-        # generate data
-        with maintained_selection():
-            generated_repres = []
-            for o_data in self.outputs:
-                o_name = o_data["name"]
-                self.log.debug(
-                    "o_name: {}, o_data: {}".format(o_name, pformat(o_data)))
-                f_product_types = o_data["filter"]["product_types"]
-                f_task_types = o_data["filter"]["task_types"]
-                product_names = o_data["filter"]["product_names"]
+#         self.log.info(f"PLUGIN LOCATION: {plugin.__file__}")
+#         # return
 
-                self.log.debug(
-                    "f_product_types `{}` > families: {}".format(
-                        f_product_types, families))
+#         # TODO 'families' should not be included for filtering of outputs
+#         families = set(instance.data["families"])
 
-                self.log.debug(
-                    "f_task_types `{}` > task_type: {}".format(
-                        f_task_types, task_type))
+#         # Add product type to families
+#         families.add(instance.data["productType"])
+#         self.log.debug("Families: {}".format(families))
 
-                self.log.debug(
-                    "product_names `{}` > product: {}".format(
-                        product_names, product_name))
+#         task_type = instance.context.data["taskType"]
+#         product_name = instance.data["productName"]
 
-                # test if family found in context
-                # using intersection to make sure all defined
-                # families are present in combination
-                if (
-                    f_product_types
-                    and not families.intersection(f_product_types)
-                ):
-                    continue
+#         if "representations" not in instance.data:
+#             instance.data["representations"] = []
 
-                # test task types from filter
-                if f_task_types and task_type not in f_task_types:
-                    continue
+#         if not instance.data.get("stagingDir"):
+#             sd = os.path.normpath(os.path.dirname(instance.data["path"]))
 
-                # test products from filter
-                if product_names and not any(
-                    re.search(p, product_name) for p in product_names
-                ):
-                    continue
+#             instance.data["stagingDir"] = sd
+#             self.log.debug(f" failed to get stating dir, using {sd}")
 
-                self.log.debug(
-                    "Baking output `{}` with settings: {}".format(
-                        o_name, o_data)
-                )
+#         self.log.debug(
+#             "StagingDir `{0}`...".format(instance.data["stagingDir"])
+#         )
 
-                # check if settings have more then one preset
-                # so we dont need to add outputName to representation
-                # in case there is only one preset
-                multiple_presets = len(self.outputs) > 1
+#         self.log.debug("Outputs: {}".format(self.outputs))
 
-                # adding bake presets to instance data for other plugins
-                if not instance.data.get("bakePresets"):
-                    instance.data["bakePresets"] = {}
-                # add preset to bakePresets
-                instance.data["bakePresets"][o_name] = o_data
+#         # generate data
+#         with maintained_selection():
+#             generated_repres = []
+#             for o_data in self.outputs:
+#                 o_name = o_data["name"]
+#                 self.log.debug(
+#                     "o_name: {}, o_data: {}".format(o_name, pformat(o_data))
+#                 )
+#                 f_product_types = o_data["filter"]["product_types"]
+#                 f_task_types = o_data["filter"]["task_types"]
+#                 product_names = o_data["filter"]["product_names"]
 
-                self.log.info(f"PLUGIN LOCATION: {plugin.__file__}")
+#                 self.log.debug(
+#                     "f_product_types `{}` > families: {}".format(
+#                         f_product_types, families
+#                     )
+#                 )
 
+#                 self.log.debug(
+#                     "f_task_types `{}` > task_type: {}".format(
+#                         f_task_types, task_type
+#                     )
+#                 )
 
-                # create exporter instance
-                exporter = plugin.ExporterReviewMov(
-                    self, instance, o_name, o_data["extension"],
-                    multiple_presets)
+#                 self.log.debug(
+#                     "product_names `{}` > product: {}".format(
+#                         product_names, product_name
+#                     )
+#                 )
 
-                delete = not o_data.get("publish", False)
+#                 # test if family found in context
+#                 # using intersection to make sure all defined
+#                 # families are present in combination
+#                 if f_product_types and not families.intersection(
+#                     f_product_types
+#                 ):
+#                     continue
 
-                if instance.data.get("farm"):
-                    if "review" in instance.data["families"]:
-                        instance.data["families"].remove("review")
+#                 # test task types from filter
+#                 if f_task_types and task_type not in f_task_types:
+#                     continue
 
-                    data = exporter.generate_mov(
-                        farm=True, delete=delete, **o_data
-                    )
+#                 # test products from filter
+#                 if product_names and not any(
+#                     re.search(p, product_name) for p in product_names
+#                 ):
+#                     continue
 
-                    self.log.debug(
-                        "_ data: {}".format(data))
+#                 self.log.debug(
+#                     "Baking output `{}` with settings: {}".format(
+#                         o_name, o_data
+#                     )
+#                 )
 
-                    if not instance.data.get("bakingNukeScripts"):
-                        instance.data["bakingNukeScripts"] = []
+#                 # check if settings have more then one preset
+#                 # so we dont need to add outputName to representation
+#                 # in case there is only one preset
+#                 multiple_presets = len(self.outputs) > 1
 
-                    instance.data["bakingNukeScripts"].append({
-                        "bakeRenderPath": data.get("bakeRenderPath"),
-                        "bakeScriptPath": data.get("bakeScriptPath"),
-                        "bakeWriteNodeName": data.get("bakeWriteNodeName")
-                    })
-                else:
-                    data = exporter.generate_mov(delete=delete, **o_data)
+#                 # adding bake presets to instance data for other plugins
+#                 if not instance.data.get("bakePresets"):
+#                     instance.data["bakePresets"] = {}
+#                 # add preset to bakePresets
+#                 instance.data["bakePresets"][o_name] = o_data
 
-                # add representation generated by exporter
-                generated_repres.extend(data["representations"])
-                self.log.debug(
-                    "__ generated_repres: {}".format(generated_repres))
+#                 self.log.info(f"PLUGIN LOCATION: {plugin.__file__}")
 
+#                 # create exporter instance
+#                 exporter = plugin.ExporterReviewMov(
+#                     self,
+#                     instance,
+#                     o_name,
+#                     o_data["extension"],
+#                     multiple_presets,
+#                 )
 
-        """
-        
-        """
+#                 delete = not o_data.get("publish", False)
 
-        self.log.debug(f"generated_repres: {generated_repres}")
+#                 if instance.data.get("farm"):
+#                     if "review" in instance.data["families"]:
+#                         instance.data["families"].remove("review")
 
-        if generated_repres:
-            # assign to representations
-            instance.data["representations"] += generated_repres
-            instance.data["useSequenceForReview"] = False
-        else:
-            instance.data["families"].remove("review")
-            self.log.debug(
-                "Removing `review` from families. "
-                "Not available baking profile."
-            )
-            self.log.debug(instance.data["families"])
+#                     data = exporter.generate_mov(
+#                         farm=True, delete=delete, **o_data
+#                     )
 
-        self.log.debug(
-            "_ representations: {}".format(
-                instance.data["representations"]))
+#                     self.log.debug("_ data: {}".format(data))
+
+#                     if not instance.data.get("bakingNukeScripts"):
+#                         instance.data["bakingNukeScripts"] = []
+
+#                     instance.data["bakingNukeScripts"].append(
+#                         {
+#                             "bakeRenderPath": data.get("bakeRenderPath"),
+#                             "bakeScriptPath": data.get("bakeScriptPath"),
+#                             "bakeWriteNodeName": data.get("bakeWriteNodeName"),
+#                         }
+#                     )
+#                 else:
+#                     data = exporter.generate_mov(delete=delete, **o_data)
+
+#                 # add representation generated by exporter
+#                 generated_repres.extend(data["representations"])
+#                 self.log.debug(
+#                     "__ generated_repres: {}".format(generated_repres)
+#                 )
+
+#         """
+
+#         """``
+
+#         self.log.debug(f"generated_repres: {generated_repres}")
+
+#         if generated_repres:
+#             # assign to representations
+#             instance.data["representations"] += generated_repres
+#             instance.data["useSequenceForReview"] = False
+#         else:
+#             instance.data["families"].remove("review")
+#             self.log.debug(
+#                 "Removing `review` from families. "
+#                 "Not available baking profile."
+#             )
+#             self.log.debug(instance.data["families"])
+
+#         self.log.debug(
+#             "_ representations: {}".format(instance.data["representations"])
+#         )

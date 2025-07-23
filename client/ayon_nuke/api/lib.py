@@ -1101,8 +1101,10 @@ def create_write_node(
     input=None,
     prenodes=None,
     linked_knobs=None,
+    inpanel = True,
     **kwargs
 ):
+    
     ''' Creating write node which is group node
 
     Arguments:
@@ -1210,7 +1212,8 @@ def create_write_node(
         log.warning("Path does not exist! I am creating it.")
         os.makedirs(os.path.dirname(fpath))
 
-    GN = nuke.createNode("Group", "name {}".format(name))
+    print("inpanel:", inpanel)
+    GN = nuke.createNode("Group", "name {}".format(name), inpanel = inpanel)
 
     prev_node = None
     with GN:
