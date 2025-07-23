@@ -1,17 +1,17 @@
-import os
 import pyblish.api
-import nuke
 import hornet_publish
-from file_sequence import SequenceFactory, Components
+from file_sequence import SequenceFactory
 
-from ayon_core.pipeline import publish
 from ayon_core.pipeline.publish import OptionalPyblishPluginMixin
 from pathlib import Path
 
 TEMPLATE_SCRIPT = "P:/dev/alexh_dev/hornet_publish/hornet_publish_template.nk"
 
+
 # class IntegrateProresReview(publish.Integrator, OptionalPyblishPluginMixin):
-class IntegrateProresReview(pyblish.api.InstancePlugin, OptionalPyblishPluginMixin):
+class IntegrateProresReview(
+    pyblish.api.InstancePlugin, OptionalPyblishPluginMixin
+):
     """Generate ProRes review files using Nuke templates.
 
     Creates ProRes files directly from rendered frames without AYON registration.
@@ -23,7 +23,6 @@ class IntegrateProresReview(pyblish.api.InstancePlugin, OptionalPyblishPluginMix
     order = pyblish.api.ExtractorOrder + 4.1
     families = ["render", "prerender"]
     hosts = ["nuke"]
-
 
     def process(self, instance):
         self.log.info("integrate_prores_review")
@@ -38,11 +37,12 @@ class IntegrateProresReview(pyblish.api.InstancePlugin, OptionalPyblishPluginMix
         # publishDir = instance.data["publishDir"]
         # self.log.info(f"publishDir: {publishDir}")
 
-
         # vresion = instance.data["version"]
         # self.log.info(f"version: {vresion}")
 
-        review_enabled = (creator_attributes := instance.data.get("creator_attributes")) and creator_attributes.get("review")
+        review_enabled = (
+            creator_attributes := instance.data.get("creator_attributes")
+        ) and creator_attributes.get("review")
 
         if not review_enabled:
             self.log.info("review is not enabled, skipping")
@@ -57,10 +57,8 @@ class IntegrateProresReview(pyblish.api.InstancePlugin, OptionalPyblishPluginMix
         version = instance.data.get("version", None)
         if version is None:
             self.log.warning("failed to get version")
-            return 
+            return
         self.log.info(f"version: {version}")
-
-
 
         # fs = SequenceFactory.from_sequence_string_absolute(path)
         # # self.log.info(fs)
@@ -89,18 +87,24 @@ class IntegrateProresReview(pyblish.api.InstancePlugin, OptionalPyblishPluginMix
             return
 
         # shot = instance.data.get("anatomyData", None).get("asset", None)
-        shot = (anatomy_data := instance.data.get("anatomyData")) and anatomy_data.get("asset")
+        shot = (
+            anatomy_data := instance.data.get("anatomyData")
+        ) and anatomy_data.get("asset")
 
         if shot is None:
             self.log.warning("failed to get shot")
             return
 
-        version = (anatomy_data := instance.data.get("anatomyData")) and anatomy_data.get("version")
+        version = (
+            anatomy_data := instance.data.get("anatomyData")
+        ) and anatomy_data.get("version")
         if version is None:
             self.log.warning("failed to get version")
             return
 
-        project = (project_data := instance.data.get("project")) and project_data.get("name")
+        project = (
+            project_data := instance.data.get("project")
+        ) and project_data.get("name")
         if project is None:
             self.log.warning("failed to get project")
             return
@@ -114,7 +118,6 @@ class IntegrateProresReview(pyblish.api.InstancePlugin, OptionalPyblishPluginMix
         # return
 
         # p = Path(publish_dir)
-
 
         # p = p / "image"
         # self.log.info(f"p: {p}")
@@ -130,15 +133,25 @@ class IntegrateProresReview(pyblish.api.InstancePlugin, OptionalPyblishPluginMix
             return
 
         if len(published_sequences) > 1:
-            self.log.warning("multiple sequences found in publish directory, that shouldn't really happen. Using first")
+            self.log.warning(
+                "multiple sequences found in publish directory, that shouldn't really happen. Using first"
+            )
         published_sequence = published_sequences[0]
 
-        #TODO build the expected sequence name from the template and search for that
+        # TODO build the expected sequence name from the template and search for that
 
-        self.log.info(f"published sequence absolute file name: {published_sequence.absolute_file_name}")
-        self.log.info(f"published sequence sequence string: {published_sequence.sequence_string()}")
-        self.log.info(f"published sequence first frame: {published_sequence.first_frame}")
-        self.log.info(f"published sequence last frame: {published_sequence.last_frame}")
+        self.log.info(
+            f"published sequence absolute file name: {published_sequence.absolute_file_name}"
+        )
+        self.log.info(
+            f"published sequence sequence string: {published_sequence.sequence_string()}"
+        )
+        self.log.info(
+            f"published sequence first frame: {published_sequence.first_frame}"
+        )
+        self.log.info(
+            f"published sequence last frame: {published_sequence.last_frame}"
+        )
 
         # return
 
@@ -157,18 +170,11 @@ class IntegrateProresReview(pyblish.api.InstancePlugin, OptionalPyblishPluginMix
 
         self.log.debug(f"data: {data}")
 
-        # Check if ProRes farm rendering is enabled for this instance
-        prores_farm_enabled = (creator_attributes := instance.data.get("creator_attributes")) and creator_attributes.get("prores_farm_rendering")
-        
-        if prores_farm_enabled:
-            self.log.info("ProRes farm rendering enabled - submitting to farm")
-            if hornet_publish.hornet_review_media_submit(data, logger = self.log):
-                self.log.info("submitted to deadline")
-            else:
-                self.log.warning("failed to submit to deadline")
+        # submit to deadline
+        if hornet_publish.hornet_review_media_submit(data, logger=self.log):
+            self.log.info("submitted to deadline")
         else:
-            self.log.info("ProRes farm rendering disabled - would render locally")
-            # Here you could add local rendering logic if needed
-            # For now, just log that it would render locally
-        
-        
+            self.log.warning("failed to submit to deadline")
+
+        # generate review media locally
+        # hornet_publish.generate_review_media_local(data, logger=self.log)

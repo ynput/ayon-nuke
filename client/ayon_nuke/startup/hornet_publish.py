@@ -39,22 +39,22 @@ def hornet_publish_configurate(data = None):
     
     debug_log += f"data: {data}\n"
 
-    read_node = nuke.toNode("PublishRead")
-    data_node = nuke.toNode("Data")
-    data_node["shot_name"].setValue(data["shot"])
-    data_node["render_name"].setValue(data["name"])
-    data_node["project_name"].setValue(data["project"])
+    read_node = GetReadNode()
+    # read_node = nuke.toNode("PublishRead")
+    # data_node = nuke.toNode("Data")
+    # data_node["shot_name"].setValue(data["shot"])
+    # data_node["render_name"].setValue(data["name"])
+    # data_node["project_name"].setValue(data["project"])
+    populate_data_node(data)
 
-
-
-    if read_node is None:
-        raise Exception("failed to get read node")
+    # if read_node is None:
+    #     raise Exception("failed to get read node")
     
-    fs = SequenceFactory.from_sequence_string_absolute(Path(data["publishedSequence"]))
+    # fs = SequenceFactory.from_sequence_string_absolute(Path(data["publishedSequence"]))
+    fs = GetFileSequence(data)
     
     if not fs:
         raise Exception("failed to create file sequence")
-
 
     read_node = nuke.toNode("PublishRead")
     string = f"{fs.absolute_file_name} {fs.first_frame}-{fs.last_frame}"
@@ -81,6 +81,12 @@ def hornet_publish_configurate(data = None):
     print(f"debug log: {debug_log}")
     print(f"log file: {log_file_name}")
 
+def populate_data_node(data):
+    data_node = nuke.toNode("Data")
+    data_node["shot_name"].setValue(data["shot"])
+    data_node["render_name"].setValue(data["name"])
+    data_node["project_name"].setValue(data["project"])
+    data_node["version"].setValue(data["version"])
 
 def discover_write_nodes_in_script(script_path):
     # Save current node selection state
@@ -103,6 +109,9 @@ def discover_write_nodes_in_script(script_path):
             nuke.delete(node)
 
 def configure_write_node(write, data):
+
+    if type(write) == str:
+        write = nuke.toNode(write)
 
     format = write['file_type'].value()
     publish_loc = Path(data["publishDir"]);
@@ -265,6 +274,76 @@ def build_request(submission_info, temp_script_path, publish_env_vars):
     )
     return body
 
+
+
+
+def generate_review_media_local(data, logger=None):
+    
+    print("generate_review_media_local")
+    if logger:
+        logger.info("generate_review_media_local log")
+
+    if data is None:
+        raise Exception("data is None")
+
+    if logger:
+        logger.info(f"data: {data}")
+
+    template_script = data.get("template_script", None)
+    if template_script is None:
+        raise Exception("template_script is None")
+
+    for node in nuke.allNodes():
+        node.setSelected(False)
+
+
+    current_nodes =set(nuke.allNodes())
+    new_nodes = set()
+    nuke.nodePaste(template_script)
+    new_nodes = set(nuke.allNodes()) - current_nodes
+    backdrops = []
+    for node in new_nodes:
+        if node.Class() == "BackdropNode":
+            nuke.delete(node)
+            backdrops.append(node)
+    for backdrop in backdrops:
+        new_nodes.remove(backdrop)
+
+    for node in new_nodes:
+        node.setSelected(True)
+
+    nuke.autoplace_all()
+
+    write_nodes = [n.name() for n in new_nodes if n.Class() == "Write"]
+    read_node = GetReadNode() #TODO potential issue if there is some other node called PublishRead
+    populate_data_node(data) #TODO potential issue if there is some other node called data
+    fs = GetFileSequence(data)
+
+
+    for node_name in write_nodes:
+        configure_write_node(node_name, data)
+
+    for node_name in write_nodes:
+        nuke.execute(node_name, fs.first_frame, fs.last_frame)
+
+    for node_name in new_nodes:
+        nuke.delete(node_name)
+
+    return True
+
+
+
+def GetReadNode():
+    read_node = nuke.toNode("PublishRead")
+    if read_node is None:
+        raise Exception("failed to get read node")
+    return read_node
+
+def GetFileSequence(data):
+    fs = SequenceFactory.from_sequence_string_absolute(Path(data["publishedSequence"]))
+    if fs is None:
+        raise Exception("failed to get file sequence")
+    return fs
 
 def apply_fileseq_to_node(fs, node):
     if node.Class() != "Write":
