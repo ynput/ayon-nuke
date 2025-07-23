@@ -9,6 +9,10 @@ requires-python = ">=3.11"
 dependencies = [
     "tomlkit>=0.13.2",
     "requests>=2.32.3",
+]
+
+[project.optional-dependencies]
+docs = [
     "mkdocs-material>=9.6.7",
     "mkdocs-autoapi>=0.4.0",
     "mkdocstrings-python>=1.16.2",
@@ -18,3 +22,38 @@ dependencies = [
     "pymdown-extensions>=10.14.3",
     "mike>=2.1.3",
 ]
+
+# Development dependencies for IDE support
+# These will be installed from PyPI as stubs/mock versions
+dev = [
+    # For AYON dependencies that aren't available on PyPI,
+    # we'll use path dependencies or create stubs
+    "pyblish-base>=1.8.0",  # PyBlish core
+    # Note: ayon_core will be handled via path dependencies
+]
+
+[tool.uv]
+# Configure UV to use development dependencies
+dev-dependencies = [
+    "pyblish-base>=1.8.0",
+    "typing-extensions>=4.0.0",
+]
+
+[tool.ruff]
+# Import ruff settings from existing ruff.toml
+extend = "./ruff.toml"
+
+[tool.pyright]
+# Configure Pyright (used by Pylance in VS Code) to find AYON modules
+extraPaths = [
+    "client",
+    "client/ayon_nuke",
+]
+reportMissingImports = "warning"
+reportImportCycles = "warning"
+
+[tool.mypy]
+# MyPy configuration for type checking
+mypy_path = "client:client/ayon_nuke"
+namespace_packages = true
+explicit_package_bases = true

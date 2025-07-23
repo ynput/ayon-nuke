@@ -129,7 +129,7 @@ def hornet_review_media_submit(data, logger=None):
     print("hornet_publish_submit!!!")
 
     if logger:
-        logger.info("hornet_review_media_submit log")
+        logger.debug("hornet_review_media_submit log")
 
 
     env_vars = json.dumps(data)
@@ -137,7 +137,7 @@ def hornet_review_media_submit(data, logger=None):
     fs = SequenceFactory.from_nuke_node(nd)
     if fs is None:
         raise Exception("failed to get file sequence")
-    logger.info(f"file sequence: {fs}")
+    logger.debug(f"file sequence: {fs}")
 
     first = fs.first_frame
     last = fs.last_frame
@@ -163,7 +163,7 @@ def hornet_review_media_submit(data, logger=None):
     deadline_url = get_deadline_url()
     write_nodes = discover_write_nodes_in_script(publish_temp_script_path)
 
-    logger.info(f"write_nodes: {write_nodes}")
+    logger.debug(f"write_nodes: {write_nodes}")
 
     successful_submissions = 0
     failed_submissions = 0
@@ -171,7 +171,7 @@ def hornet_review_media_submit(data, logger=None):
     for node_name in write_nodes:
 
         # nd = nuke.toNode(node_name)
-        # logger.info(f"nd: {nd}")
+        # logger.debug(f"nd: {nd}")
         # fl = nd['file'].getValue()
 
         submission_info = {
@@ -201,8 +201,8 @@ def hornet_review_media_submit(data, logger=None):
     
     # nuke.alert(f"{successful_submissions} successful submissions, {failed_submissions} failed submissions")
     if logger:
-        logger.info(f"successful_submissions: {successful_submissions}")
-        logger.info(f"failed_submissions: {failed_submissions}")
+        logger.debug(f"successful_submissions: {successful_submissions}")
+        logger.debug(f"failed_submissions: {failed_submissions}")
 
     if successful_submissions > 0:
         return True
@@ -281,13 +281,13 @@ def generate_review_media_local(data, logger=None):
     
     print("generate_review_media_local")
     if logger:
-        logger.info("generate_review_media_local log")
+        logger.debug("generate_review_media_local log")
 
     if data is None:
         raise Exception("data is None")
 
     if logger:
-        logger.info(f"data: {data}")
+        logger.debug(f"data: {data}")
 
     template_script = data.get("template_script", None)
     if template_script is None:

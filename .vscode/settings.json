@@ -1,0 +1,35 @@
+{
+    "python.defaultInterpreterPath": "./.venv/bin/python",
+    "python.terminal.activateEnvironment": true,
+    "python.analysis.extraPaths": [
+        "./client",
+        "./client/ayon_nuke",
+        "./client/ayon_nuke/vendor"
+    ],
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.packageIndexDepths": [
+        {
+            "name": "ayon_core",
+            "depth": 3
+        },
+        {
+            "name": "ayon_api", 
+            "depth": 3
+        },
+        {
+            "name": "pyblish",
+            "depth": 3
+        }
+    ],
+    "python.linting.enabled": true,
+    "python.linting.ruffEnabled": true,
+    "python.linting.ruffArgs": [],
+    "python.formatting.provider": "ruff",
+    "python.analysis.typeCheckingMode": "basic",
+    "files.associations": {
+        "*.nk": "tcl"
+    },
+    "python.analysis.stubPath": "./stubs",
+    "python.envFile": "${workspaceFolder}/.env"
+}

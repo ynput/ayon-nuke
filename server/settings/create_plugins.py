@@ -2,12 +2,11 @@ from pydantic import validator
 from ayon_server.settings import (
     BaseSettingsModel,
     SettingsField,
-    ensure_unique_names
+    ensure_unique_names,
 )
 from .common import KnobModel
 
-INSTANCE_ATTRIBUTES_DESCRIPTION: str = (
-    """Allows to enable or disable certain features for the instance:
+INSTANCE_ATTRIBUTES_DESCRIPTION: str = """Allows to enable or disable certain features for the instance:
 
     - Reviewable: Mark the output as reviewable, allowing transcoding and
         e.g. uploading as reviewable to production tracker (depending on
@@ -22,7 +21,6 @@ INSTANCE_ATTRIBUTES_DESCRIPTION: str = (
         render of the write node to the farm **without** triggering the
         regular publish logic. This is useful for quick test renders.
     """
-)
 
 PRENODES_LIST_DESCRIPTION: str = (
     """List of nodes that should be added before the write node."""
@@ -41,10 +39,8 @@ def instance_attributes_enum():
         {"value": "reviewable", "label": "Reviewable"},
         {"value": "farm_rendering", "label": "Farm rendering"},
         {"value": "use_range_limit", "label": "Use range limit"},
-        {
-            "value": "render_on_farm",
-            "label": "Render On Farm"
-        }
+        {"value": "render_on_farm", "label": "Render On Farm"},
+        {"value": "hornet_review_on_farm", "label": "Generate review media on farm"},
     ]
 
 
@@ -54,7 +50,7 @@ def render_target_enum():
         {"value": "local", "label": "Local machine rendering"},
         {"value": "frames", "label": "Use existing frames"},
         {"value": "frames_farm", "label": "Use existing frames - farm"},
-        {"value": "farm", "label": "Farm rendering"}
+        {"value": "farm", "label": "Farm rendering"},
     ]
 
 
@@ -64,13 +60,13 @@ class PrenodeModel(BaseSettingsModel):
         description=(
             "Node name, use this as the name in 'Incoming dependency' on other"
             " preceding nodes if a connection is needed."
-        )
+        ),
     )
 
     nodeclass: str = SettingsField(
         "",
         title="Node class",
-        description="Nuke node class (type) of the node to add."
+        description="Nuke node class (type) of the node to add.",
     )
     dependent: str = SettingsField(
         "",
@@ -98,14 +94,13 @@ class CreateWriteRenderModel(BaseSettingsModel):
         title="Temporary rendering path template"
     )
     default_variants: list[str] = SettingsField(
-        title="Default variants",
-        default_factory=list
+        title="Default variants", default_factory=list
     )
     instance_attributes: list[str] = SettingsField(
         default_factory=list,
         enum_resolver=instance_attributes_enum,
         title="Instance attributes",
-        description=INSTANCE_ATTRIBUTES_DESCRIPTION
+        description=INSTANCE_ATTRIBUTES_DESCRIPTION,
     )
     render_target: str = SettingsField(
         enum_resolver=render_target_enum,
@@ -114,13 +109,12 @@ class CreateWriteRenderModel(BaseSettingsModel):
         description=RENDER_TARGET_DESCRIPTION,
     )
     exposed_knobs: list[str] = SettingsField(
-        title="Write Node Exposed Knobs",
-        default_factory=list
+        title="Write Node Exposed Knobs", default_factory=list
     )
     prenodes: list[PrenodeModel] = SettingsField(
         default_factory=list,
         title="Preceding nodes",
-        description=PRENODES_LIST_DESCRIPTION
+        description=PRENODES_LIST_DESCRIPTION,
     )
 
     @validator("prenodes")
@@ -135,14 +129,13 @@ class CreateWritePrerenderModel(BaseSettingsModel):
         title="Temporary rendering path template"
     )
     default_variants: list[str] = SettingsField(
-        title="Default variants",
-        default_factory=list
+        title="Default variants", default_factory=list
     )
     instance_attributes: list[str] = SettingsField(
         default_factory=list,
         enum_resolver=instance_attributes_enum,
         title="Instance attributes",
-        description = INSTANCE_ATTRIBUTES_DESCRIPTION
+        description=INSTANCE_ATTRIBUTES_DESCRIPTION,
     )
     render_target: str = SettingsField(
         enum_resolver=render_target_enum,
@@ -151,8 +144,7 @@ class CreateWritePrerenderModel(BaseSettingsModel):
         description=RENDER_TARGET_DESCRIPTION,
     )
     exposed_knobs: list[str] = SettingsField(
-        title="Write Node Exposed Knobs",
-        default_factory=list
+        title="Write Node Exposed Knobs", default_factory=list
     )
     prenodes: list[PrenodeModel] = SettingsField(
         default_factory=list,
@@ -172,13 +164,12 @@ class CreateWriteImageModel(BaseSettingsModel):
         title="Temporary rendering path template"
     )
     default_variants: list[str] = SettingsField(
-        title="Default variants",
-        default_factory=list
+        title="Default variants", default_factory=list
     )
     instance_attributes: list[str] = SettingsField(
         default_factory=list,
         enum_resolver=instance_attributes_enum,
-        title="Instance attributes"
+        title="Instance attributes",
     )
     render_target: str = SettingsField(
         enum_resolver=render_target_enum,
@@ -187,8 +178,7 @@ class CreateWriteImageModel(BaseSettingsModel):
         description=RENDER_TARGET_DESCRIPTION,
     )
     exposed_knobs: list[str] = SettingsField(
-        title="Write Node Exposed Knobs",
-        default_factory=list
+        title="Write Node Exposed Knobs", default_factory=list
     )
     prenodes: list[PrenodeModel] = SettingsField(
         default_factory=list,
@@ -205,29 +195,25 @@ class CreateWriteImageModel(BaseSettingsModel):
 
 class CreatorPluginsSettings(BaseSettingsModel):
     CreateWriteRender: CreateWriteRenderModel = SettingsField(
-        default_factory=CreateWriteRenderModel,
-        title="Create Write Render"
+        default_factory=CreateWriteRenderModel, title="Create Write Render"
     )
     CreateWritePrerender: CreateWritePrerenderModel = SettingsField(
         default_factory=CreateWritePrerenderModel,
-        title="Create Write Prerender"
+        title="Create Write Prerender",
     )
     CreateWriteImage: CreateWriteImageModel = SettingsField(
-        default_factory=CreateWriteImageModel,
-        title="Create Write Image"
+        default_factory=CreateWriteImageModel, title="Create Write Image"
     )
 
 
 DEFAULT_CREATE_SETTINGS = {
     "CreateWriteRender": {
         "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}",
-        "default_variants": [
-            "Main",
-            "Mask"
-        ],
+        "default_variants": ["Main", "Mask"],
         "instance_attributes": [
             "reviewable",
-            "farm_rendering"
+            "farm_rendering",
+            "hornet_review_on_farm",
         ],
         "render_target": "local",
         "exposed_knobs": [],
@@ -237,47 +223,28 @@ DEFAULT_CREATE_SETTINGS = {
                 "nodeclass": "Reformat",
                 "dependent": "",
                 "knobs": [
-                    {
-                        "type": "text",
-                        "name": "resize",
-                        "text": "none"
-                    },
+                    {"type": "text", "name": "resize", "text": "none"},
                     {
                         "type": "boolean",
                         "name": "black_outside",
-                        "boolean": True
-                    }
-                ]
+                        "boolean": True,
+                    },
+                ],
             }
-        ]
+        ],
     },
     "CreateWritePrerender": {
         "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}",
-        "default_variants": [
-            "Key01",
-            "Bg01",
-            "Fg01",
-            "Branch01",
-            "Part01"
-        ],
-        "instance_attributes": [
-            "farm_rendering",
-            "use_range_limit"
-        ],
+        "default_variants": ["Key01", "Bg01", "Fg01", "Branch01", "Part01"],
+        "instance_attributes": ["farm_rendering", "use_range_limit"],
         "render_target": "local",
         "exposed_knobs": [],
-        "prenodes": []
+        "prenodes": [],
     },
     "CreateWriteImage": {
         "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{ext}",
-        "default_variants": [
-            "StillFrame",
-            "MPFrame",
-            "LayoutFrame"
-        ],
-        "instance_attributes": [
-            "use_range_limit"
-        ],
+        "default_variants": ["StillFrame", "MPFrame", "LayoutFrame"],
+        "instance_attributes": ["use_range_limit"],
         "render_target": "local",
         "exposed_knobs": [],
         "prenodes": [
@@ -289,10 +256,10 @@ DEFAULT_CREATE_SETTINGS = {
                     {
                         "type": "expression",
                         "name": "first_frame",
-                        "expression": "parent.first"
+                        "expression": "parent.first",
                     }
-                ]
+                ],
             }
-        ]
-    }
+        ],
+    },
 }

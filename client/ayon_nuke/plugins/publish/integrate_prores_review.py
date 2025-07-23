@@ -1,11 +1,10 @@
+from math import e
 import pyblish.api
 import hornet_publish
 from file_sequence import SequenceFactory
 
 from ayon_core.pipeline.publish import OptionalPyblishPluginMixin
 from pathlib import Path
-
-TEMPLATE_SCRIPT = "P:/dev/alexh_dev/hornet_publish/hornet_publish_template.nk"
 
 
 # class IntegrateProresReview(publish.Integrator, OptionalPyblishPluginMixin):
@@ -24,21 +23,50 @@ class IntegrateProresReview(
     families = ["render", "prerender"]
     hosts = ["nuke"]
 
+    settings_category = "nuke"
+
     def process(self, instance):
         self.log.info("integrate_prores_review")
 
+
+        project_settings = instance.context.data["project_settings"]
+        nuke_settings = project_settings.get("nuke", {})
+        publish_settings = nuke_settings.get("publish", {})
+
+        
+
+        # get template script from web ui
+        try:
+            plugin_settings = publish_settings["HornetReviewMedia"]
+        except KeyError:
+            raise Exception("HornetReviewMedia settings not found, failing")
+        
+        try:
+            template_script = plugin_settings["template_script"]
+        except KeyError:
+            raise Exception("template_script not found, failing")
+        
+        if not Path(template_script).exists():
+            raise Exception(f"template script {template_script} does not exist, failing")
+
+        self.log.info(f"Template script: {template_script}")
+
+
+        # get use farm toggle from publish dialog 
+        try:
+            use_farm = instance.data["creator_attributes"]["hornet_review_use_farm"]
+        except KeyError:
+            raise Exception("hornet_review_use_farm not found, failing")
+        
+        self.log.info(f"Use farm: {use_farm}")
+        
+        
+        
+        # get other data
         path = instance.data.get("path", None)
 
         if path is None:
             raise Exception("failed to get publish path")
-
-        # self.log.info(instance.data)
-
-        # publishDir = instance.data["publishDir"]
-        # self.log.info(f"publishDir: {publishDir}")
-
-        # vresion = instance.data["version"]
-        # self.log.info(f"version: {vresion}")
 
         review_enabled = (
             creator_attributes := instance.data.get("creator_attributes")
@@ -60,9 +88,6 @@ class IntegrateProresReview(
             return
         self.log.info(f"version: {version}")
 
-        # fs = SequenceFactory.from_sequence_string_absolute(path)
-        # # self.log.info(fs)
-
         write_node = instance.data["transientData"].get("writeNode")
         if write_node is None:
             self.log.warning("failed to get write node")
@@ -73,18 +98,18 @@ class IntegrateProresReview(
         fs = SequenceFactory.from_nuke_node(write_node)
         if fs is None:
             self.log.warning("failed to get file sequence")
-            return
-        self.log.info(f"file sequence: {fs}")
+            raise Exception("failed to get file sequence, failing")
+        self.log.debug(f"file sequence: {fs}")
 
         name = instance.data.get("name", None)
         if name is None:
             self.log.warning("failed to get name")
-            return
+            raise Exception("failed to get name, failing")
 
         ext = instance.data.get("ext", None)
         if ext is None:
             self.log.warning("failed to get ext")
-            return
+            raise Exception("failed to get ext, failing")
 
         # shot = instance.data.get("anatomyData", None).get("asset", None)
         shot = (
@@ -93,21 +118,21 @@ class IntegrateProresReview(
 
         if shot is None:
             self.log.warning("failed to get shot")
-            return
+            raise Exception("failed to get shot, failing")
 
         version = (
             anatomy_data := instance.data.get("anatomyData")
         ) and anatomy_data.get("version")
         if version is None:
             self.log.warning("failed to get version")
-            return
+            raise Exception("failed to get version, failing")
 
         project = (
             project_data := instance.data.get("project")
         ) and project_data.get("name")
         if project is None:
             self.log.warning("failed to get project")
-            return
+            raise Exception("failed to get project, failing")
 
         self.log.info(f"shot: {shot}")
         self.log.info(f"name: {name}")
@@ -115,17 +140,6 @@ class IntegrateProresReview(
         self.log.info(f"project: {project}")
         self.log.info(f"version: {version}")
 
-        # return
-
-        # p = Path(publish_dir)
-
-        # p = p / "image"
-        # self.log.info(f"p: {p}")
-
-        # p = p / f"{name}.{ext}"
-        # self.log.info(f"p: {p}")
-        # published_sequence = SequenceFactory.from_directory_with_components(Components(prefix = name, extension = ext), Path(publish_dir))
-        # self.log.info(f"published_sequence: {published_sequence}")
 
         published_sequences = SequenceFactory.from_directory(Path(publish_dir))
         if not published_sequences:
@@ -165,16 +179,19 @@ class IntegrateProresReview(
             "name": name,
             "shot": shot,
             "project": project,
-            "template_script": TEMPLATE_SCRIPT,
+            "template_script": template_script,
         }
 
         self.log.debug(f"data: {data}")
 
-        # submit to deadline
-        if hornet_publish.hornet_review_media_submit(data, logger=self.log):
-            self.log.info("submitted to deadline")
+        # submit to deadline or generate review media locally
+        if use_farm:
+            if hornet_publish.hornet_review_media_submit(
+                data, logger=self.log
+            ):
+                self.log.info("submitted to deadline")
+            else:
+                self.log.warning("failed to submit to deadline")
         else:
+            hornet_publish.generate_review_media_local(data, logger=self.log)
             self.log.warning("failed to submit to deadline")
-
-        # generate review media locally
-        # hornet_publish.generate_review_media_local(data, logger=self.log)
