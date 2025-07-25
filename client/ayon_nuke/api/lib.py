@@ -54,11 +54,6 @@ from ayon_core.pipeline.colorspace import (
 from ayon_core.pipeline.workfile import BuildWorkfile
 from ayon_core.resources import get_ayon_icon_filepath
 
-try:
-    from ayon_core.pipeline.workfile import save_next_version
-except ImportError:
-    save_next_version = None
-
 from .gizmo_menu import GizmoMenu
 from .constants import (
     ASSIST,
@@ -928,16 +923,6 @@ def get_version_from_path(file):
             "`{}` missing version string."
             "Example `v004`".format(file)
         )
-
-
-def version_up_script():
-    ''' Raising working script's version
-    '''
-    if save_next_version is not None:
-        save_next_version()
-    else:
-        import nukescripts
-        nukescripts.script_and_write_nodes_version_up()
 
 
 def check_product_name_exists(nodes, product_name):
