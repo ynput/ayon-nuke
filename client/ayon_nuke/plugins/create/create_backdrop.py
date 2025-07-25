@@ -16,7 +16,6 @@ class CreateBackdrop(NukeCreator):
     label = "Nukenodes (backdrop)"
     product_type = "nukenodes"
     icon = "file-archive-o"
-    maintain_selection = True
 
     # plugin attributes
     node_color = "0xdfea5dff"
