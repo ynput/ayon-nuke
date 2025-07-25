@@ -81,11 +81,19 @@ class NukeRenderLocal(publish.Extractor,
             self.log.info("End frame: {}".format(render_last_frame))
 
             # Render frames
-            nuke.execute(
-                str(node_product_name),
-                int(render_first_frame),
-                int(render_last_frame)
-            )
+            try:
+                nuke.execute(
+                    str(node_product_name),
+                    int(render_first_frame),
+                    int(render_last_frame)
+                )
+            except RuntimeError as exc:
+                raise publish.PublishError(
+                    title="Render Failed",
+                    message=f"Failed to render {node_product_name}",
+                    description="Check Nuke console for more information.",
+                    detail=str(exc),
+                ) from exc
 
         # Determine defined file type
         path = node["file"].value()

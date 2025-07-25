@@ -34,6 +34,7 @@ class LoadImage(load.LoaderPlugin):
         "prerender",
         "review",
         "image",
+        "workfile"
     }
     representations = {"*"}
     extensions = set(ext.lstrip(".") for ext in IMAGE_EXTENSIONS)
