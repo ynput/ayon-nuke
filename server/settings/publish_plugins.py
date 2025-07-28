@@ -180,6 +180,7 @@ class IntermediateOutputModel(BaseSettingsModel):
 class HornetReviewMediaModel(BaseSettingsModel):
     """Settings for hornet review media generator."""
 
+    _layout = "expanded"
     enabled: bool = SettingsField(title="Enabled")
     template_script: str = SettingsField(
         default=r"P:/dev/alexh_dev/hornet_publish/hornet_publish_template.nk",
@@ -283,7 +284,9 @@ class PublishPluginsModel(BaseSettingsModel):
         title="Extract Slate Frame", default_factory=ExtractSlateFrameModel
     )
     HornetReviewMedia: HornetReviewMediaModel = SettingsField(
-        title="Hornet Review Media", default_factory=HornetReviewMediaModel
+        title="Hornet Review Media",
+        default_factory=HornetReviewMediaModel,
+        section="Integrators",
     )
     IncrementScriptVersion: OptionalPluginModel = SettingsField(
         title="Increment Workfile Version",

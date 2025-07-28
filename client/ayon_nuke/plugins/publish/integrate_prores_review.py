@@ -1,10 +1,13 @@
-from math import e
 import pyblish.api
-import hornet_publish
 from file_sequence import SequenceFactory
-
 from ayon_core.pipeline.publish import OptionalPyblishPluginMixin
 from pathlib import Path
+from importlib import reload
+import hornet_publish
+
+reload(hornet_publish)
+
+import inspect
 
 
 # class IntegrateProresReview(publish.Integrator, OptionalPyblishPluginMixin):
@@ -25,44 +28,46 @@ class IntegrateProresReview(
 
     settings_category = "nuke"
 
+    optional = True  # This makes the plugin optional in the UI
+
     def process(self, instance):
         self.log.info("integrate_prores_review")
-
 
         project_settings = instance.context.data["project_settings"]
         nuke_settings = project_settings.get("nuke", {})
         publish_settings = nuke_settings.get("publish", {})
 
-        
-
-        # get template script from web ui
+        # get template script from web ui ----------------------------
         try:
             plugin_settings = publish_settings["HornetReviewMedia"]
         except KeyError:
             raise Exception("HornetReviewMedia settings not found, failing")
-        
+
         try:
             template_script = plugin_settings["template_script"]
         except KeyError:
             raise Exception("template_script not found, failing")
-        
+
         if not Path(template_script).exists():
-            raise Exception(f"template script {template_script} does not exist, failing")
+            raise Exception(
+                f"template script {template_script} does not exist, failing"
+            )
 
         self.log.info(f"Template script: {template_script}")
 
+        # ------------------------------------------------------------
 
-        # get use farm toggle from publish dialog 
+        # get use farm toggle from publish dialog --------------------
         try:
-            use_farm = instance.data["creator_attributes"]["hornet_review_use_farm"]
+            use_farm = instance.data["creator_attributes"][
+                "hornet_review_use_farm"
+            ]
         except KeyError:
             raise Exception("hornet_review_use_farm not found, failing")
-        
-        self.log.info(f"Use farm: {use_farm}")
-        
-        
-        
-        # get other data
+
+        # ------------------------------------------------------------
+
+        # get other data ---------------------------------------------
         path = instance.data.get("path", None)
 
         if path is None:
@@ -134,12 +139,14 @@ class IntegrateProresReview(
             self.log.warning("failed to get project")
             raise Exception("failed to get project, failing")
 
+        colorspace = instance.data.get("colorspace", None)
+
+        self.log.info(f"colorspace: {colorspace}")
         self.log.info(f"shot: {shot}")
         self.log.info(f"name: {name}")
         self.log.info(f"ext: {ext}")
         self.log.info(f"project: {project}")
         self.log.info(f"version: {version}")
-
 
         published_sequences = SequenceFactory.from_directory(Path(publish_dir))
         if not published_sequences:
@@ -167,7 +174,7 @@ class IntegrateProresReview(
             f"published sequence last frame: {published_sequence.last_frame}"
         )
 
-        # return
+        # Data to pass to the render script
 
         data = {
             "publishDir": publish_dir,
@@ -180,18 +187,41 @@ class IntegrateProresReview(
             "shot": shot,
             "project": project,
             "template_script": template_script,
+            "colorspace": colorspace,
         }
 
         self.log.debug(f"data: {data}")
 
+        self.log.debug(
+            inspect.getfile(hornet_publish.hornet_review_media_submit)
+        )
+
+        # hornet_publish.hornet_review_media_submit(data, logger=self.log)
+
         # submit to deadline or generate review media locally
-        if use_farm:
-            if hornet_publish.hornet_review_media_submit(
-                data, logger=self.log
-            ):
-                self.log.info("submitted to deadline")
+        try:
+            if use_farm:
+                success = hornet_publish.hornet_review_media_submit(
+                    data, logger=self.log
+                )
+                if not success:
+                    self.log.warning(
+                        "Failed to submit ProRes review to farm. "
+                        "Main publish will continue without review media."
+                    )
+                    return
             else:
-                self.log.warning("failed to submit to deadline")
-        else:
-            hornet_publish.generate_review_media_local(data, logger=self.log)
-            self.log.warning("failed to submit to deadline")
+                hornet_publish.generate_review_media_local(
+                    data, logger=self.log
+                )
+
+            self.log.info(
+                "ProRes review media generation completed successfully"
+            )
+
+        except Exception as e:
+            self.log.warning(
+                f"ProRes review media generation failed: {e}. "
+                "Main publish will continue without review media."
+            )
+            return

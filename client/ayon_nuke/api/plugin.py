@@ -434,7 +434,7 @@ class NukeWriteCreator(NukeCreator):
                 BoolDef(
                     "hornet_review_use_farm",
                     default=False,
-                    label="Generate review media on farm",
+                    label="Use farm",
                 )
             )
 

@@ -1,32 +1,166 @@
 import os
 import getpass
-from re import L
 import shutil
 import nuke
 import json
+
 # import hornet_deadline_utils
 # import requests
 from hornet_deadline_utils import get_deadline_url
 from pathlib import Path
 from datetime import datetime
 from file_sequence import SequenceFactory
-from pathlib import Path
 
 try:
     from ayon_core.settings import get_current_project_settings  # type: ignore
     from ayon_api import get_bundle_settings  # type: ignore
     import requests
 except ImportError:
-    print("failed to import ayon_core or ayon_api. this might not be a problem.")
+    print(
+        "failed to import ayon_core or ayon_api. this might not be a problem."
+    )
 
 
+COLORSPACE_LOOKUP = {
+    "Output - Rec.709": "rec709",
+    "Output - sRGB": "sRGB",
+    "Output - Rec.2020": "rec2020",
+    "ACES - ACEScg": "ACEScg",
+    "color_picking": "sRGB"
+}
+
+
+def validate_template_script(template_script, logger=None):
+    if logger:
+        logger.info(f"validating template script: {template_script}")
+
+    if template_script is None:
+        raise Exception(
+            "template_script is None\n have you entered the correct path to the template script in the Ayon web ui?\n The setting can be found under Nuke publish plugins"
+        )
+
+    if not os.path.isfile(template_script):
+        raise Exception(
+            "template_script is not a file\n have you entered the correct path to the template script in the Ayon web ui?\n The setting can be found under Nuke publish plugins"
+        )
+
+    if os.path.splitext(template_script)[1] != ".nk":
+        raise Exception(
+            "template_script is not a .nk file\n have you entered the correct path to the template script in the Ayon web ui?\n The setting can be found under Nuke publish plugins"
+        )
+
+    return True
+
+
+def resolve_submission_script(template_script, logger=None):
+    if logger:
+        logger.info(f"resolving submission script from: {template_script}")
+
+    # if template_script is None:
+    #     logger.error("template_script is None")
+    #     return False
+
+    # if os.path.isdir(template_script):
+    #     logger.error("template_script is a directory, it should be a .nk file")
+
+    # if os.path.isfile(template_script):
+    #     if os.path.splitext(template_script)[1] != ".nk":
+    #         logger.error("template_script is not a .nk file")
+    #         return False
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
+    submission_script = (
+        "{path}/submission/publish/{name}_review_media_gen_{time}.nk".format(
+            path=os.environ["AYON_WORKDIR"],
+            name=os.path.splitext(os.path.basename(nuke.root().name()))[0],
+            time=timestamp,
+        )
+    )
+
+    if logger:
+        logger.debug(f"submission script: {submission_script}")
+
+    try:
+        Path(submission_script).parent.mkdir(parents=True, exist_ok=True)
+        copy_template_to_temp(template_script, submission_script)
+    except Exception as e:
+        raise Exception(f"failed to create publish temp script path: {e}")
+
+    return submission_script
 
 
 # TEMPLATE_SCRIPT = "P:/dev/alexh_dev/hornet_publish/hornet_publish_template.nk"
+def hornet_review_media_submit(data, logger=None):
+    env_vars = json.dumps(data)
+    nd = nuke.toNode(data["writeNode"])
+
+    fs = SequenceFactory.from_nuke_node(nd)
+    if fs is None:
+        raise Exception("failed to get file sequence")
+
+    if logger:
+        logger.debug(f"file sequence: {fs}")
+
+    first = fs.first_frame
+    last = fs.last_frame
+
+    # This will raise an exception if validation fails
+    validate_template_script(data.get("template_script", None), logger)
+
+    """
+    data is dumped into an env var because hornet_publish_configurate is called
+    by the onScriptLoad callback, which means we cannot pass any arguments to it.
+    """
+    submission_script = resolve_submission_script(
+        data.get("template_script", None), logger
+    )
+
+    deadline_url = get_deadline_url()
+    write_nodes = discover_write_nodes_in_script(submission_script)
+
+    if logger:
+        logger.debug(f"write_nodes: {write_nodes}")
+
+    successful_submissions = 0
+    failed_submissions = 0
+
+    for node_name in write_nodes:
+        submission_info = {
+            "task_name": f"{data['shot']}_{data['name']}_{node_name}_review",
+            "deadlinePriority": 95,
+            "deadlinePool": "local",
+            "deadlineGroup": "nuke",
+            "deadlineChunkSize": last - first + 1,
+            "concurrentTasks": 1,
+            "Frames": f"{first}-{last}",
+            "write_node_name": f"{node_name}",
+        }
+
+        body = build_request(submission_info, submission_script, env_vars)
+
+        print(f"body: {body}")
+
+        if "requests" not in globals():
+            raise Exception(
+                "requests module not available - needed for deadline submission"
+            )
+
+        response = requests.post(deadline_url, json=body, timeout=10)
+
+        if not response.ok:
+            failed_submissions += 1
+        else:
+            successful_submissions += 1
+
+    if logger:
+        logger.debug(f"successful_submissions: {successful_submissions}")
+        logger.debug(f"failed_submissions: {failed_submissions}")
+
+    # Return True if we had any successful submissions, False otherwise
+    return successful_submissions > 0
 
 
-def hornet_publish_configurate(data = None):
-
+def hornet_publish_configurate(data=None):
     print("hornet_publish_configurate")
 
     debug_log = ""
@@ -36,7 +170,7 @@ def hornet_publish_configurate(data = None):
         if d is None:
             raise Exception("HORNET_PUBLISH is not set")
         data = json.loads(d)
-    
+
     debug_log += f"data: {data}\n"
 
     read_node = GetReadNode()
@@ -49,16 +183,17 @@ def hornet_publish_configurate(data = None):
 
     # if read_node is None:
     #     raise Exception("failed to get read node")
-    
+
     # fs = SequenceFactory.from_sequence_string_absolute(Path(data["publishedSequence"]))
     fs = GetFileSequence(data)
-    
+
     if not fs:
         raise Exception("failed to create file sequence")
 
     read_node = nuke.toNode("PublishRead")
     string = f"{fs.absolute_file_name} {fs.first_frame}-{fs.last_frame}"
     read_node["file"].fromUserText(string)
+    read_node["colorspace"].setValue(data.get("colorspace", None))
 
     print(f"read node path: {read_node['file'].getValue()}")
     debug_log += f"read node path: {read_node['file'].getValue()}\n"
@@ -70,7 +205,7 @@ def hornet_publish_configurate(data = None):
 
     sticky = nuke.nodes.StickyNote()
     sticky["name"].setValue("debug log")
-    sticky['label'].setValue(debug_log)
+    sticky["label"].setValue(debug_log)
 
     script_path = Path(nuke.toNode("root").name())
     log_file_name = (script_path.parent / script_path.stem).with_suffix(".log")
@@ -81,6 +216,7 @@ def hornet_publish_configurate(data = None):
     print(f"debug log: {debug_log}")
     print(f"log file: {log_file_name}")
 
+
 def populate_data_node(data):
     data_node = nuke.toNode("Data")
     data_node["shot_name"].setValue(data["shot"])
@@ -88,126 +224,47 @@ def populate_data_node(data):
     data_node["project_name"].setValue(data["project"])
     data_node["version"].setValue(data["version"])
 
+
 def discover_write_nodes_in_script(script_path):
     # Save current node selection state
     current_nodes = set(nuke.allNodes())
     new_nodes = set()
-    
+
     try:
         # Import nodes from template into current script
         nuke.nodePaste(script_path)
-        
+
         # Find newly imported nodes
         new_nodes = set(nuke.allNodes()) - current_nodes
         write_nodes = [n.name() for n in new_nodes if n.Class() == "Write"]
-        
+
         return write_nodes
-        
+
     finally:
         # Clean up: delete imported nodes
         for node in new_nodes:
             nuke.delete(node)
 
-def configure_write_node(write, data):
 
+def configure_write_node(write, data):
     if type(write) == str:
         write = nuke.toNode(write)
 
-    format = write['file_type'].value()
-    publish_loc = Path(data["publishDir"]);
+    format = write["file_type"].value()
+    publish_loc = Path(data["publishDir"])
     publish_loc = publish_loc / "review"
     publish_loc.mkdir(parents=True, exist_ok=True)
     if not publish_loc.exists():
         raise Exception("failed to create publish location")
-        
 
-    new_path = f"{publish_loc.as_posix()}/{data['name']}_v{data['version']:0>3}_{write.name()}.{format}"
-    print(f"new path: {new_path}")
-    write['file'].setValue(new_path)
-
-def hornet_review_media_submit(data, logger=None):
-    print("hornet_publish_submit!!!")
-
-    if logger:
-        logger.debug("hornet_review_media_submit log")
-
-
-    env_vars = json.dumps(data)
-    nd = nuke.toNode(data["writeNode"])
-    fs = SequenceFactory.from_nuke_node(nd)
-    if fs is None:
-        raise Exception("failed to get file sequence")
-    logger.debug(f"file sequence: {fs}")
-
-    first = fs.first_frame
-    last = fs.last_frame
-
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
-    publish_temp_script_path = (
-        "{path}/submission/publish/{name}_review_media_gen_{time}.nk".format(
-            path=os.environ["AYON_WORKDIR"],
-            name=os.path.splitext(os.path.basename(nuke.root().name()))[0],
-            time=timestamp,
-        )
+    sanitized_colorspace_name = get_colorspace_name(
+        write["colorspace"].value()
     )
-    print(f"pub_temp_script_path: {publish_temp_script_path}")
 
-    """
-    data is dumped into an env var because hornet_publish_configurate is called
-    by the onScriptLoad callback, which means we cannot pass any arguments to it.
-    """
+    new_path = f"{publish_loc.as_posix()}/{data['shot']}_{data['name']}_v{data['version']:0>3}_{write.name()}_{sanitized_colorspace_name}.{format}"
+    print(f"new path: {new_path}")
+    write["file"].setValue(new_path)
 
-    Path(publish_temp_script_path).parent.mkdir(parents=True, exist_ok=True)
-    template_script = data.get("template_script", None)
-    copy_template_to_temp(template_script, publish_temp_script_path)
-    deadline_url = get_deadline_url()
-    write_nodes = discover_write_nodes_in_script(publish_temp_script_path)
-
-    logger.debug(f"write_nodes: {write_nodes}")
-
-    successful_submissions = 0
-    failed_submissions = 0
-
-    for node_name in write_nodes:
-
-        # nd = nuke.toNode(node_name)
-        # logger.debug(f"nd: {nd}")
-        # fl = nd['file'].getValue()
-
-        submission_info = {
-            # "file": fl,
-            "task_name": f"{data['shot']}_{data['name']}_{node_name}_review",
-            "deadlinePriority": 95,
-            "deadlinePool": "local",
-            "deadlineGroup": "nuke",
-            "deadlineChunkSize": last - first + 1,
-            "concurrentTasks": 1,
-            "Frames": f"{first}-{last}",
-            "write_node_name": f"{node_name}",
-        }
-
-        body = build_request(submission_info, publish_temp_script_path, env_vars)
-
-        print(f"body: {body}")  
-
-        response = requests.post(deadline_url, json=body, timeout=10)
-    
-        if not response.ok:
-            # nuke.alert("Failed to submit to Deadline: {}".format(response.text))
-            failed_submissions += 1
-        else:
-            # nuke.alert("Submitted to Deadline Sucessfully")
-            successful_submissions += 1
-    
-    # nuke.alert(f"{successful_submissions} successful submissions, {failed_submissions} failed submissions")
-    if logger:
-        logger.debug(f"successful_submissions: {successful_submissions}")
-        logger.debug(f"failed_submissions: {failed_submissions}")
-
-    if successful_submissions > 0:
-        return True
-    else:
-        return False
 
 def build_request(submission_info, temp_script_path, publish_env_vars):
     # Include critical environment variables with submission
@@ -275,10 +332,7 @@ def build_request(submission_info, temp_script_path, publish_env_vars):
     return body
 
 
-
-
 def generate_review_media_local(data, logger=None):
-    
     print("generate_review_media_local")
     if logger:
         logger.debug("generate_review_media_local log")
@@ -296,8 +350,7 @@ def generate_review_media_local(data, logger=None):
     for node in nuke.allNodes():
         node.setSelected(False)
 
-
-    current_nodes =set(nuke.allNodes())
+    current_nodes = set(nuke.allNodes())
     new_nodes = set()
     nuke.nodePaste(template_script)
     new_nodes = set(nuke.allNodes()) - current_nodes
@@ -315,10 +368,13 @@ def generate_review_media_local(data, logger=None):
     nuke.autoplace_all()
 
     write_nodes = [n.name() for n in new_nodes if n.Class() == "Write"]
-    read_node = GetReadNode() #TODO potential issue if there is some other node called PublishRead
-    populate_data_node(data) #TODO potential issue if there is some other node called data
+    read_node = (
+        GetReadNode()
+    )  # TODO potential issue if there is some other node called PublishRead
+    populate_data_node(
+        data
+    )  # TODO potential issue if there is some other node called data
     fs = GetFileSequence(data)
-
 
     for node_name in write_nodes:
         configure_write_node(node_name, data)
@@ -332,18 +388,21 @@ def generate_review_media_local(data, logger=None):
     return True
 
 
-
 def GetReadNode():
     read_node = nuke.toNode("PublishRead")
     if read_node is None:
         raise Exception("failed to get read node")
     return read_node
 
+
 def GetFileSequence(data):
-    fs = SequenceFactory.from_sequence_string_absolute(Path(data["publishedSequence"]))
+    fs = SequenceFactory.from_sequence_string_absolute(
+        Path(data["publishedSequence"])
+    )
     if fs is None:
         raise Exception("failed to get file sequence")
     return fs
+
 
 def apply_fileseq_to_node(fs, node):
     if node.Class() != "Write":
@@ -355,6 +414,14 @@ def apply_fileseq_to_node(fs, node):
         f"{fs.absolute_file_name} {fs.first_frame}-{fs.last_frame}"
     )
 
+
 def copy_template_to_temp(template_path, temp_script_path):
     print(f"copy_template_to_temp: {template_path} to {temp_script_path}")
-    shutil.copy(template_path, temp_script_path)
+    try:
+        shutil.copy(template_path, temp_script_path)
+    except Exception as e:
+        raise Exception(f"failed to copy template to temp: {e}")
+
+
+def get_colorspace_name(colorspace):
+    return COLORSPACE_LOOKUP.get(colorspace, colorspace.replace(" ", "_"))
