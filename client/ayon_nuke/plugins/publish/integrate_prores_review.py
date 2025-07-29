@@ -4,6 +4,7 @@ from ayon_core.pipeline.publish import OptionalPyblishPluginMixin
 from pathlib import Path
 from importlib import reload
 import hornet_publish
+import nuke
 
 reload(hornet_publish)
 
@@ -81,6 +82,20 @@ class IntegrateProresReview(
             self.log.info("review is not enabled, skipping")
             return
 
+        # get review_burnin setting from creator attributes
+        try:
+            review_burnin = instance.data["creator_attributes"][
+                "review_burnin"
+            ]
+        except KeyError:
+            review_burnin = True  # backward compatibility
+            self.log.warning(
+                "review_burnin not found in creator attributes, defaulting to True"
+            )
+
+        fps = nuke.toNode("root")["fps"].getValue()
+        self.log.info(f"fps: {fps}")
+
         publish_dir = instance.data.get("publishDir", None)
         if publish_dir is None:
             self.log.warning("failed to get publish dir")
@@ -147,6 +162,7 @@ class IntegrateProresReview(
         self.log.info(f"ext: {ext}")
         self.log.info(f"project: {project}")
         self.log.info(f"version: {version}")
+        self.log.info(f"review_burnin: {review_burnin}")
 
         published_sequences = SequenceFactory.from_directory(Path(publish_dir))
         if not published_sequences:
@@ -188,6 +204,8 @@ class IntegrateProresReview(
             "project": project,
             "template_script": template_script,
             "colorspace": colorspace,
+            "burnin": review_burnin,
+            "fps": fps,
         }
 
         self.log.debug(f"data: {data}")

@@ -41,6 +41,7 @@ def instance_attributes_enum():
         {"value": "use_range_limit", "label": "Use range limit"},
         {"value": "render_on_farm", "label": "Render On Farm"},
         {"value": "hornet_review_on_farm", "label": "Generate review media on farm"},
+        {"value": "review_burnin", "label": "Review burnin"},
     ]
 
 
@@ -214,6 +215,7 @@ DEFAULT_CREATE_SETTINGS = {
             "reviewable",
             "farm_rendering",
             "hornet_review_on_farm",
+            "review_burnin",
         ],
         "render_target": "local",
         "exposed_knobs": [],

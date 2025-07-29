@@ -437,6 +437,15 @@ class NukeWriteCreator(NukeCreator):
                     label="Use farm",
                 )
             )
+            
+        if "review_burnin" in self.instance_attributes:
+            attr_defs.append(
+                BoolDef(
+                    "review_burnin",
+                    default=True,
+                    label="Review burnin",
+                )
+            )
 
         return attr_defs
 

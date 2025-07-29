@@ -2,17 +2,17 @@ import json
 import os
 import getpass
 import nuke
+
 # import requests
 import subprocess
 from pathlib import Path
 from datetime import datetime
+
 try:
     from ayon_core.settings import get_current_project_settings  # type
     from ayon_api import get_bundle_settings  # type: ignore
 except ImportError:
     print("oh well")
-
-
 
 
 ## copied from submit_nuke_to_deadline.py
@@ -114,7 +114,9 @@ def getNodeSubmissionInfo(node):
     if node is None:
         raise Exception("Node provided to getNodeSubmissionInfo None")
     if node.Class() != "Group":
-        raise Exception("Node provided to getNodeSubmissionInfo is not a Group")
+        raise Exception(
+            "Node provided to getNodeSubmissionInfo is not a Group"
+        )
     # print(f"render node: {node.Class()}")
     # inside_name = node.parent().fullName() + "." + node.name() + ".inside_" + node.name()
     inside_name = node.fullName() + ".inside_" + node.name()
@@ -166,7 +168,7 @@ def deadlineNetworkSubmit(*, dev=False, batch=None, silent=False, node=None):
 
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
     temp_script_path = "{path}/submission/{name}_{time}.nk".format(
-        path = os.environ["AYON_WORKDIR"],
+        path=os.environ["AYON_WORKDIR"],
         name=os.path.splitext(os.path.basename(nuke.root().name()))[0],
         time=timestamp,
     )
@@ -190,7 +192,9 @@ def deadlineNetworkSubmit(*, dev=False, batch=None, silent=False, node=None):
     )  # ticket HPIPE-702 back up script with render
 
     # Create nuke script that render node will access
-    if not os.path.exists(os.path.join(os.environ["AYON_WORKDIR"], "submission")):
+    if not os.path.exists(
+        os.path.join(os.environ["AYON_WORKDIR"], "submission")
+    ):
         os.mkdir(os.path.join(os.environ["AYON_WORKDIR"], "submission"))
     print(f"temp_script_path: {temp_script_path}")
     nuke.scriptSaveToTemp(temp_script_path)
@@ -295,9 +299,7 @@ def build_request(knobValues, temp_script_path, node):
             #         timestamp,
             #     )
             # ).replace("\\", "/"),
-
             "SceneFile": temp_script_path.replace("\\", "/"),
-
             # Output directory and filename
             "OutputFilePath": knobValues["File output"].replace("\\", "/"),
             # "OutputFilePrefix": render_variables["filename_prefix"],
@@ -362,7 +364,6 @@ def save_script_with_render(write_node_file_path):
         nuke.tprint("Failed to save script to {}".format(save_path))
 
 
-
 def get_deadline_server():
     project_settings = get_current_project_settings()
     deadline_settings = project_settings["deadline"]
@@ -390,6 +391,7 @@ def get_deadline_server():
     print(f"Current Deadline Webserver URL: {deadline_server}")
 
     return deadline_server
+
 
 def get_deadline_url():
     deadline_server = get_deadline_server()
