@@ -49,11 +49,7 @@ that one had me going for a while.
 """
 
 
-
-
-
 COLORSPACE_LOOKUP = {
-
     "Output - Rec.709": "rec709",
     "Output - sRGB": "sRGB",
     "Output - Rec.2020": "rec2020",
@@ -69,7 +65,6 @@ COLORSPACE_LOOKUP = {
 
     if an unlisted colorspace is passed, spaces will be removed
 """
-
 
 
 def hornet_review_media_submit(data, logger=None):
@@ -211,6 +206,7 @@ def generate_review_media_local(data, logger=None):
     write_nodes = [n.name() for n in new_nodes if n.Class() == "Write"]
 
     read_nodes = [n for n in new_nodes if n.Class() == "Read"]
+
     if not read_nodes:
         try:
             read_node = GetReadNode()
@@ -228,6 +224,10 @@ def generate_review_media_local(data, logger=None):
         data
     )  # TODO potential issue if there is some other node called data
     fs = GetFileSequence(data)
+
+    for switch in [n for n in new_nodes if n.Class() == "Switch"]:
+        if "burnin" in switch.name():
+            switch["which"].setValue(data.get("burnin", 0))
 
     if read_node:
         try:
@@ -253,7 +253,28 @@ def generate_review_media_local(data, logger=None):
         raise Exception(f"failed to get write node: {node_name}")
 
     for node_name in write_nodes:
-        nuke.execute(node_name, n.firstFrame(), n.lastFrame())
+        if nuke.toNode(node_name) is None:
+            log.error(f"failed to get write node: {node_name}")
+            print(f"failed to get write node: {node_name}")
+            continue
+
+        if nuke.toNode(node_name)['disable'].getValue():
+            continue
+        
+        # nuke.execute(node_name, n.firstFrame(), n.lastFrame())
+        try:
+            nuke.execute(node_name, n.firstFrame(), n.lastFrame())
+        except Exception:
+            log.error(f"failed to render {node_name} with range {n.firstFrame()} - {n.lastFrame()}")
+            print(f"failed to render {node_name} with range {n.firstFrame()} - {n.lastFrame()}")
+            try:
+                log.debug(f"trying to render {node_name} for single frame {n.firstFrame()}")
+                print(f"trying to render {node_name} for single frame {n.firstFrame()}")
+                nuke.execute(node_name, n.firstFrame(), n.firstFrame())
+            except Exception as e:
+                log.error(f"failed to execute {node_name}: {e}")
+                print(f"failed to execute {node_name}: {e}")
+                pass
 
     for node_name in new_nodes:
         nuke.delete(node_name)
@@ -265,6 +286,8 @@ def hornet_publish_configurate(data=None):
     """
     called from the onScriptLoad callback on the farm nuke instance
     configures the nodes in the template script for this submission
+
+    !!! this function will not have access to the full python environment !!!
 
     args:
         data (dict): Optionally supply data directly for debugging, in production it will come from an env variable
@@ -298,6 +321,7 @@ def hornet_publish_configurate(data=None):
         "NUKE_PATH",
         "OCIO",
     ]
+
     for env_var in relevant_env_vars:
         debug_log += f"{env_var}: {os.environ.get(env_var, 'NOT SET')}\n"
 
@@ -372,8 +396,16 @@ def hornet_publish_configurate(data=None):
         debug_log += f"  Render name: {data.get('name', 'N/A')}\n"
         debug_log += f"  Project: {data.get('project', 'N/A')}\n"
         debug_log += f"  Version: {data.get('version', 'N/A')}\n"
+        debug_log += f"  Burnin: {data.get('burnin', 'N/A')}\n"
+        debug_log += f"  First frame: {data.get('first_frame', 'N/A')}\n"
+        debug_log += f"  Last frame: {data.get('last_frame', 'N/A')}\n"
     except Exception as e:
         debug_log += f"ERROR: Failed to populate data node: {str(e)}\n"
+
+    # set switch nodes that determine burnin
+    for n in nuke.allNodes("Switch"):
+        if "burnin" in n.name():
+            n["which"].setValue(data.get("burnin", 0))
 
     debug_log += "\n=== script info ===\n"
     try:
