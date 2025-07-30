@@ -2,14 +2,13 @@ import json
 import os
 import getpass
 import nuke
-
-# import requests
+import sys
 import subprocess
 from pathlib import Path
 from datetime import datetime
 
 try:
-    from ayon_core.settings import get_current_project_settings  # type
+    from ayon_core.settings import get_current_project_settings  # type: ignore
     from ayon_api import get_bundle_settings  # type: ignore
 except ImportError:
     print("oh well")
@@ -38,22 +37,28 @@ def GetDeadlineCommand():
 
 
 def CallDeadlineCommand(arguments, hideWindow=True):
-    # type: (List[str], bool) -> str
     deadlineCommand = GetDeadlineCommand()  # type: str
 
     startupinfo = None  # type: ignore # this is only a windows option
     if hideWindow and os.name == "nt":
         # Python 2.6 has subprocess.STARTF_USESHOWWINDOW, and Python 2.7 has subprocess._subprocess.STARTF_USESHOWWINDOW, so check for both.
-        if hasattr(subprocess, "_subprocess") and hasattr(
-            subprocess._subprocess, "STARTF_USESHOWWINDOW"
-        ):  # type: ignore # this is only a windows option
-            startupinfo = subprocess.STARTUPINFO()  # type: ignore # this is only a windows option
-            startupinfo.dwFlags |= subprocess._subprocess.STARTF_USESHOWWINDOW  # type: ignore # this is only a windows option
-        elif hasattr(subprocess, "STARTF_USESHOWWINDOW"):
-            startupinfo = subprocess.STARTUPINFO()  # type: ignore # this is only a windows option
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW  # type: ignore # this is only a windows option
+        try:
+            if hasattr(subprocess, "_subprocess") and hasattr(
+                subprocess._subprocess,
+                "STARTF_USESHOWWINDOW",  # type: ignore
+            ):
+                startupinfo = subprocess.STARTUPINFO()  # type: ignore # this is only a windows option
+                startupinfo.dwFlags |= (
+                    subprocess._subprocess.STARTF_USESHOWWINDOW
+                )  # type: ignore # this is only a windows option
+            elif hasattr(subprocess, "STARTF_USESHOWWINDOW"):
+                startupinfo = subprocess.STARTUPINFO()  # type: ignore # this is only a windows option
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW  # type: ignore # this is only a windows option
+        except AttributeError:
+            # Handle cases where subprocess attributes don't exist
+            pass
 
-    environment = {}  # type: Dict[str, str]
+    environment = {}
     for key in os.environ.keys():
         environment[key] = str(os.environ[key])
 
@@ -65,7 +70,7 @@ def CallDeadlineCommand(arguments, hideWindow=True):
             )
 
     arguments.insert(0, deadlineCommand)
-    output = ""  # type: Union[bytes, str]
+    output = ""
 
     # Specifying PIPE for all handles to workaround a Python bug on Windows. The unused handles are then closed immediatley afterwards.
     proc = subprocess.Popen(
@@ -145,8 +150,12 @@ def getNodeSubmissionInfo(node):
     }
 
     try:
-        knob_values["first"] = inside_write.knob("first").value()
-        knob_values["last"] = inside_write.knob("last").value()
+        first_knob = inside_write.knob("first")
+        last_knob = inside_write.knob("last")
+        if first_knob is not None:
+            knob_values["first"] = first_knob.value()
+        if last_knob is not None:
+            knob_values["last"] = last_knob.value()
     except Exception as e:
         print(f"Failed to get first/last knobs from inside write node: {e}")
 
@@ -199,34 +208,6 @@ def deadlineNetworkSubmit(*, dev=False, batch=None, silent=False, node=None):
     print(f"temp_script_path: {temp_script_path}")
     nuke.scriptSaveToTemp(temp_script_path)
 
-    # # Fetch the current project settings
-    # project_settings = get_current_project_settings()
-    # deadline_settings = project_settings["deadline"]
-
-    # # Check if the 'default' webserver URL is localhost or empty
-    # deadline_server = deadline_settings["deadline_urls"][0]["value"]
-    # if not deadline_server or deadline_server in [
-    #     "http://127.0.0.1:8082",
-    #     "http://localhost:8082",
-    # ]:
-    #     # If it is, fetch the settings from the production bundle
-    #     bundle_settings = get_bundle_settings(variant="production")["addons"]
-    #     deadline_settings = next(
-    #         (
-    #             addon
-    #             for addon in bundle_settings
-    #             if addon.get("name") == "deadline"
-    #         ),
-    #         None,
-    #     )
-
-    #     if deadline_settings:
-    #         deadline_server = deadline_settings["settings"]["deadline_urls"][
-    #             0
-    #         ]["value"]
-    # print(f"Current Deadline Webserver URL: {deadline_server}")
-
-    # deadline_url = "{}/api/jobs".format(deadline_server)
     deadline_url = get_deadline_url()
 
     try:
@@ -261,7 +242,7 @@ def build_request(knobValues, temp_script_path, node):
     environment = dict(
         {k: os.environ[k] for k in submissionEnvVars if k in os.environ.keys()}
     )
-    environment["HARDING"] = "picard"
+    # environment["HARDING"] = "picard"
     body = {
         "JobInfo": {
             # Job name, as seen in Monitor
@@ -292,13 +273,6 @@ def build_request(knobValues, temp_script_path, node):
         },
         "PluginInfo": {
             # Input
-            # "SceneFile": (
-            #     nuke.script_directory()
-            #     + "/submission/{}_{}.nk".format(
-            #         os.path.splitext(os.path.basename(nuke.root().name()))[0],
-            #         timestamp,
-            #     )
-            # ).replace("\\", "/"),
             "SceneFile": temp_script_path.replace("\\", "/"),
             # Output directory and filename
             "OutputFilePath": knobValues["File output"].replace("\\", "/"),
@@ -342,7 +316,7 @@ def save_script_with_render(write_node_file_path):
 
     scripts_subfolder = "scripts"
 
-    nuke.tprint("write_node_file_path", write_node_file_path)
+    nuke.tprint("write_node_file_path", str(write_node_file_path))
 
     # write_node_file_path.parent.mkdir(parents=True, exist_ok=True)
     script_name = Path(nuke.root().name()).stem
@@ -351,7 +325,7 @@ def save_script_with_render(write_node_file_path):
     save_name = script_name + "__" + render_name + ".nk"
     save_path = render_dir / Path(scripts_subfolder) / save_name
     save_path.parent.mkdir(parents=True, exist_ok=True)
-    nuke.tprint("save_path", save_path)
+    nuke.tprint("save_path", str(save_path))
 
     if Path(save_path).exists():
         os.remove(save_path)

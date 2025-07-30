@@ -22,7 +22,7 @@ from ayon_api.utils import create_entity_id
 from ayon_core.lib import source_hash
 from ayon_core.lib.file_transaction import (
     FileTransaction,
-    DuplicateDestinationError
+    DuplicateDestinationError,
 )
 from ayon_core.pipeline.publish import (
     KnownPublishError,
@@ -137,7 +137,7 @@ class IntegrateAsset(pyblish.api.InstancePlugin):
             return
 
         render_target = instance.data.get("render_target")
- 
+
         self.log.debug("render target: {}".format(render_target))
         # if render target is frames farm, register transfers and skip database registration
         if render_target == "frames_farm":
@@ -153,23 +153,23 @@ class IntegrateAsset(pyblish.api.InstancePlugin):
             try:
                 # Get transaction manager with queued transfers
                 file_transactions = self.register_transfers(instance, filtered_repres)
-                
+
                 # Process the transfers
-                file_transactions.process()
-                
+                # file_transactions.process()
+
             except Exception as exc:
                 # Handle any errors
                 raise
-            
-            # Finalize successful transfers
-            file_transactions.finalize()
 
-            return 
+            # Finalize successful transfers
+            # file_transactions.finalize()
+
+            return
 
         else:
 
             self.log.debug("render target is not frames farm, registering and integrating")
-            
+
             filtered_repres = self.filter_representations(instance)
             # Skip instance if there are not representations to integrate
             #   all representations should not be integrated
@@ -217,8 +217,6 @@ class IntegrateAsset(pyblish.api.InstancePlugin):
         # self.log.debug("Instance data: {}".format(instance.data))
 
 
-
-
     def filter_representations(self, instance):
         # Prepare repsentations that should be integrated
         repres = instance.data.get("representations")
@@ -250,17 +248,17 @@ class IntegrateAsset(pyblish.api.InstancePlugin):
 
     def register_transfers(self, instance, filtered_repres):
         """Prepare and register file transfers without database registration.
-        
+
         Args:
             instance: The instance being processed
             filtered_repres: List of filtered representations to process
-        
+
         Returns:
             FileTransaction: The prepared transaction manager with queued transfers
         """
         project_name = instance.context.data["projectName"]
         instance_stagingdir = instance.data.get("stagingDir")
-        
+
         if not instance_stagingdir:
             self.log.debug(
                 "Instance is missing reference to staging directory."
@@ -299,7 +297,8 @@ class IntegrateAsset(pyblish.api.InstancePlugin):
 
                 # Queue the transfers
                 for src, dst in prepared["transfers"]:
-                    file_transactions.add(src, dst)
+                    # file_transactions.add(src, dst)
+                    pass
 
             # Add any additional resource transfers
             for files_type, copy_mode in [
@@ -308,7 +307,7 @@ class IntegrateAsset(pyblish.api.InstancePlugin):
             ]:
                 for src, dst in instance.data.get(files_type, []):
                     self._validate_path_in_project_roots(anatomy, dst)
-                    file_transactions.add(src, dst, mode=copy_mode)
+                    # file_transactions.add(src, dst, mode=copy_mode)
 
             return file_transactions
 
@@ -964,7 +963,7 @@ class IntegrateAsset(pyblish.api.InstancePlugin):
             "transfers": transfers,
             # todo: avoid the need for 'published_files' used by Integrate Hero
             # backwards compatibility
-            "published_files": [transfer[1] for transfer in transfers]
+            "published_files": [transfer[1] for transfer in transfers],
         }
 
     def create_version_data(self, instance):

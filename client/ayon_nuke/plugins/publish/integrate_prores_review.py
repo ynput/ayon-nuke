@@ -3,12 +3,21 @@ from file_sequence import SequenceFactory
 from ayon_core.pipeline.publish import OptionalPyblishPluginMixin
 from pathlib import Path
 from importlib import reload
-import hornet_publish
 import nuke
+import json
+import os
+import copy
 
-reload(hornet_publish)
+import hornet_publish_review_media
+
+reload(hornet_publish_review_media)
 
 import inspect
+
+
+def get_frame_padded(frame, padding):
+    """Return frame number as string with `padding` amount of padded zeros"""
+    return "{frame:0{padding}d}".format(padding=padding, frame=frame)
 
 
 # class IntegrateProresReview(publish.Integrator, OptionalPyblishPluginMixin):
@@ -18,12 +27,15 @@ class IntegrateProresReview(
     """Generate ProRes review files using Nuke templates.
 
     Creates ProRes files directly from rendered frames without AYON registration.
-    Runs only locally - ProRes files are created during local publish and then
-    transferred during farm publishing.
+    Calls hornet_publish_review_media.hornet_review_media_submit or
+    hornet_publish_review_media.generate_review_media_local
+    to generate the review media
+
+    See that module for more info
     """
 
     label = "Integrate ProRes Review"
-    order = pyblish.api.ExtractorOrder + 4.1
+    order = pyblish.api.IntegratorOrder + 4.1
     families = ["render", "prerender"]
     hosts = ["nuke"]
 
@@ -32,8 +44,6 @@ class IntegrateProresReview(
     optional = True  # This makes the plugin optional in the UI
 
     def process(self, instance):
-        self.log.info("integrate_prores_review")
-
         project_settings = instance.context.data["project_settings"]
         nuke_settings = project_settings.get("nuke", {})
         publish_settings = nuke_settings.get("publish", {})
@@ -56,11 +66,10 @@ class IntegrateProresReview(
 
         self.log.info(f"Template script: {template_script}")
 
-        # ------------------------------------------------------------
-
         # get use farm toggle from publish dialog --------------------
+
         try:
-            use_farm = instance.data["creator_attributes"][
+            review_use_farm = instance.data["creator_attributes"][
                 "hornet_review_use_farm"
             ]
         except KeyError:
@@ -68,7 +77,39 @@ class IntegrateProresReview(
 
         # ------------------------------------------------------------
 
-        # get other data ---------------------------------------------
+        render_target = instance.data.get("render_target")
+        self.log.info(f"render_target: {render_target}")
+
+        # id to set dependency if we're integratingt he actual render on the farm
+        # otherwise it will attempt to generate review media from nonexistent publish
+        # Only needed for farm workflows (frames_farm), not local workflows (frames)
+        deadline_job_id = None
+        job_type = None
+
+        if (
+            render_target == "frames_farm"
+        ):  # frames farm means the render is integrated on the farm
+            render_job_id = instance.data.get("deadlineSubmissionJob", {}).get(
+                "_id"
+            )
+            publish_job_id = self._get_deadline_publish_job_id(instance)
+            deadline_job_id = render_job_id or publish_job_id
+
+            if deadline_job_id is None:
+                self.log.warning(
+                    "failed to get deadline job id for frames_farm workflow"
+                )
+                return
+
+            job_type = "render" if render_job_id else "publish"
+            self.log.info(f"deadline {job_type} job id: {deadline_job_id}")
+        else:  # otherwise we are set to "frames" which means the integration has already happened
+            self.log.info(
+                "Local rendering workflow - no deadline job dependency needed"
+            )
+
+        job_batch_name = instance.data.get("jobBatchName")
+        current_file = instance.context.data.get("currentFile")
         path = instance.data.get("path", None)
 
         if path is None:
@@ -82,79 +123,81 @@ class IntegrateProresReview(
             self.log.info("review is not enabled, skipping")
             return
 
-        # get review_burnin setting from creator attributes
         try:
             review_burnin = instance.data["creator_attributes"][
                 "review_burnin"
             ]
         except KeyError:
-            review_burnin = True  # backward compatibility
+            review_burnin = True
             self.log.warning(
                 "review_burnin not found in creator attributes, defaulting to True"
             )
 
         fps = nuke.toNode("root")["fps"].getValue()
+        publish_dir = instance.data.get("publishDir", None)
+        version = instance.data.get("version", None)
+        write_node = instance.data["transientData"].get("writeNode")
+        fs = SequenceFactory.from_nuke_node(write_node)
+        name = instance.data.get("name", None)
+        ext = instance.data.get("ext", None)
+        colorspace = instance.data.get("colorspace", None)
+        framestart = instance.data["frameStart"]
+        frameend = instance.data["frameEnd"]
+
+        shot = (
+            anatomy_data := instance.data.get("anatomyData")
+        ) and anatomy_data.get("asset")
+
+        version = (
+            anatomy_data := instance.data.get("anatomyData")
+        ) and anatomy_data.get("version")
+
+        project = (
+            project_data := instance.data.get("project")
+        ) and project_data.get("name")
+
         self.log.info(f"fps: {fps}")
 
-        publish_dir = instance.data.get("publishDir", None)
         if publish_dir is None:
             self.log.warning("failed to get publish dir")
             return
         self.log.info(f"publish_dir: {publish_dir}")
 
-        version = instance.data.get("version", None)
         if version is None:
             self.log.warning("failed to get version")
             return
         self.log.info(f"version: {version}")
 
-        write_node = instance.data["transientData"].get("writeNode")
         if write_node is None:
             self.log.warning("failed to get write node")
             return
 
         self.log.info(f"write_node: {write_node.name()}")
 
-        fs = SequenceFactory.from_nuke_node(write_node)
         if fs is None:
             self.log.warning("failed to get file sequence")
             raise Exception("failed to get file sequence, failing")
         self.log.debug(f"file sequence: {fs}")
 
-        name = instance.data.get("name", None)
         if name is None:
             self.log.warning("failed to get name")
             raise Exception("failed to get name, failing")
 
-        ext = instance.data.get("ext", None)
         if ext is None:
             self.log.warning("failed to get ext")
             raise Exception("failed to get ext, failing")
-
-        # shot = instance.data.get("anatomyData", None).get("asset", None)
-        shot = (
-            anatomy_data := instance.data.get("anatomyData")
-        ) and anatomy_data.get("asset")
 
         if shot is None:
             self.log.warning("failed to get shot")
             raise Exception("failed to get shot, failing")
 
-        version = (
-            anatomy_data := instance.data.get("anatomyData")
-        ) and anatomy_data.get("version")
         if version is None:
             self.log.warning("failed to get version")
             raise Exception("failed to get version, failing")
 
-        project = (
-            project_data := instance.data.get("project")
-        ) and project_data.get("name")
         if project is None:
             self.log.warning("failed to get project")
             raise Exception("failed to get project, failing")
-
-        colorspace = instance.data.get("colorspace", None)
 
         self.log.info(f"colorspace: {colorspace}")
         self.log.info(f"shot: {shot}")
@@ -164,18 +207,82 @@ class IntegrateProresReview(
         self.log.info(f"version: {version}")
         self.log.info(f"review_burnin: {review_burnin}")
 
+        """
+        File Sequence
+        
+        Use a FileSequence of the published files to help the hornet_publish_review_media
+        prepare its data
+
+        If the publish has already happened, we can use that to get the file sequence since it's
+        foolproof 
+
+        If it is a farm publish we have to construct the future file path / names from the anatomy
+        and create a virtual file sequencw
+        """
+
         published_sequences = SequenceFactory.from_directory(Path(publish_dir))
+
         if not published_sequences:
-            self.log.warning("no sequences found in publish directory")
-            return
+            self.log.info(
+                "no sequences found in publish directory, normal if farm publishing"
+            )
+            self.log.info("using anatomy to construct file sequence")
+
+            repz = instance.data.get("representations", [])
+
+            for rep in repz:
+                if rep["ext"] != ext:
+                    continue
+
+                self.log.debug(f"published_path: {rep['published_path']}")
+
+                anatomy = instance.context.data["anatomy"]
+                template_data = copy.deepcopy(instance.data["anatomyData"])
+                template_data["representation"] = rep["name"]
+                template_data["ext"] = rep["ext"]
+                publish_template = anatomy.get_template_item(
+                    "publish", "render"
+                )
+
+                path_template_obj = publish_template["path"]
+                frame_padding = anatomy.templates_obj.frame_padding
+                framez = []
+
+                for frame in range(framestart, frameend + 1):
+                    frame_template_data = template_data.copy()
+                    frame_template_data["frame"] = frame
+
+                    template_filled = path_template_obj.format_strict(
+                        frame_template_data
+                    )
+                    framez.append(os.path.basename(str(template_filled)))
+
+                self.log.debug(
+                    f"Built frame sequence using anatomy templates with {frame_padding} digit padding"
+                )
+                self.log.debug(f"Template: {path_template_obj.template}")
+                self.log.debug(
+                    f"Sample frame files: {framez[:3]}{'...' if len(framez) > 3 else ''}"
+                )
+
+                published_sequences = SequenceFactory.from_filenames(
+                    filenames=framez,
+                    directory=publish_dir,
+                )
+                break
+
+        if not published_sequences:
+            self.log.warning(
+                "no sequences found in instance data file list, failing"
+            )
+            raise Exception("no sequences found, failing")
 
         if len(published_sequences) > 1:
             self.log.warning(
                 "multiple sequences found in publish directory, that shouldn't really happen. Using first"
             )
-        published_sequence = published_sequences[0]
 
-        # TODO build the expected sequence name from the template and search for that
+        published_sequence = published_sequences[0]
 
         self.log.info(
             f"published sequence absolute file name: {published_sequence.absolute_file_name}"
@@ -206,21 +313,33 @@ class IntegrateProresReview(
             "colorspace": colorspace,
             "burnin": review_burnin,
             "fps": fps,
+            "deadline_job_id": deadline_job_id,
+            "job_type": job_type,
+            "render_target": render_target,
+            "jobBatchName": job_batch_name,
+            "currentFile": current_file,
         }
 
         self.log.debug(f"data: {data}")
 
         self.log.debug(
-            inspect.getfile(hornet_publish.hornet_review_media_submit)
+            inspect.getfile(
+                hornet_publish_review_media.hornet_review_media_submit
+            )
         )
 
-        # hornet_publish.hornet_review_media_submit(data, logger=self.log)
+        # if we are using the farm, we need to submit the review media to the farm
 
-        # submit to deadline or generate review media locally
+        if review_use_farm == False and render_target == "frames_farm":
+            review_use_farm = True
+            self.log.debug("forcing review_use_farm to True")
+
         try:
-            if use_farm:
-                success = hornet_publish.hornet_review_media_submit(
-                    data, logger=self.log
+            if review_use_farm:
+                success = (
+                    hornet_publish_review_media.hornet_review_media_submit(
+                        data, logger=self.log
+                    )
                 )
                 if not success:
                     self.log.warning(
@@ -229,7 +348,7 @@ class IntegrateProresReview(
                     )
                     return
             else:
-                hornet_publish.generate_review_media_local(
+                hornet_publish_review_media.generate_review_media_local(
                     data, logger=self.log
                 )
 
@@ -243,3 +362,45 @@ class IntegrateProresReview(
                 "Main publish will continue without review media."
             )
             return
+
+    def _get_deadline_publish_job_id(self, instance):
+        """
+        The submit_publish_job.py plugin writes the job ID to a metadata JSON file.
+        """
+        try:
+            ins_data = instance.data
+            output_dir = ins_data.get(
+                "publishRenderMetadataFolder", ins_data.get("outputDir")
+            )
+
+            if not output_dir:
+                self.log.debug("No output directory found for metadata file")
+                return None
+
+            metadata_filename = f"{ins_data['productName']}_metadata.json"
+            metadata_path = os.path.join(output_dir, metadata_filename)
+
+            if not os.path.exists(metadata_path):
+                self.log.debug(f"Metadata file not found: {metadata_path}")
+                return None
+
+            with open(metadata_path, "r") as f:
+                metadata = json.load(f)
+
+            publish_job_id = metadata.get("deadline_publish_job_id")
+            if publish_job_id:
+                self.log.debug(
+                    f"Found deadline publish job ID in metadata: {publish_job_id}"
+                )
+            else:
+                self.log.debug(
+                    "No deadline_publish_job_id found in metadata file"
+                )
+
+            return publish_job_id
+
+        except Exception as e:
+            self.log.debug(
+                f"Failed to read deadline publish job ID from metadata: {e}"
+            )
+            return None
