@@ -6,6 +6,17 @@ from PySide2.QtCore import QTimer
 
 NODE_LOCATION = Path(r"P:\dev\alexh_dev\jesseSend")
 
+"""
+This system allows users to copy a kind of URL associated with a scriptlet, and paste
+it into a chat window, allowing the other user to paste the url directly into the nuke
+node graph and a callback will intercept and paste the scriptlet
+
+it's very convenient
+
+stolen from Jesse Spielman
+"""
+
+
 def pasteDropNode(path):
     
     results = nuke.nodePaste(path)
