@@ -4,13 +4,19 @@ from ayon_nuke import api
 import json
 from ayon_core.lib import Logger
 
-
 from ayon_nuke.api.lib import (
     create_write_node,
+    INSTANCE_DATA_KNOB,
+    get_pub_version,
+    incriment_pub_version,
+    is_version_file_linked,
+    get_version_from_path,
 )
+
 
 log = Logger.get_logger(__name__)
 
+# dict mapping extension to list of exposed parameters from write node to top level group node
 knobMatrix = {
     "exr": ["autocrop", "datatype", "heroview", "metadata", "interleave"],
     "png": ["datatype"],
@@ -19,12 +25,41 @@ knobMatrix = {
     "jpeg": [],
 }
 
+universalKnobs = ["colorspace", "views"]
+
+knobMatrix = {key: universalKnobs + value for key, value in knobMatrix.items()}
+presets = {
+    "exr": [
+        ("colorspace", "ACES - ACEScg"),
+        ("channels", "all"),
+        ("datatype", "16 bit half"),
+    ],
+    "png": [
+        ("colorspace", "Output - Rec.709"),
+        ("channels", "rgba"),
+        ("datatype", "16 bit"),
+    ],
+    "dpx": [
+        ("colorspace", "Output - Rec.709"),
+        ("channels", "rgb"),
+        ("datatype", "10 bit"),
+        ("big endian", True),
+    ],
+    "jpeg": [("colorspace", "Output - sRGB"), ("channels", "rgb")],
+}
+
+
 def quick_write_node(family="render"):
     variant = nuke.getInput("Variant for Quick Write Node", "Main").title()
-    _quick_write_node(variant, family, inpanel = True)
+    _quick_write_node(variant, family, inpanel=True)
 
-def _quick_write_node(variant, family="render", inpanel = True):
 
+def ovs_write_node(family="render"):
+    variant = nuke.getInput("Variant for Emergency Write Node", "Main").title()
+    _quick_write_node(variant, family, is_ovs=True)
+
+
+def _quick_write_node(variant, family="render", is_ovs=False, inpanel=True):
     """
     Separated this from the nuke.getInput call to allow calls from other scripts,
     such as a loop in the Kroger versioning script
@@ -33,7 +68,7 @@ def _quick_write_node(variant, family="render", inpanel = True):
     if not os.path.exists(nuke.Root().name()):
         nuke.message("You must save script first")
         return
-    
+
     variant = variant.title()
 
     nuke.tprint("quick write node")
@@ -45,7 +80,6 @@ def _quick_write_node(variant, family="render", inpanel = True):
 
     # ayon_asset_name = os.environ["AYON_FOLDER_PATH"]
     folder_path = os.environ["AYON_FOLDER_PATH"]
-    print(folder_path)
     print(type(folder_path))
 
     if any(
@@ -82,18 +116,14 @@ def _quick_write_node(variant, family="render", inpanel = True):
         "hierarchy": "/".join(os.environ["AYON_FOLDER_PATH"].split("/")[:-1]),
         "folder": {"name": os.environ["AYON_FOLDER_PATH"].split("/")[-1]},
         "fpath_template": "{work}/renders/nuke/{subset}/{subset}.{frame}.{ext}",
+        "is_ovs": is_ovs,
     }
-
-    print("inpanelVal2:", inpanel)
-
     qnode = create_write_node(
         family + os.environ["AYON_TASK_NAME"] + variant,
         data,
         prerender=True if family == "prerender" else False,
-        inpanel = inpanel
+        inpanel=inpanel,
     )
-
-
     qnode = nuke.toNode(family + os.environ["AYON_TASK_NAME"] + variant)
     print(f"Created Write Node: {qnode.name()}")
     data["folderPath"] = os.environ["AYON_FOLDER_PATH"]
@@ -129,46 +159,13 @@ def _quick_write_node(variant, family="render", inpanel = True):
         )
         inside_write.knob("file_type").setValue("exr")
 
-
-
     return qnode
-
-#dict mapping extension to list of exposed parameters from write node to top level group node
-knobMatrix = {
-    "exr": ["autocrop", "datatype", "heroview", "metadata", "interleave"],
-    "png": ["datatype"],
-    "dpx": ["datatype"],
-    "tiff": ["datatype", "compression"],
-    "jpeg": [],
-}
-
-universalKnobs = ["colorspace", "views"]
-
-knobMatrix = {key: universalKnobs + value for key, value in knobMatrix.items()}
-presets = {
-    "exr": [
-        ("colorspace", "ACES - ACEScg"),
-        ("channels", "all"),
-        ("datatype", "16 bit half"),
-    ],
-    "png": [
-        ("colorspace", "Output - Rec.709"),
-        ("channels", "rgba"),
-        ("datatype", "16 bit"),
-    ],
-    "dpx": [
-        ("colorspace", "Output - Rec.709"),
-        ("channels", "rgb"),
-        ("datatype", "10 bit"),
-        ("big endian", True),
-    ],
-    "jpeg": [("colorspace", "Output - sRGB"), ("channels", "rgb")],
-}
 
 
 def embedOptions():
     nde = nuke.thisNode()
     knb = nuke.thisKnob()
+
     # log.info(' knob of type' + str(knb.Class()))
     htab = nuke.Tab_Knob("htab", "Hornet")
     htab.setName("htab")
@@ -305,6 +302,13 @@ def embedOptions():
         "",
         "- all rendered files are TEMPORARY and WILL BE OVERWRITTEN unless published ",
     )
+
+    ovswarn = nuke.Text_Knob(
+        "ovswarn",
+        "",
+        "- This node is for writing where the pipeline steps needs to be bypassed due to an incredibly long or large render.",
+    )
+
     concurrent_warning = nuke.Text_Knob(
         "concurrent_warning", "", "<-- Set to 1 for heavy scripts"
     )
@@ -325,10 +329,19 @@ def embedOptions():
     #    concurrentTasks.clearFlag(nuke.STARTLINE)
     concurrent_warning.clearFlag(nuke.STARTLINE)
 
+    # Expose publish knobs based on emergency status
+    data = json.loads(
+        group.knobs()["publish_instance"].value().replace("JSON:::", "", 1)
+    )
+    is_ovs = data["is_ovs"]
+
     group.addKnob(render_local_button)
-    group.addKnob(readfrom)
-    group.addKnob(clear_temp_outputs_button)
-    group.addKnob(navigate_to_render_button)
+
+    if not is_ovs:
+        group.addKnob(readfrom)
+        group.addKnob(clear_temp_outputs_button)
+        group.addKnob(navigate_to_render_button)
+
     group.addKnob(deadlinediv)
     group.addKnob(deadlinePriority)
     group.addKnob(deadlineChunkSize)
@@ -341,8 +354,58 @@ def embedOptions():
     group.addKnob(publish_button)
     group.addKnob(read_from_publish_button)
     group.addKnob(navigate_to_publish_button)
-    group.addKnob(tempwarn)
+
+    if is_ovs is False:
+        group.addKnob(tempwarn)
+
+    else:
+        group.addKnob(ovswarn)
 
     endGroup = nuke.Tab_Knob("endpipeline", None, nuke.TABENDGROUP)
 
     group.addKnob(endGroup)
+
+
+def set_hwrite_version():
+    """
+    Set the version of quickwrite filepaths based on latest target version.
+    """
+
+    nodes = nuke.allNodes()
+    for node in nodes:
+        if INSTANCE_DATA_KNOB in node.knobs():
+            data = json.loads(
+                node[INSTANCE_DATA_KNOB].value().replace("JSON:::", "", 1)
+            )
+
+            if "is_ovs" not in data.keys():
+                log.warning(
+                    f"{node.name()} is missing is_ovs key, it is probably an old node"
+                )
+
+            if data.get("is_ovs", False):
+                fpath = node["File output"].value()
+                if is_version_file_linked():
+                    node_ver = "v" + get_version_from_path(fpath)
+                    file_ver = "v" + get_version_from_path(nuke.Root().name())
+                    fpath_new = fpath.replace(node_ver, file_ver)
+
+                else:
+                    versions = get_pub_version(
+                        data["project"]["name"],
+                        data["productName"],
+                        data["folderPath"],
+                    )
+                    inc_versions = incriment_pub_version(
+                        versions[0], versions[1]
+                    )
+                    fpath_new = fpath.replace(versions[1], inc_versions[1])
+
+                node_name = node["name"].value()
+                interior_write = "inside_" + node_name
+                node.begin()
+                wnode = nuke.toNode(interior_write)
+                wnode["file"].setValue(fpath_new)
+                node["File output"].setValue(fpath_new)
+                log.info(f"Updating ovs write path for {node_name}")
+                node.end()

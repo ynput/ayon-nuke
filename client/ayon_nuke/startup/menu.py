@@ -17,7 +17,14 @@ from ayon_nuke.api.lib import (
 from pathlib import Path
 from ayon_core.settings import get_project_settings
 from ayon_core.tools.utils.host_tools import show_publisher
-from quick_write import quick_write_node, _quick_write_node, embedOptions
+from quick_write import (
+    quick_write_node,
+    _quick_write_node,
+    embedOptions,
+    presets,
+    set_hwrite_version,
+    ovs_write_node,
+)
 from view_manager import show as show_view_manager
 from hornet_publish_utils import quick_publish
 
@@ -38,7 +45,7 @@ install_host(host)
 
 log = Logger.get_logger(__name__)
 
-#dict mapping extension to list of exposed parameters from write node to top level group node
+# dict mapping extension to list of exposed parameters from write node to top level group node
 # knobMatrix = {
 #     "exr": ["autocrop", "datatype", "heroview", "metadata", "interleave"],
 #     "png": ["datatype"],
@@ -360,6 +367,7 @@ def check_and_show_publisher():
 
 #     group.addKnob(endGroup)
 
+
 def enable_disable_frame_range():
     # print("enable_disable_frame_range")
     nde = nuke.thisNode()
@@ -371,10 +379,12 @@ def enable_disable_frame_range():
     group.knobs()["first"].setEnabled(enable)
     group.knobs()["last"].setEnabled(enable)
 
+
 def submit_selected_write():
     for nde in nuke.selectedNodes():
         if nde.Class() == "Write":
             submit_write(nde)
+
 
 def enable_publish_range():
     # print("enable_publish_range")
@@ -392,6 +402,7 @@ def enable_publish_range():
         nde.knob("publishFirst").setEnabled(False)
         nde.knob("publishLast").setEnabled(False)
 
+
 hornet_menu = nuke.menu("Nuke")
 m = hornet_menu.addMenu("&Hornet")
 m.addCommand("&Quick Write Node", "quick_write_node()", "Ctrl+W")
@@ -400,17 +411,26 @@ m.addCommand(
     "quick_write_node(family='prerender')",
     "Ctrl+Shift+W",
 )
+# nuke.addKnobChanged(apply_format_presets, nodeClass="Write")
+# nuke.addKnobChanged(switchExtension, nodeClass="Write")
+# nuke.addKnobChanged(embedOptions, nodeClass="Write")
+# nuke.addKnobChanged(enable_publish_range, nodeClass="Group")
+# nuke.addKnobChanged(enable_disable_frame_range, nodeClass="Write")
+# nuke.addOnScriptSave(writes_ver_sync)
+# nuke.addOnScriptLoad(WorkfileSettings().set_colorspace)
+# nuke.addOnCreate(WorkfileSettings().set_colorspace, nodeClass="Root")
+
+# nuke.addKnobChanged(save_script_on_render, nodeClass='Write')
+m.addCommand("&Oversized Write Node", "ovs_write_node()")
 nuke.addKnobChanged(apply_format_presets, nodeClass="Write")
 nuke.addKnobChanged(switchExtension, nodeClass="Write")
 nuke.addKnobChanged(embedOptions, nodeClass="Write")
 nuke.addKnobChanged(enable_publish_range, nodeClass="Group")
 nuke.addKnobChanged(enable_disable_frame_range, nodeClass="Write")
+nuke.addOnScriptSave(set_hwrite_version)
 nuke.addOnScriptSave(writes_ver_sync)
 nuke.addOnScriptLoad(WorkfileSettings().set_colorspace)
 nuke.addOnCreate(WorkfileSettings().set_colorspace, nodeClass="Root")
-
-# nuke.addKnobChanged(save_script_on_render, nodeClass='Write')
-
 
 ### View Manager
 

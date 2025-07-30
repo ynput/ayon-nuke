@@ -39,8 +39,7 @@ Local pipelione:
     - tey are deleted
 
 
-
-GOTCHA
+GOTCHA!
 
 watch out! If you rename the module or function called from the onScriptLoad callback,
 you will need to update the import statements in the template script.
@@ -52,21 +51,25 @@ that one had me going for a while.
 
 
 
-"""
-colorspace lookup to translate the fancy colorspace names
-into something that works as part of a file name
 
-add more as needed
-
-if an unlisted colorspace is passed, spaces will be removed
-"""
 COLORSPACE_LOOKUP = {
+
     "Output - Rec.709": "rec709",
     "Output - sRGB": "sRGB",
     "Output - Rec.2020": "rec2020",
     "ACES - ACEScg": "ACEScg",
     "color_picking": "sRGB",
 }
+
+"""
+    colorspace lookup to translate the fancy colorspace names
+    into something that works as part of a file name
+
+    add more as needed
+
+    if an unlisted colorspace is passed, spaces will be removed
+"""
+
 
 
 def hornet_review_media_submit(data, logger=None):
