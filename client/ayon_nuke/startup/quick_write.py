@@ -13,6 +13,11 @@ from ayon_nuke.api.lib import (
     get_version_from_path,
 )
 
+try:
+    import nukescripts
+except ImportError:
+    nukescripts = None
+
 
 log = Logger.get_logger(__name__)
 
@@ -92,6 +97,15 @@ def _quick_write_node(variant, family="render", is_ovs=False, inpanel=True):
 
     # variant = nuke.getInput('Variant for Quick Write Node','Main').title()
     variant = "_" + variant if variant[0] != "_" else variant
+
+    for existing_variants in [
+        parse_publish_instance(node)["variant"]
+        for node in get_all_ayon_write_nodes()
+    ]:
+        if variant == existing_variants:
+            nuke.message("Variant already exists")
+            return
+
     if variant == "_" or variant == None or variant == "":
         nuke.message("No Variant Specified, will not create Write Node")
         return
@@ -124,6 +138,7 @@ def _quick_write_node(variant, family="render", is_ovs=False, inpanel=True):
         prerender=True if family == "prerender" else False,
         inpanel=inpanel,
     )
+
     qnode = nuke.toNode(family + os.environ["AYON_TASK_NAME"] + variant)
     print(f"Created Write Node: {qnode.name()}")
     data["folderPath"] = os.environ["AYON_FOLDER_PATH"]
@@ -162,6 +177,17 @@ def _quick_write_node(variant, family="render", is_ovs=False, inpanel=True):
     return qnode
 
 
+DONT_DELETE = [
+    api.INSTANCE_DATA_KNOB,
+    # "experimental",
+    # "quick_publish",
+    # "generate_review_media",
+    # "generate_review_media_on_farm",
+    # "publish_on_farm",
+    # "burnin",
+]
+
+
 def embedOptions():
     nde = nuke.thisNode()
     knb = nuke.thisKnob()
@@ -181,7 +207,11 @@ def embedOptions():
     for knb in group.allKnobs():
         try:
             # never clear or touch the invisible string knob that contains the pipeline JSON data
-            if knb.name() != api.INSTANCE_DATA_KNOB:
+            # if knb.name() != api.INSTANCE_DATA_KNOB:
+            if knb.name() not in DONT_DELETE:
+                if knb.name() == api.INSTANCE_DATA_KNOB:
+                    print("warning you are deleting the instance data knob!")
+                    continue
                 group.removeKnob(knb)
         except:
             continue
@@ -366,6 +396,147 @@ def embedOptions():
     group.addKnob(endGroup)
 
 
+def show_quick_publish_info():
+    """
+    Show a simple info window with text content.
+    """
+    # Your info text - customize this as needed
+    info_text = """
+Quick Publish
+
+Experimental alternative to the ayon ui for submitting publishes.
+
+If "Transfer renders using farm" is unchecked, the transfers will take place locally and will freeze Nuke until complete. If the transfer is large, this could take a while, but nuke has probably not crashed.
+
+If "Transfer renders using farm" is checked, the transfer will take place remotely.
+
+"Generate review media" will create quicktimes and pngs according to a template nuke script and can be performed locally or remotely, but will be forced to process remotely if the transfer is remote.
+    
+    """
+
+    nuke.message(info_text)
+
+
+def embed_experimental():
+    """
+    Creates an experimental tab with additional publish options and quick publish functionality.
+    """
+    nde = nuke.thisNode()
+    knb = nuke.thisKnob()
+
+    # Only run when file_type knob changes, to avoid multiple calls
+    if knb != nde.knob("file_type"):
+        return
+
+    div = nuke.Text_Knob("div", "", "")
+    # Get the parent group node
+    group = nuke.toNode(".".join(["root"] + nde.fullName().split(".")[:-1]))
+
+    # Check if experimental tab already exists
+    if "experimental" in group.knobs():
+        return
+
+    # Create the Experimental tab (simple tab, not a group)
+    experimental_tab = nuke.Tab_Knob(
+        "experimental",
+        "Quick Publish - experimental",
+        nuke.TABBEGINCLOSEDGROUP,
+    )
+
+    # Create checkboxes
+    publish_on_farm_checkbox = nuke.Boolean_Knob(
+        "publish_on_farm", "Transfer renders using Farm"
+    )
+    publish_on_farm_checkbox.setValue(False)
+    publish_on_farm_checkbox.setTooltip(
+        "Renders will be transferred to the publish location using the farm, unchecked will perform a local transfer"
+    )
+    publish_on_farm_checkbox.setFlag(nuke.STARTLINE)
+
+    generate_review_checkbox = nuke.Boolean_Knob(
+        "generate_review_media", "Generate Review Media"
+    )
+    generate_review_checkbox.setValue(True)
+    generate_review_checkbox.setTooltip(
+        "Generate review media (mp4/mov) for the rendered sequence based on the template nuke script"
+    )
+    generate_review_checkbox.setFlag(nuke.STARTLINE)
+
+    generate_review_farm_checkbox = nuke.Boolean_Knob(
+        "generate_review_media_on_farm", "Use farm for review media"
+    )
+    generate_review_farm_checkbox.setValue(False)
+    generate_review_farm_checkbox.setTooltip(
+        "Generate review media using the farm instead of locally"
+    )
+    generate_review_farm_checkbox.setFlag(nuke.STARTLINE)
+
+    # If publish_on_farm is True, automatically set this to True and disable it
+    if publish_on_farm_checkbox.value():
+        generate_review_farm_checkbox.setValue(True)
+        generate_review_farm_checkbox.setEnabled(False)
+
+    burnin_checkbox = nuke.Boolean_Knob(
+        "burnin", "Apply burnin to review proxy"
+    )
+    burnin_checkbox.setValue(True)
+    burnin_checkbox.setTooltip(
+        "Add burnin information (timecode, frame numbers, etc.) to proxy review media. Prores will not get burnin"
+    )
+    burnin_checkbox.setFlag(nuke.STARTLINE)
+
+    quick_publish_button = nuke.PyScript_Knob(
+        "quick_publish",
+        "Quick Publish",
+        "quick_publish_wrapper(nuke.thisNode())",
+    )
+    quick_publish_button.setTooltip("Submit publish")
+
+    # Add the new text window button
+    show_info_button = nuke.PyScript_Knob(
+        "show_info",
+        "Show Info",
+        "quick_write.show_quick_publish_info()",
+    )
+    show_info_button.setTooltip("Display information window")
+
+    group.addKnob(div)
+    group.addKnob(experimental_tab)
+    group.addKnob(publish_on_farm_checkbox)
+    group.addKnob(generate_review_checkbox)
+    group.addKnob(generate_review_farm_checkbox)
+    group.addKnob(burnin_checkbox)
+    spacer = nuke.Text_Knob("exp_spacer", "", "")
+    group.addKnob(spacer)
+    group.addKnob(quick_publish_button)
+    group.addKnob(show_info_button)  # Add the new button
+
+
+def handle_farm_publish_logic():
+    """
+    Handle the logic for farm publishing checkboxes.
+    If publish_on_farm is checked, force generate_review_media_on_farm to True and disable it.
+    """
+    nde = nuke.thisNode()
+    kb = nuke.thisKnob()
+
+    # Only respond to changes to the publish_on_farm knob
+    if not kb or kb.name() != "publish_on_farm":
+        return
+
+    # Check if we have the review farm knob
+    if not nde.knob("generate_review_media_on_farm"):
+        return
+
+    if kb.value():
+        # If publish_on_farm is checked, force review farm to True and disable it
+        nde.knob("generate_review_media_on_farm").setValue(True)
+        nde.knob("generate_review_media_on_farm").setEnabled(False)
+    else:
+        # If publish_on_farm is unchecked, re-enable the review farm checkbox
+        nde.knob("generate_review_media_on_farm").setEnabled(True)
+
+
 def set_hwrite_version():
     """
     Set the version of quickwrite filepaths based on latest target version.
@@ -409,3 +580,37 @@ def set_hwrite_version():
                 node["File output"].setValue(fpath_new)
                 log.info(f"Updating ovs write path for {node_name}")
                 node.end()
+
+
+def get_all_ayon_write_nodes():
+    ayon_write_nodes = []
+
+    for node in nuke.allNodes():
+        if node.Class() == "Group":
+            # Check if it has AYON instance data
+            if INSTANCE_DATA_KNOB in node.knobs():
+                ayon_write_nodes.append(node)
+
+    return ayon_write_nodes
+
+
+def parse_publish_instance(qnode):
+    return json.loads(qnode.knob(api.INSTANCE_DATA_KNOB).value()[7:])
+
+
+def quick_publish_wrapper(node):
+    from hornet_publish_utils import quick_publish
+
+    review = node["generate_review_media"].value()
+    review_farm = node["generate_review_media_on_farm"].value()
+    integrate_farm = node["publish_on_farm"].value()
+    burnin = node["burnin"].value()
+
+    with nuke.root():
+        quick_publish(
+            node,
+            review=review,
+            review_farm=review_farm,
+            integrate_farm=integrate_farm,
+            burnin=burnin,
+        )

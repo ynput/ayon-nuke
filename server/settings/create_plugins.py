@@ -40,7 +40,10 @@ def instance_attributes_enum():
         {"value": "farm_rendering", "label": "Farm rendering"},
         {"value": "use_range_limit", "label": "Use range limit"},
         {"value": "render_on_farm", "label": "Render On Farm"},
-        {"value": "hornet_review_on_farm", "label": "Generate review media on farm"},
+        {
+            "value": "hornet_review_on_farm",
+            "label": "Generate review media on farm",
+        },
         {"value": "review_burnin", "label": "Review burnin"},
     ]
 
@@ -238,7 +241,12 @@ DEFAULT_CREATE_SETTINGS = {
     "CreateWritePrerender": {
         "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}",
         "default_variants": ["Key01", "Bg01", "Fg01", "Branch01", "Part01"],
-        "instance_attributes": ["farm_rendering", "use_range_limit"],
+        "instance_attributes": [
+            "use_range_limit",
+            "farm_rendering",
+            "hornet_review_on_farm",
+            "review_burnin",
+        ],
         "render_target": "local",
         "exposed_knobs": [],
         "prenodes": [],

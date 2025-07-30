@@ -1,47 +1,60 @@
-import nuke
-import os
+# import nuke
+# import os
+
+# from ayon_core.pipeline import install_host
+# from ayon_nuke.api import NukeHost
+
+# from ayon_core.lib import Logger
+# from ayon_nuke.api.lib import (
+#     WorkfileSettings,
+# )
+
+# """
+# I've begun moving quick_write functions into their own file,
+# but you have to be careful because function calls embedded as
+# strings in old nodes will break if they are not available
+# directly in this scope, and old nuke scripts will break
+# Alex H
+# """
+import quick_write
+from quick_write import (
+    embedOptions,
+    presets,
+    set_hwrite_version,
+    embed_experimental,
+    handle_farm_publish_logic,
+    quick_publish_wrapper,
+    show_quick_publish_info,
+    quick_write_node,
+    ovs_write_node,
+    quick_publish_wrapper,
+    quick_write_node,
+    ovs_write_node,
+    quick_publish_wrapper,
+)
+from hornet_deadline_utils import save_script_with_render
+from hornet_publish_utils import quick_publish
+
+
 import read_node_utils
-import platform
+
+# from hornet_deadline_utils import (
+#     deadlineNetworkSubmit,
+#     save_script_with_render,
+# )
+
+# import read_node_utils
 
 from ayon_core.pipeline import install_host
 from ayon_nuke.api import NukeHost
 
+host = NukeHost()
+install_host(host)
+import nuke
+import os
+
 from ayon_core.lib import Logger
-from ayon_nuke import api
-from ayon_nuke.api.lib import (
-    on_script_load,
-    check_inventory_versions,
-    WorkfileSettings,
-    dirmap_file_name_filter,
-    add_scripts_gizmo,
-    create_write_node,
-)
-from pathlib import Path
-from ayon_core.settings import get_project_settings
-from ayon_core.tools.utils.host_tools import show_publisher
-
-"""
-I've begun moving quick_write functions into their own file,
-but you have to be careful because function calls embedded as 
-strings in old nodes will break if they are not available
-directly in this scope, and old nuke scripts will break
-"""
-from quick_write import (
-    quick_write_node,
-    _quick_write_node,
-    embedOptions,
-    presets,
-    set_hwrite_version,
-    ovs_write_node,
-)
-from view_manager import show as show_view_manager
-from hornet_publish_utils import quick_publish
-
-from hornet_deadline_utils import (
-    deadlineNetworkSubmit,
-    save_script_with_render,
-)
-
+from ayon_nuke.api.lib import WorkfileSettings
 
 host = NukeHost()
 install_host(host)
@@ -168,10 +181,12 @@ def enable_disable_frame_range():
     group.knobs()["first"].setEnabled(enable)
     group.knobs()["last"].setEnabled(enable)
 
+
 def submit_selected_write():
     for nde in nuke.selectedNodes():
         if nde.Class() == "Write":
             submit_write(nde)
+
 
 def enable_publish_range():
     # print("enable_publish_range")
@@ -189,6 +204,7 @@ def enable_publish_range():
         nde.knob("publishFirst").setEnabled(False)
         nde.knob("publishLast").setEnabled(False)
 
+
 hornet_menu = nuke.menu("Nuke")
 m = hornet_menu.addMenu("&Hornet")
 m.addCommand("&Quick Write Node", "quick_write_node()", "Ctrl+W")
@@ -202,7 +218,9 @@ m.addCommand("&Oversized Write Node", "ovs_write_node()")
 nuke.addKnobChanged(apply_format_presets, nodeClass="Write")
 nuke.addKnobChanged(switchExtension, nodeClass="Write")
 nuke.addKnobChanged(embedOptions, nodeClass="Write")
+nuke.addKnobChanged(embed_experimental, nodeClass="Write")
 nuke.addKnobChanged(enable_publish_range, nodeClass="Group")
+nuke.addKnobChanged(handle_farm_publish_logic, nodeClass="Group")
 nuke.addKnobChanged(enable_disable_frame_range, nodeClass="Write")
 nuke.addOnScriptSave(set_hwrite_version)
 nuke.addOnScriptSave(writes_ver_sync)
