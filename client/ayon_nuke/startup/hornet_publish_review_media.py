@@ -144,7 +144,9 @@ def hornet_review_media_submit(data, logger=None):
         print(f"body: {body}")
 
         if "requests" not in globals():
-            log.raise_exception("requests module not available - needed for deadline submission")
+            log.raise_exception(
+                "requests module not available - needed for deadline submission"
+            )
 
         response = requests.post(deadline_url, json=body, timeout=10)
 
@@ -203,71 +205,82 @@ def generate_review_media_local(data, logger=None):
 
     write_nodes = [n.name() for n in new_nodes if n.Class() == "Write"]
 
-    read_nodes = [n for n in new_nodes if n.Class() == "Read"]
+    hornet_publish_configurate(data, new_nodes)
 
-    if not read_nodes:
-        try:
-            read_node = GetReadNode()
-        except Exception as e:
-            log.warning(
-                f"No read node found in template or existing script: {e}"
-            )
-            read_node = None
-    else:
-        # Use the first read node from the template
-        read_node = read_nodes[0]
-        log.debug(f"Found read node in template: {read_node.name()}")
+    # read_nodes = [n for n in new_nodes if n.Class() == "Read"]
 
-    populate_data_node(
-        data
-    )  # TODO potential issue if there is some other node called data
-    fs = GetFileSequence(data)
+    # if not read_nodes:
+    #     try:
+    #         read_node = GetReadNode()
+    #     except Exception as e:
+    #         log.warning(
+    #             f"No read node found in template or existing script: {e}"
+    #         )
+    #         read_node = None
+    # else:
+    #     # Use the first read node from the template
+    #     read_node = read_nodes[0]
+    #     log.debug(f"Found read node in template: {read_node.name()}")
 
-    for switch in [n for n in new_nodes if n.Class() == "Switch"]:
-        if "burnin" in switch.name():
-            switch["which"].setValue(data.get("burnin", 0))
+    # populate_data_node(
+    #     data
+    # )  # TODO potential issue if there is some other node called data
+    # fs = GetFileSequence(data)
 
-    if read_node:
-        try:
-            string = (
-                f"{fs.absolute_file_name} {fs.first_frame}-{fs.last_frame}"
-            )
-            read_node["file"].fromUserText(string)
-            colorspace = data.get("colorspace", None)
-            if colorspace:
-                read_node["colorspace"].setValue(colorspace)
-            log.debug(
-                f"Read node file path set to: {read_node['file'].getValue()}"
-            )
-            log.debug(f"Read node colorspace set to: {colorspace}")
-        except Exception as e:
-            log.warning(f"Failed to configure read node: {e}")
+    # for switch in [n for n in new_nodes if n.Class() == "Switch"]:
+    #     if "burnin" in switch.name():
+    #         switch["which"].setValue(data.get("burnin", 0))
+
+    # if read_node:
+    #     try:
+    #         string = (
+    #             f"{fs.absolute_file_name} {fs.first_frame}-{fs.last_frame}"
+    #         )
+    #         read_node["file"].fromUserText(string)
+    #         colorspace = data.get("colorspace", None)
+    #         if colorspace:
+    #             read_node["colorspace"].setValue(colorspace)
+    #         log.debug(
+    #             f"Read node file path set to: {read_node['file'].getValue()}"
+    #         )
+    #         log.debug(f"Read node colorspace set to: {colorspace}")
+    #     except Exception as e:
+    #         log.warning(f"Failed to configure read node: {e}")
+
+    # for node_name in write_nodes:
+    #     configure_write_node(node_name, data, log)
+
+    # n = nuke.toNode(node_name)
+    # if n is None:
+    #     log.raise_exception(f"failed to get write node: {node_name}")
 
     for node_name in write_nodes:
-        configure_write_node(node_name, data, log)
-
-    n = nuke.toNode(node_name)
-    if n is None:
-        log.raise_exception(f"failed to get write node: {node_name}")
-
-    for node_name in write_nodes:
+        n = nuke.toNode(node_name)
         if nuke.toNode(node_name) is None:
             log.error(f"failed to get write node: {node_name}")
             print(f"failed to get write node: {node_name}")
             continue
 
-        if nuke.toNode(node_name)['disable'].getValue():
+        if n["disable"].getValue():
             continue
-        
+
         # nuke.execute(node_name, n.firstFrame(), n.lastFrame())
         try:
             nuke.execute(node_name, n.firstFrame(), n.lastFrame())
         except Exception:
-            log.error(f"failed to render {node_name} with range {n.firstFrame()} - {n.lastFrame()}")
-            print(f"failed to render {node_name} with range {n.firstFrame()} - {n.lastFrame()}")
+            log.error(
+                f"failed to render {node_name} with range {n.firstFrame()} - {n.lastFrame()}"
+            )
+            print(
+                f"failed to render {node_name} with range {n.firstFrame()} - {n.lastFrame()}"
+            )
             try:
-                log.debug(f"trying to render {node_name} for single frame {n.firstFrame()}")
-                print(f"trying to render {node_name} for single frame {n.firstFrame()}")
+                log.debug(
+                    f"trying to render {node_name} for single frame {n.firstFrame()}"
+                )
+                print(
+                    f"trying to render {node_name} for single frame {n.firstFrame()}"
+                )
                 nuke.execute(node_name, n.firstFrame(), n.firstFrame())
             except Exception as e:
                 log.error(f"failed to execute {node_name}: {e}")
@@ -280,7 +293,7 @@ def generate_review_media_local(data, logger=None):
     return True
 
 
-def hornet_publish_configurate(data=None):
+def hornet_publish_configurate(data=None, nodes=None):
     """
     called from the onScriptLoad callback on the farm nuke instance
     configures the nodes in the template script for this submission
@@ -292,21 +305,28 @@ def hornet_publish_configurate(data=None):
     """
     print("hornet_publish_configurate")
 
+    if nodes == None:
+        nodes = nuke.allNodes()
+
     # Initialize logger in file mode for farm rendering
     log = MiniLogger(None, file_mode=True)
 
-    log.info(f"hornet_publish_configurate started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    log.info(
+        f"hornet_publish_configurate started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    )
 
     if data is None:
         d = os.environ.get("HORNET_PUBLISH", None)
         if d is None:
-            log.raise_exception("HORNET_PUBLISH environment variable is not set")
+            log.raise_exception(
+                "HORNET_PUBLISH environment variable is not set"
+            )
         data = json.loads(d)
 
     log.debug("Input data keys: " + ", ".join(data.keys()))
 
     try:
-        read_node = GetReadNode()
+        read_node = GetReadNode(log)
         log.info(f"Found read node: {read_node.name()}")
     except Exception as e:
         log.error(f"Failed to get read node: {str(e)}")
@@ -314,8 +334,10 @@ def hornet_publish_configurate(data=None):
 
     # Get file sequence information
     try:
-        fs = GetFileSequence(data)
-        log.info(f"File sequence: {fs.absolute_file_name} [{fs.first_frame}-{fs.last_frame}]")
+        fs = GetFileSequence(data, log)
+        log.info(
+            f"File sequence: {fs.absolute_file_name} [{fs.first_frame}-{fs.last_frame}]"
+        )
     except Exception as e:
         log.raise_exception(f"Failed to create file sequence: {str(e)}")
 
@@ -330,7 +352,7 @@ def hornet_publish_configurate(data=None):
         except Exception as e:
             log.error(f"Failed to configure read node: {str(e)}")
 
-    write_nodes = nuke.allNodes("Write")
+    write_nodes = [node for node in nodes if node.Class() == "Write"]
     log.info(f"Found {len(write_nodes)} write nodes")
 
     write_node_names = []
@@ -339,18 +361,24 @@ def hornet_publish_configurate(data=None):
             log.debug(f"Configuring write node: {write.name()}")
             configure_write_node(write, data, log)
             write_node_names.append(write.name())
-            log.info(f"Configured write node: {write.name()} -> {write['file'].getValue()}")
+            log.info(
+                f"Configured write node: {write.name()} -> {write['file'].getValue()}"
+            )
         except Exception as e:
-            log.error(f"Failed to configure write node {write.name()}: {str(e)}")
+            log.error(
+                f"Failed to configure write node {write.name()}: {str(e)}"
+            )
 
     try:
         populate_data_node(data)
-        log.info(f"Data node populated: {data.get('shot', 'N/A')} v{data.get('version', 'N/A')}")
+        log.info(
+            f"Data node populated: {data.get('shot', 'N/A')} v{data.get('version', 'N/A')}"
+        )
     except Exception as e:
         log.error(f"Failed to populate data node: {str(e)}")
 
     # set switch nodes that determine burnin
-    for n in nuke.allNodes("Switch"):
+    for n in [node for node in nodes if node.Class() == "Switch"]:
         if "burnin" in n.name():
             n["which"].setValue(data.get("burnin", 0))
 
@@ -530,21 +558,24 @@ def build_request(submission_info, temp_script_path, publish_env_vars):
     return body
 
 
-def GetReadNode():
+def GetReadNode(log):
+    # TODO this could lead to collisions if there's already a node with that name for some weird reason
     read_node = nuke.toNode("PublishRead")
     if read_node is None:
-        raise Exception("failed to get read node")
+        log.error("failed to get read node")
+        # raise Exception("failed to get read node")
     return read_node
 
 
-def GetFileSequence(data):
+def GetFileSequence(data, log):
     seq_string_abs = f"sequence string absolute: {data['publishedSequence']}"
     print(f"seq_string_abs: {seq_string_abs}")
     fs = SequenceFactory.from_sequence_string_absolute(
         Path(data["publishedSequence"])
     )
     if fs is None:
-        raise Exception("failed to get file sequence")
+        log.error("failed to get file sequence")
+        # raise Exception("failed to get file sequence")
     return fs
 
 
@@ -576,33 +607,35 @@ class MiniLogger:
         self.logger = logger
         self.file_mode = file_mode
         self.log_buffer = []
-        
+
         if file_mode:
-            self.log_buffer.append(f"=== HORNET PUBLISH LOG ===")
-            self.log_buffer.append(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-            
+            self.log_buffer.append("=== HORNET PUBLISH LOG ===")
+            self.log_buffer.append(
+                f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+
             # Add environment info only in file mode
             relevant_env_vars = [
                 "AYON_WORKDIR",
-                "AYON_PROJECT_NAME", 
+                "AYON_PROJECT_NAME",
                 "AYON_FOLDER_PATH",
                 "NUKE_PATH",
                 "OCIO",
             ]
-            
+
             self.log_buffer.append("\n=== ENVIRONMENT ===")
             for env_var in relevant_env_vars:
-                value = os.environ.get(env_var, 'NOT SET')
+                value = os.environ.get(env_var, "NOT SET")
                 self.log_buffer.append(f"{env_var}: {value}")
             self.log_buffer.append("")
 
     def log(self, message, level="info"):
         timestamp = datetime.now().strftime("%H:%M:%S")
         formatted_message = f"[{timestamp}] {level.upper()}: {message}"
-        
+
         print(formatted_message)
         nuke.tprint(formatted_message)
-        
+
         if self.file_mode:
             self.log_buffer.append(formatted_message)
 
@@ -625,28 +658,24 @@ class MiniLogger:
     def error(self, message):
         """Log at error level"""
         self.log(message, "error")
-    
+
     def raise_exception(self, message, exception_type=Exception):
         """Log an error message then raise an exception"""
         self.error(message)
         raise exception_type(message)
-    
+
     def finalize_log_file(self, log_file_path):
         """Write buffered log to file (only in file_mode)"""
         if not self.file_mode:
             return
-            
+
         try:
-            # Add sticky note with condensed debug info
-            sticky = nuke.nodes.StickyNote()
-            sticky["name"].setValue("debug_log")
-            sticky_text = f"Log file: {log_file_path}\nGenerated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-            sticky["label"].setValue(sticky_text)
             
+        
             # Write full log to file
             with open(log_file_path, "w") as f:
                 f.write("\n".join(self.log_buffer))
-                
+
             self.info(f"Debug log written to: {log_file_path}")
         except Exception as e:
             self.error(f"Failed to write log file: {str(e)}")
@@ -720,6 +749,7 @@ def resolve_submission_script(data, write_node_name, logger=None):
         log.raise_exception(f"failed to create publish temp script path: {e}")
 
     return submission_script
+
 
 # import os
 # import getpass
@@ -1419,7 +1449,6 @@ def resolve_submission_script(data, write_node_name, logger=None):
 #     except Exception as e:
 #         raise Exception(f"failed to get script information: {e}")
 
-    
 
 #     if write_node_names:
 #         write_nodes_str = "_".join(write_node_names)
