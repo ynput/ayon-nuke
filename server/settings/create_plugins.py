@@ -52,8 +52,8 @@ def render_target_enum():
     """Return write render target enum."""
     return [
         {"value": "local", "label": "Local machine rendering"},
-        {"value": "frames", "label": "Use existing frames"},
-        {"value": "frames_farm", "label": "Use existing frames - farm"},
+        {"value": "frames", "label": "Transfer Locally"},
+        {"value": "frames_farm", "label": "Transfer on farm"},
         {"value": "farm", "label": "Farm rendering"},
     ]
 

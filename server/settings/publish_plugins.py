@@ -423,7 +423,7 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
     },
     "HornetReviewMedia": {
         "enabled": True,
-        "template_script": r"P:/dev/alexh_dev/hornet_publish",
+        "template_script": r"P:/dev/alexh_dev/hornet_publish/hornet_publish_template.nk",
     },
     "IncrementScriptVersion": {
         "enabled": True,

@@ -44,6 +44,12 @@ class IntegrateProresReview(
     optional = True  # This makes the plugin optional in the UI
 
     def process(self, instance):
+        # Skip review generation for prerenders
+        product_type = instance.data.get("productType")
+        if product_type == "prerender":
+            self.log.info("Skipping review generation for prerender instance")
+            return
+
         project_settings = instance.context.data["project_settings"]
         nuke_settings = project_settings.get("nuke", {})
         publish_settings = nuke_settings.get("publish", {})

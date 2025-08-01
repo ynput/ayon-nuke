@@ -418,6 +418,7 @@ If "Transfer renders using farm" is checked, the transfer will take place remote
 
 
 def embed_experimental():
+
     """
     Creates an experimental tab with additional publish options and quick publish functionality.
     """
@@ -428,7 +429,7 @@ def embed_experimental():
     if knb != nde.knob("file_type"):
         return
 
-    div = nuke.Text_Knob("div", "", "")
+    # div = nuke.Text_Knob("div", "", "")
     # Get the parent group node
     group = nuke.toNode(".".join(["root"] + nde.fullName().split(".")[:-1]))
 
@@ -443,6 +444,17 @@ def embed_experimental():
         nuke.TABBEGINCLOSEDGROUP,
     )
 
+    # Check if this is a prerender node to skip review options
+    is_prerender = False
+    try:
+        data = json.loads(
+            group.knobs()["publish_instance"].value().replace("JSON:::", "", 1)
+        )
+        product_type = data.get("productType", "")
+        is_prerender = product_type == "prerender"
+    except (KeyError, TypeError, ValueError):
+        is_prerender = False
+
     # Create checkboxes
     publish_on_farm_checkbox = nuke.Boolean_Knob(
         "publish_on_farm", "Transfer renders using Farm"
@@ -453,37 +465,39 @@ def embed_experimental():
     )
     publish_on_farm_checkbox.setFlag(nuke.STARTLINE)
 
-    generate_review_checkbox = nuke.Boolean_Knob(
-        "generate_review_media", "Generate Review Media"
-    )
-    generate_review_checkbox.setValue(True)
-    generate_review_checkbox.setTooltip(
-        "Generate review media (mp4/mov) for the rendered sequence based on the template nuke script"
-    )
-    generate_review_checkbox.setFlag(nuke.STARTLINE)
+    # Only create review related for non prerender nodes
+    if not is_prerender:
+        generate_review_checkbox = nuke.Boolean_Knob(
+            "generate_review_media", "Generate Review Media"
+        )
+        generate_review_checkbox.setValue(True)
+        generate_review_checkbox.setTooltip(
+            "Generate review media (mp4/mov) for the rendered sequence based on the template nuke script"
+        )
+        generate_review_checkbox.setFlag(nuke.STARTLINE)
 
-    generate_review_farm_checkbox = nuke.Boolean_Knob(
-        "generate_review_media_on_farm", "Use farm for review media"
-    )
-    generate_review_farm_checkbox.setValue(False)
-    generate_review_farm_checkbox.setTooltip(
-        "Generate review media using the farm instead of locally"
-    )
-    generate_review_farm_checkbox.setFlag(nuke.STARTLINE)
+        generate_review_farm_checkbox = nuke.Boolean_Knob(
+            "generate_review_media_on_farm", "Use farm for review media"
+        )
+        generate_review_farm_checkbox.setValue(False)
+        generate_review_farm_checkbox.setTooltip(
+            "Generate review media using the farm instead of locally"
+        )
+        generate_review_farm_checkbox.setFlag(nuke.STARTLINE)
 
-    # If publish_on_farm is True, automatically set this to True and disable it
-    if publish_on_farm_checkbox.value():
-        generate_review_farm_checkbox.setValue(True)
-        generate_review_farm_checkbox.setEnabled(False)
+        # If publish_on_farm is True, automatically set this to True and disable it
+        if publish_on_farm_checkbox.value():
+            generate_review_farm_checkbox.setValue(True)
+            generate_review_farm_checkbox.setEnabled(False)
 
-    burnin_checkbox = nuke.Boolean_Knob(
-        "burnin", "Apply burnin to review proxy"
-    )
-    burnin_checkbox.setValue(True)
-    burnin_checkbox.setTooltip(
-        "Add burnin information (timecode, frame numbers, etc.) to proxy review media. Prores will not get burnin"
-    )
-    burnin_checkbox.setFlag(nuke.STARTLINE)
+        burnin_checkbox = nuke.Boolean_Knob(
+            "burnin", "Apply burnin to review proxy"
+        )
+        burnin_checkbox.setValue(True)
+        burnin_checkbox.setTooltip(
+            "Add burnin information (timecode, frame numbers, etc.) to proxy review media. Prores will not get burnin"
+        )
+        burnin_checkbox.setFlag(nuke.STARTLINE)
 
     quick_publish_button = nuke.PyScript_Knob(
         "quick_publish",
@@ -500,16 +514,23 @@ def embed_experimental():
     )
     show_info_button.setTooltip("Display information window")
 
-    group.addKnob(div)
+    # group.addKnob(div)
+    spacer = nuke.Text_Knob("exp_spacer", "", "")
+    group.addKnob(spacer)
     group.addKnob(experimental_tab)
+
     group.addKnob(publish_on_farm_checkbox)
-    group.addKnob(generate_review_checkbox)
-    group.addKnob(generate_review_farm_checkbox)
-    group.addKnob(burnin_checkbox)
+
+    # Only add review related knobs for non prerender nodes
+    if not is_prerender:
+        group.addKnob(generate_review_checkbox)
+        group.addKnob(generate_review_farm_checkbox)
+        group.addKnob(burnin_checkbox)
+
     spacer = nuke.Text_Knob("exp_spacer", "", "")
     group.addKnob(spacer)
     group.addKnob(quick_publish_button)
-    group.addKnob(show_info_button)  # Add the new button
+    group.addKnob(show_info_button)
 
 
 def handle_farm_publish_logic():
@@ -520,20 +541,16 @@ def handle_farm_publish_logic():
     nde = nuke.thisNode()
     kb = nuke.thisKnob()
 
-    # Only respond to changes to the publish_on_farm knob
     if not kb or kb.name() != "publish_on_farm":
         return
 
-    # Check if we have the review farm knob
     if not nde.knob("generate_review_media_on_farm"):
         return
 
     if kb.value():
-        # If publish_on_farm is checked, force review farm to True and disable it
         nde.knob("generate_review_media_on_farm").setValue(True)
         nde.knob("generate_review_media_on_farm").setEnabled(False)
     else:
-        # If publish_on_farm is unchecked, re-enable the review farm checkbox
         nde.knob("generate_review_media_on_farm").setEnabled(True)
 
 
@@ -601,10 +618,24 @@ def parse_publish_instance(qnode):
 def quick_publish_wrapper(node):
     from hornet_publish_utils import quick_publish
 
-    review = node["generate_review_media"].value()
-    review_farm = node["generate_review_media_on_farm"].value()
-    integrate_farm = node["publish_on_farm"].value()
-    burnin = node["burnin"].value()
+    # review = node["generate_review_media"].value()
+    # review_farm = node["generate_review_media_on_farm"].value()
+    # integrate_farm = node["publish_on_farm"].value()
+    # burnin = node["burnin"].value()
+
+    review_knob = node.knobs().get("generate_review_media")
+    review = review_knob.value() if review_knob else False
+
+    review_farm_knob = node.knobs().get("generate_review_media_on_farm")
+    review_farm = review_farm_knob.value() if review_farm_knob else False
+
+    integrate_farm_knob = node.knobs().get("publish_on_farm")
+    integrate_farm = (
+        integrate_farm_knob.value() if integrate_farm_knob else False
+    )
+
+    burnin_knob = node.knobs().get("burnin")
+    burnin = burnin_knob.value() if burnin_knob else False
 
     with nuke.root():
         quick_publish(

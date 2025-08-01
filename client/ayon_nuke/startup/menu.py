@@ -1,22 +1,20 @@
-# import nuke
-# import os
 
-# from ayon_core.pipeline import install_host
-# from ayon_nuke.api import NukeHost
+"""
+I've begun moving quick_write functions into their own file,
+but you have to be careful because function calls embedded as
+strings in old nodes will break if they are not available
+directly in this scope, and old nuke scripts will break
 
-# from ayon_core.lib import Logger
-# from ayon_nuke.api.lib import (
-#     WorkfileSettings,
-# )
+Ideally we would have more organized namespace and avoid importing
+all this in to the global scope. I think we would need to refactor
+it gradually with depracation warnings
 
-# """
-# I've begun moving quick_write functions into their own file,
-# but you have to be careful because function calls embedded as
-# strings in old nodes will break if they are not available
-# directly in this scope, and old nuke scripts will break
-# Alex H
-# """
+Alex H
+"""
+import nuke
+import os
 import quick_write
+import read_node_utils
 from quick_write import (
     embedOptions,
     presets,
@@ -34,33 +32,19 @@ from quick_write import (
 )
 from hornet_deadline_utils import save_script_with_render
 from hornet_publish_utils import quick_publish
-
-
-import read_node_utils
-
-# from hornet_deadline_utils import (
-#     deadlineNetworkSubmit,
-#     save_script_with_render,
-# )
-
-# import read_node_utils
-
 from ayon_core.pipeline import install_host
 from ayon_nuke.api import NukeHost
-
-host = NukeHost()
-install_host(host)
-import nuke
-import os
-
 from ayon_core.lib import Logger
 from ayon_nuke.api.lib import WorkfileSettings
+
+import hornet_publish_review_media
+import hornet_deadline_utils
+import file_sequence
 
 host = NukeHost()
 install_host(host)
 
 log = Logger.get_logger(__name__)
-
 
 def apply_format_presets():
     # print("apply_format_presets")
@@ -138,7 +122,7 @@ def writes_ver_sync():
 
 
 def switchExtension():
-    # print("switchExtension")
+
     nde = nuke.thisNode()
     knb = nuke.thisKnob()
     if knb == nde.knob("file_type"):
