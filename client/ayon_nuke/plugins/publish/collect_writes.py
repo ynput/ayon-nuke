@@ -9,8 +9,9 @@ from ayon_core.pipeline import publish
 from ayon_nuke import api as napi
 
 
-class CollectNukeWrites(pyblish.api.InstancePlugin,
-                        publish.ColormanagedPyblishPluginMixin):
+class CollectNukeWrites(
+    pyblish.api.InstancePlugin, publish.ColormanagedPyblishPluginMixin
+):
     """Collect all write nodes."""
 
     order = pyblish.api.CollectorOrder + 0.0021
@@ -25,7 +26,6 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
     _frame_ranges = {}
 
     def process(self, instance):
-
         # compatibility. This is mainly focused on `renders`folders which
         # were previously not cleaned up (and could be used in read notes)
         # this logic should be removed and replaced with custom staging dir
@@ -54,7 +54,8 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
 
         elif render_target == "frames_farm":
             collected_frames = self._set_existing_files_data(
-                instance, colorspace)
+                instance, colorspace
+            )
 
             self._set_expected_files(instance, collected_frames)
 
@@ -66,13 +67,14 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         # set additional instance data
         self._set_additional_instance_data(instance, render_target, colorspace)
 
-        
-        
         if "stagingDir" in instance.data.keys():
             self.log.debug(f"StagingDir: {instance.data.get('stagingDir')}")
         else:
             self.log.debug("staging dir not in instance data!")
-        self.log.debug("\n" + '\n'.join([f"    {k}: {v}" for k, v in instance.data.items()]))
+        self.log.debug(
+            "\n"
+            + "\n".join([f"    {k}: {v}" for k, v in instance.data.items()])
+        )
 
     def _set_existing_files_data(self, instance, colorspace):
         """Set existing files data to instance data.
@@ -92,8 +94,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
 
         # inject colorspace data
         self.set_representation_colorspace(
-            representation, instance.context,
-            colorspace=colorspace
+            representation, instance.context, colorspace=colorspace
         )
 
         instance.data["representations"].append(representation)
@@ -108,6 +109,9 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             collected_frames (list): collected frames
         """
         write_node = self._write_node_helper(instance)
+        if write_node is None:
+            self.log.error("Cannot set expected files: write node not found")
+            return
 
         write_file_path = nuke.filename(write_node)
         output_dir = os.path.dirname(write_file_path)
@@ -134,17 +138,30 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             return self._frame_ranges[instance_name]
 
         write_node = self._write_node_helper(instance)
-        if write_node.name().startswith('inside_'):
-            group_node = nuke.toNode(write_node.name()[7:])
-            self.log.info("Group node: %s" % group_node.name())
-        if group_node.knob('usePublishRange').value() == True:
-            first_frame = int(group_node['publishFirst'].value())
-            last_frame = int(group_node['publishLast'].value())
-            self.log.info(f"first frame: {first_frame}, last frame: {last_frame}")
+        if write_node is None:
+            self.log.error("Cannot get frame range: write node not found")
+            # Use workfile frame range as fallback
+            first_frame = int(nuke.root()["first_frame"].value())
+            last_frame = int(nuke.root()["last_frame"].value())
             self._frame_ranges[instance_name] = (first_frame, last_frame)
-            self.log.info("Using publish range from write node")
             return first_frame, last_frame
-        # Get frame range from workfile
+
+        # Get the group node that contains the write node
+        group_node = instance.data["transientData"]["node"]
+
+        # Check if group node has publish range settings
+        if (
+            group_node.Class() == "Group"
+            and "usePublishRange" in group_node.knobs()
+            and group_node.knob("usePublishRange").value()
+        ):
+            first_frame = int(group_node["publishFirst"].value())
+            last_frame = int(group_node["publishLast"].value())
+            self.log.info(
+                f"Using publish range from group node: {first_frame}-{last_frame}"
+            )
+            self._frame_ranges[instance_name] = (first_frame, last_frame)
+            return first_frame, last_frame
 
         # Get frame range from write node if activated
         first_frame = int(write_node["first"].getValue())
@@ -170,20 +187,29 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         # add targeted family to families
         if render_target == "frames_farm":
             instance.data["families"].append(
-                "{}.{}".format(product_type, 'frames')
+                "{}.{}".format(product_type, "frames")
             )
-            self.log.debug("Hornet - Appending render target to families: {}.frames".format(
-                product_type)
+            self.log.debug(
+                "Hornet - Appending render target to families: {}.frames".format(
+                    product_type
+                )
             )
         else:
             instance.data["families"].append(
                 "{}.{}".format(product_type, render_target)
             )
-            self.log.debug("Appending render target to families: {}.{}".format(
-                product_type, render_target)
+            self.log.debug(
+                "Appending render target to families: {}.{}".format(
+                    product_type, render_target
+                )
             )
 
         write_node = self._write_node_helper(instance)
+        if write_node is None:
+            self.log.error(
+                "Cannot set additional instance data: write node not found"
+            )
+            return
 
         # Determine defined file type
         path = write_node["file"].value()
@@ -204,37 +230,66 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         self.log.debug(f"output_dir: {output_dir}")
 
         # TODO: remove this when we have proper colorspace support
-        version_data = {
-            "colorspace": colorspace
-        }
+        version_data = {"colorspace": colorspace}
 
-        instance.data.update({
-            "versionData": version_data,
-            "path": write_file_path,
-            "outputDir": output_dir,
-            "ext": ext,
-            "colorspace": colorspace,
-            "color_channels": color_channels
-        })
+        instance.data.update(
+            {
+                "versionData": version_data,
+                "path": write_file_path,
+                "outputDir": output_dir,
+                "ext": ext,
+                "colorspace": colorspace,
+                "color_channels": color_channels,
+            }
+        )
 
         if product_type == "render":
-            instance.data.update({
-                "handleStart": handle_start,
-                "handleEnd": handle_end,
-                "frameStart": first_frame + handle_start,
-                "frameEnd": last_frame - handle_end,
-                "frameStartHandle": first_frame,
-                "frameEndHandle": last_frame,
-            })
+            instance.data.update(
+                {
+                    "handleStart": handle_start,
+                    "handleEnd": handle_end,
+                    "frameStart": first_frame + handle_start,
+                    "frameEnd": last_frame - handle_end,
+                    "frameStartHandle": first_frame,
+                    "frameEndHandle": last_frame,
+                }
+            )
         else:
-            instance.data.update({
-                "handleStart": 0,
-                "handleEnd": 0,
-                "frameStart": first_frame,
-                "frameEnd": last_frame,
-                "frameStartHandle": first_frame,
-                "frameEndHandle": last_frame,
-            })
+            instance.data.update(
+                {
+                    "handleStart": 0,
+                    "handleEnd": 0,
+                    "frameStart": first_frame,
+                    "frameEnd": last_frame,
+                    "frameStartHandle": first_frame,
+                    "frameEndHandle": last_frame,
+                }
+            )
+
+    def _get_instance_group_node_childs_recursive(self, instance):
+        """Return list of instance group node children recursively.
+
+        Args:
+            instance (pyblish.api.Instance): pyblish instance
+
+        Returns:
+            list: [nuke.Node] - all child nodes including nested groups
+        """
+        group_node = instance.data["transientData"]["node"]
+
+        if group_node.Class() != "Group":
+            return []
+
+        # collect child nodes recursively
+        child_nodes = []
+
+        # Use the group node as context to get all nodes within it
+        with group_node:
+            # Get all nodes recursively within this group
+            for node in nuke.allNodes(recurseGroups=True):
+                child_nodes.append(node)
+
+        return child_nodes
 
     def _write_node_helper(self, instance):
         """Helper function to get write node from instance.
@@ -245,7 +300,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             instance (pyblish.api.Instance): pyblish instance
 
         Returns:
-            nuke.Node: write node
+            nuke.Node: write node or None if not found
         """
         instance_name = instance.data["name"]
 
@@ -253,8 +308,8 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             # return cashed write node
             return self._write_nodes[instance_name]
 
-        # get all child nodes from group node
-        child_nodes = napi.get_instance_group_node_childs(instance)
+        # get all child nodes from group node recursively
+        child_nodes = self._get_instance_group_node_childs_recursive(instance)
 
         # set child nodes to instance transient data
         instance.data["transientData"]["childNodes"] = child_nodes
@@ -263,6 +318,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         for node_ in child_nodes:
             if node_.Class() == "Write":
                 write_node = node_
+                break  # Use the first Write node found
 
         if write_node:
             # for slate frame extraction
@@ -272,11 +328,9 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
 
             return self._write_nodes[instance_name]
 
-    def _get_existing_frames_representation(
-        self,
-        instance,
-        collected_frames
-    ):
+        return None
+
+    def _get_existing_frames_representation(self, instance, collected_frames):
         """Get existing frames representation.
 
         Args:
@@ -290,6 +344,11 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         first_frame, last_frame = self._get_frame_range_data(instance)
 
         write_node = self._write_node_helper(instance)
+        if write_node is None:
+            self.log.error(
+                "Cannot get existing frames representation: write node not found"
+            )
+            return {}
 
         write_file_path = nuke.filename(write_node)
         output_dir = os.path.dirname(write_file_path)
@@ -302,21 +361,18 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "name": ext,
             "ext": ext,
             "stagingDir": output_dir,
-            "tags": []
+            "tags": [],
         }
 
         # set slate frame
         collected_frames = self._add_slate_frame_to_collected_frames(
-            instance,
-            collected_frames,
-            first_frame,
-            last_frame
+            instance, collected_frames, first_frame, last_frame
         )
 
         if len(collected_frames) == 1:
-            representation['files'] = collected_frames.pop()
+            representation["files"] = collected_frames.pop()
         else:
-            representation['files'] = collected_frames
+            representation["files"] = collected_frames
 
         return representation
 
@@ -331,9 +387,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             str: frame start string
         """
         # convert first frame to string with padding
-        return (
-            "{{:0{}d}}".format(len(str(last_frame)))
-        ).format(first_frame)
+        return ("{{:0{}d}}".format(len(str(last_frame)))).format(first_frame)
 
     def _get_frame_start_index(self, collected_frames, frame_start):
         """Get index of *frame_start* within *collected_frames*.
@@ -352,11 +406,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
                 return index
 
     def _add_slate_frame_to_collected_frames(
-        self,
-        instance,
-        collected_frames,
-        first_frame,
-        last_frame
+        self, instance, collected_frames, first_frame, last_frame
     ):
         """Add slate frame to collected frames.
 
@@ -374,20 +424,20 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
 
         # this will only run if slate frame is not already
         # rendered from previews publishes
-        if (
-            "slate" in instance.data["families"]
-            and frame_length == len(collected_frames)
+        if "slate" in instance.data["families"] and frame_length == len(
+            collected_frames
         ):
             frame_slate_str = self._get_frame_start_str(
-                first_frame - 1,
-                last_frame
+                first_frame - 1, last_frame
             )
             frame_start_index = self._get_frame_start_index(
                 collected_frames, frame_start_str
             )
-            slate_frame = collected_frames[frame_start_index].replace(
-                frame_start_str, frame_slate_str)
-            collected_frames.insert(0, slate_frame)
+            if frame_start_index is not None:
+                slate_frame = collected_frames[frame_start_index].replace(
+                    frame_start_str, frame_slate_str
+                )
+                collected_frames.insert(0, slate_frame)
 
         return collected_frames
 
@@ -404,10 +454,12 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             instance.data["useSequenceForReview"] = True
 
         # Farm rendering
-        instance.data.update({
-            "transfer": True,
-            "farm": True  # to skip integrate
-        })
+        instance.data.update(
+            {
+                "transfer": True,
+                "farm": True,  # to skip integrate
+            }
+        )
         self.log.info("Farm rendering ON ...")
 
     def _get_collected_frames(self, instance):
@@ -423,6 +475,9 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         first_frame, last_frame = self._get_frame_range_data(instance)
 
         write_node = self._write_node_helper(instance)
+        if write_node is None:
+            self.log.error("Cannot get collected frames: write node not found")
+            return []
 
         write_file_path = nuke.filename(write_node)
         output_dir = os.path.dirname(write_file_path)
@@ -430,22 +485,29 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         # get file path knob
         node_file_knob = write_node["file"]
         # list file paths based on input frames
-        expected_paths = list(sorted({
-            node_file_knob.evaluate(frame)
-            for frame in range(first_frame, last_frame + 1)
-        }))
+        expected_paths = list(
+            sorted(
+                {
+                    node_file_knob.evaluate(frame)
+                    for frame in range(first_frame, last_frame + 1)
+                }
+            )
+        )
 
         # convert only to base names
         expected_filenames = {
-            os.path.basename(filepath)
-            for filepath in expected_paths
+            os.path.basename(filepath) for filepath in expected_paths
         }
 
         # make sure files are existing at folder
-        collected_frames = [
-            filename
-            for filename in os.listdir(output_dir)
-            if filename in expected_filenames
-        ]
+        if os.path.exists(output_dir):
+            collected_frames = [
+                filename
+                for filename in os.listdir(output_dir)
+                if filename in expected_filenames
+            ]
+        else:
+            self.log.warning(f"Output directory does not exist: {output_dir}")
+            collected_frames = []
 
         return collected_frames

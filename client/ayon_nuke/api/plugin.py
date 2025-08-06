@@ -9,10 +9,7 @@ from collections import defaultdict
 
 import ayon_api
 from ayon_core.settings import get_current_project_settings
-from ayon_core.lib import (
-    BoolDef,
-    EnumDef
-)
+from ayon_core.lib import BoolDef, EnumDef
 from ayon_core.lib import StringTemplate
 from ayon_core.pipeline import (
     LoaderPlugin,
@@ -26,11 +23,9 @@ from ayon_core.pipeline import (
 from ayon_core.pipeline.colorspace import (
     get_display_view_colorspace_name,
     get_colorspace_settings_from_publish_context,
-    set_colorspace_data_to_representation
+    set_colorspace_data_to_representation,
 )
-from ayon_core.lib.transcoding import (
-    VIDEO_EXTENSIONS
-)
+from ayon_core.lib.transcoding import VIDEO_EXTENSIONS
 from .lib import (
     INSTANCE_DATA_KNOB,
     Knobby,
@@ -55,7 +50,7 @@ from .pipeline import (
 from .command import viewer_update_and_undo_stop
 from .colorspace import (
     get_formatted_display_and_view_as_dict,
-    get_formatted_colorspace
+    get_formatted_colorspace,
 )
 
 
@@ -79,20 +74,19 @@ class NukeCreator(NewCreator):
     node_class_name = None
 
     def _pass_pre_attributes_to_instance(
-        self,
-        instance_data,
-        pre_create_data,
-        keys=None
+        self, instance_data, pre_create_data, keys=None
     ):
         if keys is None:
             keys = pre_create_data.keys()
         creator_attrs = instance_data["creator_attributes"] = {}
 
-        creator_attrs.update({
-            key: value
-            for key, value in pre_create_data.items()
-            if key in keys
-        })
+        creator_attrs.update(
+            {
+                key: value
+                for key, value in pre_create_data.items()
+                if key in keys
+            }
+        )
 
     def check_existing_product(self, product_name):
         """Make sure product name is unique.
@@ -173,7 +167,7 @@ class NukeCreator(NewCreator):
         pre_create_data,
         class_name: str = None,
     ):
-        """ Get current node selection.
+        """Get current node selection.
 
         Arguments:
             pre_create_data (dict): The creator initial data.
@@ -201,9 +195,7 @@ class NukeCreator(NewCreator):
                 pattern = class_name
             regex = re.compile(pattern)
             selected_nodes = [
-                node
-                for node in selected_nodes
-                if regex.match(node.Class())
+                node for node in selected_nodes if regex.match(node.Class())
             ]
 
         if class_name and use_selection and not selected_nodes:
@@ -212,7 +204,6 @@ class NukeCreator(NewCreator):
         return selected_nodes
 
     def create(self, product_name, instance_data, pre_create_data):
-
         # make sure selected nodes are detected early on.
         # we do not want any further Nuke operation to change the selection.
         node_selection = self._get_current_selected_nodes(pre_create_data)
@@ -227,10 +218,7 @@ class NukeCreator(NewCreator):
                 node_selection=node_selection,
             )
             instance = CreatedInstance(
-                self.product_type,
-                product_name,
-                instance_data,
-                self
+                self.product_type, product_name, instance_data, self
             )
 
             self.apply_staging_dir(instance)
@@ -239,7 +227,8 @@ class NukeCreator(NewCreator):
             self._add_instance_to_context(instance)
 
             set_node_data(
-                instance_node, INSTANCE_DATA_KNOB, instance.data_to_store())
+                instance_node, INSTANCE_DATA_KNOB, instance.data_to_store()
+            )
 
             return instance
 
@@ -249,15 +238,12 @@ class NukeCreator(NewCreator):
     def collect_instances(self):
         cached_instances = _collect_and_cache_nodes(self)
         attr_def_keys = {
-            attr_def.key
-            for attr_def in self.get_instance_attr_defs()
+            attr_def.key for attr_def in self.get_instance_attr_defs()
         }
         attr_def_keys.discard(None)
 
-        for (node, data) in cached_instances[self.identifier]:
-            created_instance = CreatedInstance.from_existing(
-                data, self
-            )
+        for node, data in cached_instances[self.identifier]:
+            created_instance = CreatedInstance.from_existing(data, self)
 
             self.apply_staging_dir(created_instance)
             created_instance.transient_data["node"] = node
@@ -287,9 +273,7 @@ class NukeCreator(NewCreator):
                 )
 
             set_node_data(
-                instance_node,
-                INSTANCE_DATA_KNOB,
-                created_inst.data_to_store()
+                instance_node, INSTANCE_DATA_KNOB, created_inst.data_to_store()
             )
 
     def remove_instances(self, instances):
@@ -302,8 +286,8 @@ class NukeCreator(NewCreator):
             BoolDef(
                 "use_selection",
                 # default=not self.create_context.headless,
-                default=False, # HPIPE-710 requested to set default to False
-                label="Use selection"
+                default=False,  # HPIPE-710 requested to set default to False
+                label="Use selection",
             )
         ]
 
@@ -322,7 +306,8 @@ class NukeWriteCreator(NukeCreator):
     icon = "sign-out"
 
     temp_rendering_path_template = (  # default to be applied if settings is missing
-        "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}")
+        "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}"
+    )
 
     render_target = "local"  # default to be applied if settings is missing
 
@@ -361,7 +346,7 @@ class NukeWriteCreator(NukeCreator):
         self,
         pre_create_data,
     ):
-        """ Get current node selection.
+        """Get current node selection.
 
         Arguments:
             pre_create_data (dict): The creator initial data.
@@ -425,7 +410,7 @@ class NukeWriteCreator(NukeCreator):
         staging_dir = self.apply_staging_dir(created_inst)
         if staging_dir:
             basename = os.path.basename(fpath)
-            staging_path = pathlib.Path(staging_dir)/ basename
+            staging_path = pathlib.Path(staging_dir) / basename
             fpath = staging_path.as_posix()
 
         write_node["file"].setValue(fpath)
@@ -441,11 +426,24 @@ class NukeWriteCreator(NukeCreator):
 
         # add reviewable attribute
         if "reviewable" in self.instance_attributes:
+            attr_defs.append(BoolDef("review", default=True, label="Review"))
+
+        # add test attributes
+        if "hornet_review_on_farm" in self.instance_attributes:
             attr_defs.append(
                 BoolDef(
-                    "review",
+                    "hornet_review_use_farm",
+                    default=False,
+                    label="Use farm for review media",
+                )
+            )
+            
+        if "review_burnin" in self.instance_attributes:
+            attr_defs.append(
+                BoolDef(
+                    "review_burnin",
                     default=True,
-                    label="Review"
+                    label="Review burnin",
                 )
             )
 
@@ -458,34 +456,29 @@ class NukeWriteCreator(NukeCreator):
         }
 
         if "farm_rendering" in self.instance_attributes:
-            rendering_targets.update({
-                "frames_farm": "Use existing frames - farm",
-                # "farm": "Farm rendering", # HPIPE-713 Rqequest to remove unused options
-            })
+            rendering_targets.update(
+                {
+                    "frames_farm": "Use existing frames - farm",
+                    # "farm": "Farm rendering", # HPIPE-713 Rqequest to remove unused options
+                }
+            )
 
         return EnumDef(
             "render_target",
             items=rendering_targets,
             label="Render target",
             default="frames",  # HPIPE-713 Rqequest to set default to "Use existing frames"
-            tooltip="Define the render target."
+            tooltip="Define the render target.",
         )
 
     def create(self, product_name, instance_data, pre_create_data):
         if not pre_create_data:
             # add no selection for headless
-            pre_create_data = {
-                "use_selection": False
-            }
+            pre_create_data = {"use_selection": False}
 
         # pass values from precreate to instance
         self._pass_pre_attributes_to_instance(
-            instance_data,
-            pre_create_data,
-            [
-                "active_frame",
-                "render_target"
-            ]
+            instance_data, pre_create_data, ["active_frame", "render_target"]
         )
         # make sure selected nodes are added
         node_selection = self._get_current_selected_nodes(pre_create_data)
@@ -495,10 +488,7 @@ class NukeWriteCreator(NukeCreator):
 
         try:
             instance = CreatedInstance(
-                self.product_type,
-                product_name,
-                instance_data,
-                self
+                self.product_type, product_name, instance_data, self
             )
 
             staging_dir = self.apply_staging_dir(instance)
@@ -514,9 +504,7 @@ class NukeWriteCreator(NukeCreator):
             self._add_instance_to_context(instance)
 
             set_node_data(
-                instance_node,
-                INSTANCE_DATA_KNOB,
-                instance.data_to_store()
+                instance_node, INSTANCE_DATA_KNOB, instance.data_to_store()
             )
 
             exposed_write_knobs(
@@ -539,20 +527,23 @@ class NukeWriteCreator(NukeCreator):
         )
         # TODO remove template key replacements
         temp_rendering_path_template = (
-            temp_rendering_path_template
-            .replace("{product[name]}", "{subset}")
+            temp_rendering_path_template.replace("{product[name]}", "{subset}")
             .replace("{product[type]}", "{family}")
             .replace("{task[name]}", "{task}")
             .replace("{folder[name]}", "{asset}")
         )
         # individual attributes
-        self.instance_attributes = plugin_settings.get(
-            "instance_attributes") or self.instance_attributes
+        self.instance_attributes = (
+            plugin_settings.get("instance_attributes")
+            or self.instance_attributes
+        )
         self.prenodes = plugin_settings["prenodes"]
-        self.default_variants = plugin_settings.get(
-            "default_variants") or self.default_variants
-        self.render_target = plugin_settings.get(
-            "render_target") or self.render_target
+        self.default_variants = (
+            plugin_settings.get("default_variants") or self.default_variants
+        )
+        self.render_target = (
+            plugin_settings.get("render_target") or self.render_target
+        )
         self.temp_rendering_path_template = temp_rendering_path_template
 
 
@@ -593,12 +584,7 @@ def get_colorspace_from_node(node):
 
 def get_review_presets_config():
     settings = get_current_project_settings()
-    review_profiles = (
-        settings["core"]
-        ["publish"]
-        ["ExtractReview"]
-        ["profiles"]
-    )
+    review_profiles = settings["core"]["publish"]["ExtractReview"]["profiles"]
 
     outputs = {}
     for profile in review_profiles:
@@ -617,8 +603,10 @@ class NukeLoader(LoaderPlugin):
     container_id = None
 
     def reset_container_id(self):
-        self.container_id = "".join(random.choice(
-            string.ascii_uppercase + string.digits) for _ in range(10))
+        self.container_id = "".join(
+            random.choice(string.ascii_uppercase + string.digits)
+            for _ in range(10)
+        )
 
     def get_container_id(self, node):
         id_knob = node.knobs().get(self.container_id_knob)
@@ -627,9 +615,16 @@ class NukeLoader(LoaderPlugin):
     def get_members(self, source):
         """Return nodes that has same "containerId" as `source`"""
         source_id = self.get_container_id(source)
-        return [node for node in nuke.allNodes(recurseGroups=True)
+        return (
+            [
+                node
+                for node in nuke.allNodes(recurseGroups=True)
                 if self.get_container_id(node) == source_id
-                and node is not source] if source_id else []
+                and node is not source
+            ]
+            if source_id
+            else []
+        )
 
     def set_as_member(self, node):
         source_id = self.get_container_id(node)
@@ -641,10 +636,8 @@ class NukeLoader(LoaderPlugin):
             _knob = Knobby(
                 "String_Knob",
                 self.container_id,
-                flags=[
-                    nuke.READ_ONLY,
-                    HIDEN_FLAG
-                ])
+                flags=[nuke.READ_ONLY, HIDEN_FLAG],
+            )
             knob = _knob.create(self.container_id_knob)
             node.addKnob(knob)
 
@@ -681,22 +674,19 @@ class NukeGroupLoader(LoaderPlugin):
     This is not used by default but can be used by child classes for easy
     access to them.
     """
+
     settings_category = "nuke"
 
     ignore_attr = ["useLifetime"]
     node_color = "0x3469ffff"
 
     def on_load(self, group_node: nuke.Node, namespace: str, context: dict):
-        """Logic to be implemented on subclass to describe what to do on load.
-        """
+        """Logic to be implemented on subclass to describe what to do on load."""
         # Override to do anything
         pass
 
     def on_update(
-        self,
-        group_node: nuke.Node,
-        namespace: str,
-        context: dict
+        self, group_node: nuke.Node, namespace: str, context: dict
     ) -> nuke.Node:
         """Logic to be implemented on subclass to describe what to do on load.
 
@@ -719,9 +709,7 @@ class NukeGroupLoader(LoaderPlugin):
             nuke.Node: created group node
         """
         return nuke.createNode(
-            "Group",
-            "name {}_1".format(object_name),
-            inpanel=False
+            "Group", "name {}_1".format(object_name), inpanel=False
         )
 
     def load(self, context, name=None, namespace=None, options=None):
@@ -749,8 +737,7 @@ class NukeGroupLoader(LoaderPlugin):
 
         self._set_node_color(group_node, context)
 
-        self.log.info(
-            "Loaded setup: `{}`".format(group_node["name"].value()))
+        self.log.info("Loaded setup: `{}`".format(group_node["name"].value()))
 
         data_imprint = self._get_imprint_data(context)
         return containerise(
@@ -759,7 +746,8 @@ class NukeGroupLoader(LoaderPlugin):
             namespace=namespace,
             context=context,
             loader=self.__class__.__name__,
-            data=data_imprint)
+            data=data_imprint,
+        )
 
     def update(self, container, context):
         """Update the Loader's path
@@ -780,10 +768,7 @@ class NukeGroupLoader(LoaderPlugin):
 
         # Update the imprinted representation
         data_imprint = self._get_imprint_data(context)
-        update_container(
-            group_node,
-            data_imprint
-        )
+        update_container(group_node, data_imprint)
 
         self.log.info(
             "updated to version: {}".format(context["version"]["version"])
@@ -838,7 +823,8 @@ class NukeGroupLoader(LoaderPlugin):
             label="Input Process",
             layer=2,
             nodes=[viewer, group_node],
-            color="0x7c7faaff")
+            color="0x7c7faaff",
+        )
 
         return True
 
@@ -858,7 +844,7 @@ class NukeGroupLoader(LoaderPlugin):
             "version": version_entity["version"],
             "colorspaceInput": version_attributes.get("colorSpace"),
             # For updating
-            "representation": context["representation"]["id"]
+            "representation": context["representation"]["id"],
         }
         for k in [
             "frameStart",
@@ -866,14 +852,15 @@ class NukeGroupLoader(LoaderPlugin):
             "handleStart",
             "handleEnd",
             "source",
-            "fps"
+            "fps",
         ]:
             data[k] = version_attributes[k]
 
         for key, value in dict(**data).items():
             if value is None:
                 self.log.warning(
-                    f"Skipping imprinting of key with 'None' value` {key}")
+                    f"Skipping imprinting of key with 'None' value` {key}"
+                )
                 data.pop(key)
 
         return data
@@ -888,15 +875,11 @@ class ExporterReview(object):
         instance (pyblish.instance): instance of pyblish context
 
     """
+
     data = None
     publish_on_farm = False
 
-    def __init__(self,
-                 klass,
-                 instance,
-                 multiple_presets=True
-                 ):
-
+    def __init__(self, klass, instance, multiple_presets=True):
         self.log = klass.log
         self.instance = instance
         self.multiple_presets = multiple_presets
@@ -906,8 +889,7 @@ class ExporterReview(object):
         self.data = {"representations": []}
         if self.instance.data.get("stagingDir_is_custom"):
             self.staging_dir = self._update_staging_dir(
-                self.instance.context.data["currentFile"],
-                self.staging_dir
+                self.instance.context.data["currentFile"], self.staging_dir
             )
 
     def get_file_info(self):
@@ -943,7 +925,7 @@ class ExporterReview(object):
         custom_tags=None,
         colorspace=None,
     ):
-        """ Add representation data to self.data
+        """Add representation data to self.data
 
         Args:
             tags (list[str], optional): list of defined tags.
@@ -968,7 +950,7 @@ class ExporterReview(object):
                 # as representation, we will be able to then identify it
                 # from representation.data.isIntermediate
                 "isIntermediate": True,
-                "isMultiIntermediates": self.multiple_presets
+                "isMultiIntermediates": self.multiple_presets,
             },
         }
 
@@ -976,13 +958,16 @@ class ExporterReview(object):
             repre["custom_tags"] = custom_tags
 
         if range:
-            repre.update({
-                "frameStart": self.first_frame,
-                "frameEnd": self.last_frame,
-            })
+            repre.update(
+                {
+                    "frameStart": self.first_frame,
+                    "frameEnd": self.last_frame,
+                }
+            )
         if ".{}".format(self.ext) not in VIDEO_EXTENSIONS:
             filenames = get_filenames_without_hash(
-                self.file, self.first_frame, self.last_frame)
+                self.file, self.first_frame, self.last_frame
+            )
             repre["files"] = filenames
 
         if self.publish_on_farm:
@@ -994,12 +979,13 @@ class ExporterReview(object):
                 repre,
                 self.instance.context.data,
                 colorspace=colorspace,
-                log=self.log
+                log=self.log,
             )
         self.data["representations"].append(repre)
 
     def get_imageio_baking_profile(self):
         from . import lib as opnlib
+
         nuke_imageio = opnlib.get_nuke_imageio_settings()
 
         if nuke_imageio["baking_target"]["enabled"]:
@@ -1027,7 +1013,8 @@ class ExporterReview(object):
             self.log.warning(
                 f"Current file '{current_file}' doesn't contain version number. "
                 "No replacement necessary",
-                exc_info=True)
+                exc_info=True,
+            )
             return staging_dir
         try:
             staging_dir_version = "v" + get_version_from_path(staging_dir)
@@ -1035,7 +1022,8 @@ class ExporterReview(object):
             self.log.warning(
                 f"Staging directory '{staging_dir}' doesn't contain version number. "
                 "No replacement necessary",
-                exc_info=True)
+                exc_info=True,
+            )
             return staging_dir
 
         new_version = "v" + str("{" + ":0>{}".format(padding) + "}").format(
@@ -1047,6 +1035,7 @@ class ExporterReview(object):
         )
         return staging_dir.replace(staging_dir_version, new_version)
 
+
 class ExporterReviewLut(ExporterReview):
     """
     Generator object for review lut from Nuke
@@ -1057,20 +1046,24 @@ class ExporterReviewLut(ExporterReview):
 
 
     """
+
     _temp_nodes = []
 
-    def __init__(self,
-                 klass,
-                 instance,
-                 name=None,
-                 ext=None,
-                 cube_size=None,
-                 lut_size=None,
-                 lut_style=None,
-                 multiple_presets=True):
+    def __init__(
+        self,
+        klass,
+        instance,
+        name=None,
+        ext=None,
+        cube_size=None,
+        lut_size=None,
+        lut_style=None,
+        multiple_presets=True,
+    ):
         # initialize parent class
         super(ExporterReviewLut, self).__init__(
-            klass, instance, multiple_presets)
+            klass, instance, multiple_presets
+        )
 
         # deal with now lut defined in viewer lut
         if hasattr(klass, "viewer_lut_raw"):
@@ -1090,8 +1083,9 @@ class ExporterReviewLut(ExporterReview):
         self.log.info("File info was set...")
 
         self.file = self.fhead + self.name + ".{}".format(self.ext)
-        self.path = os.path.join(
-            self.staging_dir, self.file).replace("\\", "/")
+        self.path = os.path.join(self.staging_dir, self.file).replace(
+            "\\", "/"
+        )
 
     def clean_nodes(self):
         for node in self._temp_nodes:
@@ -1101,8 +1095,7 @@ class ExporterReviewLut(ExporterReview):
 
     def generate_lut(self, **kwargs):
         bake_viewer_process = kwargs["bake_viewer_process"]
-        bake_viewer_input_process_node = kwargs[
-            "bake_viewer_input_process"]
+        bake_viewer_input_process_node = kwargs["bake_viewer_input_process"]
 
         # ---------- start nodes creation
 
@@ -1123,7 +1116,8 @@ class ExporterReviewLut(ExporterReview):
                     self._temp_nodes.append(ipn)
                     self.previous_node = ipn
                     self.log.debug(
-                        "ViewProcess...   `{}`".format(self._temp_nodes))
+                        "ViewProcess...   `{}`".format(self._temp_nodes)
+                    )
 
             if not self.viewer_lut_raw:
                 # OCIODisplay
@@ -1133,7 +1127,8 @@ class ExporterReviewLut(ExporterReview):
                 self._temp_nodes.append(dag_node)
                 self.previous_node = dag_node
                 self.log.debug(
-                    "OCIODisplay...   `{}`".format(self._temp_nodes))
+                    "OCIODisplay...   `{}`".format(self._temp_nodes)
+                )
 
         # GenerateLUT
         gen_lut_node = nuke.createNode("GenerateLUT")
@@ -1148,9 +1143,8 @@ class ExporterReviewLut(ExporterReview):
 
         # Export lut file
         nuke.execute(
-            gen_lut_node.name(),
-            int(self.first_frame),
-            int(self.first_frame))
+            gen_lut_node.name(), int(self.first_frame), int(self.first_frame)
+        )
 
         self.log.info("Exported...")
 
@@ -1172,18 +1166,16 @@ class ExporterReviewMov(ExporterReview):
         instance (pyblish.instance): instance of pyblish context
 
     """
+
     _temp_nodes = {}
 
-    def __init__(self,
-                 klass,
-                 instance,
-                 name=None,
-                 ext=None,
-                 multiple_presets=True
-                 ):
+    def __init__(
+        self, klass, instance, name=None, ext=None, multiple_presets=True
+    ):
         # initialize parent class
         super(ExporterReviewMov, self).__init__(
-            klass, instance, multiple_presets)
+            klass, instance, multiple_presets
+        )
         # passing presets for nodes to self
         self.nodes = klass.nodes if hasattr(klass, "nodes") else {}
 
@@ -1202,21 +1194,23 @@ class ExporterReviewMov(ExporterReview):
         self.log.info("File info was set...")
 
         if ".{}".format(self.ext) in VIDEO_EXTENSIONS:
-            self.file = "{}{}.{}".format(
-                self.fhead, self.name, self.ext)
+            self.file = "{}{}.{}".format(self.fhead, self.name, self.ext)
         else:
             # Output is image (or image sequence)
             # When the file is an image it's possible it
             # has extra information after the `fhead` that
             # we want to preserve, e.g. like frame numbers
             # or frames hashes like `####`
-            filename_no_ext = os.path.splitext(
-                os.path.basename(self.path_in))[0]
-            after_head = filename_no_ext[len(self.fhead):]
+            filename_no_ext = os.path.splitext(os.path.basename(self.path_in))[
+                0
+            ]
+            after_head = filename_no_ext[len(self.fhead) :]
             self.file = "{}{}.{}.{}".format(
-                self.fhead, self.name, after_head, self.ext)
-        self.path = os.path.join(
-            self.staging_dir, self.file).replace("\\", "/")
+                self.fhead, self.name, after_head, self.ext
+            )
+        self.path = os.path.join(self.staging_dir, self.file).replace(
+            "\\", "/"
+        )
 
     def clean_nodes(self, node_name):
         for node in self._temp_nodes[node_name]:
@@ -1228,14 +1222,14 @@ class ExporterReviewMov(ExporterReview):
         self.log.info("Rendering...  ")
         # Render Write node
         nuke.execute(
-            render_node_name,
-            int(self.first_frame),
-            int(self.last_frame))
+            render_node_name, int(self.first_frame), int(self.last_frame)
+        )
 
         self.log.info("Rendered...")
 
     def save_file(self):
         import shutil
+
         with maintained_selection():
             self.log.info("Saving nodes as file...  ")
             # create nk path
@@ -1255,14 +1249,14 @@ class ExporterReviewMov(ExporterReview):
         # get colorspace settings
         # get colorspace data from context
         config_data, _ = get_colorspace_settings_from_publish_context(
-            self.instance.context.data)
+            self.instance.context.data
+        )
 
         add_tags = []
         self.publish_on_farm = farm
         read_raw = kwargs["read_raw"]
         bake_viewer_process = kwargs["bake_viewer_process"]
-        bake_viewer_input_process_node = kwargs[
-            "bake_viewer_input_process"]
+        bake_viewer_input_process_node = kwargs["bake_viewer_input_process"]
 
         baking_colorspace = self.get_imageio_baking_profile()
 
@@ -1364,7 +1358,8 @@ class ExporterReviewMov(ExporterReview):
                         # convert display and view to colorspace
                         colorspace = get_display_view_colorspace_name(
                             config_path=config_data["path"],
-                            display=display, view=view
+                            display=display,
+                            view=view,
                         )
 
                 # OCIOColorSpace
@@ -1380,7 +1375,7 @@ class ExporterReviewMov(ExporterReview):
                         )
                     node = nuke.createNode("OCIOColorSpace")
                     message = "OCIOColorSpace...   '{}'"
-                    
+
                     # no need to set input colorspace since it is driven by
                     # working colorspace
                     node["out_colorspace"].setValue(baking_colorspace)
@@ -1392,9 +1387,7 @@ class ExporterReviewMov(ExporterReview):
                         f"{baking_colorspace['type']}"
                     )
 
-                self._connect_to_above_nodes(
-                    node, product_name, message
-                )
+                self._connect_to_above_nodes(node, product_name, message)
 
         # Write node
         write_node = nuke.createNode("Write")
@@ -1403,8 +1396,6 @@ class ExporterReviewMov(ExporterReview):
         write_node["file"].setValue(str(self.path))
         write_node["file_type"].setValue(str(self.ext))
         write_node["channels"].setValue(str(self.color_channels))
-        
-
 
         # Knobs `meta_codec` and `mov64_codec` are not available on centos.
         # TODO shouldn't this come from settings on outputs?
@@ -1440,28 +1431,27 @@ class ExporterReviewMov(ExporterReview):
         write_node["views"].setValue(nuke.views()[0])
         # self.log.info(f"VIEWS ARE  {write_node["views"].value()}")
 
-
-
         # ---------- end nodes creation
 
         # ---------- render or save to nk
         if self.publish_on_farm:
             nuke.scriptSave()
             path_nk = self.save_file()
-            self.data.update({
-                "bakeScriptPath": path_nk,
-                "bakeWriteNodeName": write_node.name(),
-                "bakeRenderPath": self.path
-            })
+            self.data.update(
+                {
+                    "bakeScriptPath": path_nk,
+                    "bakeWriteNodeName": write_node.name(),
+                    "bakeRenderPath": self.path,
+                }
+            )
         else:
-            self.render(write_node.name()) # modified to only render one view
+            self.render(write_node.name())  # modified to only render one view
 
         # ---------- generate representation data
         # Only add need_thumbnail if skip_thumbnail is not in custom_tags
         tags = []
         if "skip_thumbnail" not in add_custom_tags:
             tags.append("need_thumbnail")
-
 
         if delete:
             tags.append("delete")
@@ -1476,8 +1466,6 @@ class ExporterReviewMov(ExporterReview):
         self.log.debug(f"Representation...   `{self.data}`")
 
         self.clean_nodes(product_name)
-
-
 
         nuke.scriptSave()
 
@@ -1494,10 +1482,11 @@ class ExporterReviewMov(ExporterReview):
 
 
 def convert_to_valid_instaces():
-    """ Check and convert to latest publisher instances
+    """Check and convert to latest publisher instances
 
     Also save as new minor version of workfile.
     """
+
     def product_type_to_identifier(product_type):
         mapping = {
             "render": "create_write_render",
@@ -1507,7 +1496,7 @@ def convert_to_valid_instaces():
             "camera": "create_camera",
             "nukenodes": "create_backdrop",
             "gizmo": "create_gizmo",
-            "source": "create_source"
+            "source": "create_source",
         }
         return mapping[product_type]
 
@@ -1521,9 +1510,7 @@ def convert_to_valid_instaces():
     # add file suffix if not
     if "_publisherConvert" not in current_file:
         new_workfile = (
-            current_file[:-3]
-            + "_publisherConvert"
-            + current_file[-3:]
+            current_file[:-3] + "_publisherConvert" + current_file[-3:]
         )
     else:
         new_workfile = current_file
@@ -1538,9 +1525,7 @@ def convert_to_valid_instaces():
 
     # loop all nodes and convert
     for node in nuke.allNodes(recurseGroups=True):
-        transfer_data = {
-            "creator_attributes": {}
-        }
+        transfer_data = {"creator_attributes": {}}
         creator_attr = transfer_data["creator_attributes"]
 
         if node.Class() in ["Viewer", "Dot"]:
@@ -1550,21 +1535,24 @@ def convert_to_valid_instaces():
             continue
 
         # get data from avalon knob
-        avalon_knob_data = get_avalon_knob_data(
-            node, ["avalon:", "ak:"])
+        avalon_knob_data = get_avalon_knob_data(node, ["avalon:", "ak:"])
 
         if not avalon_knob_data:
             continue
 
         if avalon_knob_data["id"] not in {
-            AYON_INSTANCE_ID, AVALON_INSTANCE_ID
+            AYON_INSTANCE_ID,
+            AVALON_INSTANCE_ID,
         }:
             continue
 
-        transfer_data.update({
-            k: v for k, v in avalon_knob_data.items()
-            if k not in ["families", "creator"]
-        })
+        transfer_data.update(
+            {
+                k: v
+                for k, v in avalon_knob_data.items()
+                if k not in ["families", "creator"]
+            }
+        )
 
         transfer_data["task"] = task_name
 
@@ -1576,17 +1564,14 @@ def convert_to_valid_instaces():
         families_ak = avalon_knob_data.get("families", [])
 
         if "suspend_publish" in node.knobs():
-            creator_attr["suspended_publish"] = (
-                node["suspend_publish"].value())
+            creator_attr["suspended_publish"] = node["suspend_publish"].value()
 
         # get review knob value
         if "review" in node.knobs():
-            creator_attr["review"] = (
-                node["review"].value())
+            creator_attr["review"] = node["review"].value()
 
         if "publish" in node.knobs():
-            transfer_data["active"] = (
-                node["publish"].value())
+            transfer_data["active"] = node["publish"].value()
 
         # add identifier
         transfer_data["creator_identifier"] = product_type_to_identifier(
@@ -1608,29 +1593,38 @@ def convert_to_valid_instaces():
                     creator_attr["render_target"] = "farm"
 
                 if "deadlinePriority" in node.knobs():
-                    transfer_data["farm_priority"] = (
-                        node["deadlinePriority"].value())
+                    transfer_data["farm_priority"] = node[
+                        "deadlinePriority"
+                    ].value()
                 if "deadlineChunkSize" in node.knobs():
-                    creator_attr["farm_chunk"] = (
-                        node["deadlineChunkSize"].value())
+                    creator_attr["farm_chunk"] = node[
+                        "deadlineChunkSize"
+                    ].value()
                 if "deadlineConcurrentTasks" in node.knobs():
-                    creator_attr["farm_concurrency"] = (
-                        node["deadlineConcurrentTasks"].value())
+                    creator_attr["farm_concurrency"] = node[
+                        "deadlineConcurrentTasks"
+                    ].value()
 
         _remove_old_knobs(node)
 
         # add new instance knob with transfer data
-        set_node_data(
-            node, INSTANCE_DATA_KNOB, transfer_data)
+        set_node_data(node, INSTANCE_DATA_KNOB, transfer_data)
 
     nuke.scriptSave()
 
 
 def _remove_old_knobs(node):
     remove_knobs = [
-        "review", "publish", "render", "suspend_publish", "warn", "divd",
-        "deadlinePriority", "deadlineChunkSize", "deadlineConcurrentTasks",
-        "Deadline"
+        "review",
+        "publish",
+        "render",
+        "suspend_publish",
+        "warn",
+        "divd",
+        "deadlinePriority",
+        "deadlineChunkSize",
+        "deadlineConcurrentTasks",
+        "Deadline",
     ]
 
     # remove all old knobs
@@ -1649,6 +1643,6 @@ def exposed_write_knobs(settings, plugin_name, instance_node):
         "exposed_knobs", []
     )
     if exposed_knobs:
-        instance_node.addKnob(nuke.Text_Knob('', 'Write Knobs'))
+        instance_node.addKnob(nuke.Text_Knob("", "Write Knobs"))
     write_node = nuke.allNodes(group=instance_node, filter="Write")[0]
     link_knobs(exposed_knobs, write_node, instance_node)

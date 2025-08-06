@@ -8,7 +8,6 @@ from ayon_nuke import api as napi
 
 
 class CreateWriteImage(napi.NukeWriteCreator):
-
     settings_category = "nuke"
 
     identifier = "create_write_image"
@@ -16,25 +15,19 @@ class CreateWriteImage(napi.NukeWriteCreator):
     product_type = "image"
     icon = "sign-out"
 
-    instance_attributes = [
-        "use_range_limit"
-    ]
-    default_variants = [
-        "StillFrame",
-        "MPFrame",
-        "LayoutFrame"
-    ]
+    instance_attributes = ["use_range_limit"]
+    default_variants = ["StillFrame", "MPFrame", "LayoutFrame"]
 
     def get_pre_create_attr_defs(self):
         attr_defs = super().get_pre_create_attr_defs()
-        attr_defs.extend([
-            UISeparatorDef(),
-            NumberDef(
-                "active_frame",
-                label="Active frame",
-                default=nuke.frame()
-            ),
-        ])
+        attr_defs.extend(
+            [
+                UISeparatorDef(),
+                NumberDef(
+                    "active_frame", label="Active frame", default=nuke.frame()
+                ),
+            ]
+        )
         return attr_defs
 
     def _get_render_target_enum(self):
@@ -45,7 +38,12 @@ class CreateWriteImage(napi.NukeWriteCreator):
         return super()._get_render_target_enum()
 
     def create_instance_node(
-            self, product_name, instance_data, staging_dir=None, node_selection=None):
+        self,
+        product_name,
+        instance_data,
+        staging_dir=None,
+        node_selection=None,
+    ):
         settings = self.project_settings["nuke"]["create"]["CreateWriteImage"]
 
         # add fpath_template
@@ -56,7 +54,7 @@ class CreateWriteImage(napi.NukeWriteCreator):
             "staging_dir": staging_dir,
             "render_on_farm": (
                 "render_on_farm" in settings["instance_attributes"]
-            )
+            ),
         }
         write_data.update(instance_data)
 
@@ -71,9 +69,7 @@ class CreateWriteImage(napi.NukeWriteCreator):
             input=selected_node,
             prenodes=self.prenodes,
             linked_knobs=self.get_linked_knobs(),
-            **{
-                "frame": nuke.frame()
-            }
+            **{"frame": nuke.frame()},
         )
 
         self._add_frame_range_limit(created_node, instance_data)
@@ -86,8 +82,7 @@ class CreateWriteImage(napi.NukeWriteCreator):
         if "use_range_limit" not in self.instance_attributes:
             return
 
-        active_frame = (
-            instance_data["creator_attributes"].get("active_frame"))
+        active_frame = instance_data["creator_attributes"].get("active_frame")
 
         write_node.begin()
         for n in nuke.allNodes():

@@ -3,7 +3,7 @@ from ayon_server.settings import (
     BaseSettingsModel,
     SettingsField,
     ensure_unique_names,
-    task_types_enum
+    task_types_enum,
 )
 from .common import (
     KnobModel,
@@ -17,7 +17,7 @@ def nuke_render_publish_types_enum():
     return [
         {"value": "render", "label": "Render"},
         {"value": "prerender", "label": "Prerender"},
-        {"value": "image", "label": "Image"}
+        {"value": "image", "label": "Image"},
     ]
 
 
@@ -28,7 +28,7 @@ def nuke_product_types_enum():
         {"value": "model", "label": "Model"},
         {"value": "camera", "label": "Camera"},
         {"value": "gizmo", "label": "Gizmo"},
-        {"value": "source", "label": "Source"}
+        {"value": "source", "label": "Source"},
     ] + nuke_render_publish_types_enum()
 
 
@@ -36,7 +36,7 @@ def nuke_export_formats_enum():
     """Return all nuke export format available in creators."""
     return [
         {"value": "abc", "label": "Alembic"},
-        {"value": "fbx", "label": "FBX"},    
+        {"value": "fbx", "label": "FBX"},
     ]
 
 
@@ -50,17 +50,9 @@ def _handle_missing_frames_enum():
 
 
 class NodeModel(BaseSettingsModel):
-    name: str = SettingsField(
-        title="Node name"
-    )
-    nodeclass: str = SettingsField(
-        "",
-        title="Node class"
-    )
-    dependent: str = SettingsField(
-        "",
-        title="Incoming dependency"
-    )
+    name: str = SettingsField(title="Node name")
+    nodeclass: str = SettingsField("", title="Node class")
+    dependent: str = SettingsField("", title="Incoming dependency")
     knobs: list[KnobModel] = SettingsField(
         default_factory=list,
         title="Knobs",
@@ -77,7 +69,7 @@ class CollectInstanceDataModel(BaseSettingsModel):
     sync_workfile_version_on_product_types: list[str] = SettingsField(
         default_factory=list,
         enum_resolver=nuke_product_types_enum,
-        title="Product types"
+        title="Product types",
     )
 
 
@@ -107,29 +99,29 @@ class ExtractReviewDataModel(BaseSettingsModel):
     Intermediates with baking streams but are already writing ready for
     review images that don't need custom baking.
     """
+
     enabled: bool = SettingsField(title="Enabled")
 
 
 class BakingStreamFilterModel(BaseSettingsModel):
     task_types: list[str] = SettingsField(
-        default_factory=list,
-        title="Task types",
-        enum_resolver=task_types_enum
+        default_factory=list, title="Task types", enum_resolver=task_types_enum
     )
     product_types: list[str] = SettingsField(
         default_factory=list,
         enum_resolver=nuke_render_publish_types_enum,
-        title="Sync workfile versions for familes"
+        title="Sync workfile versions for familes",
     )
     product_names: list[str] = SettingsField(
-        default_factory=list, title="Product names")
+        default_factory=list, title="Product names"
+    )
 
 
 class ReformatNodesRepositionNodes(BaseSettingsModel):
     node_class: str = SettingsField(title="Node class")
     knobs: list[KnobModel] = SettingsField(
-        default_factory=list,
-        title="Node knobs")
+        default_factory=list, title="Node knobs"
+    )
 
 
 class ReformatNodesConfigModel(BaseSettingsModel):
@@ -139,10 +131,10 @@ class ReformatNodesConfigModel(BaseSettingsModel):
     Order of reformat nodes is important. First reformat node will
     be applied first and last reformat node will be applied last.
     """
+
     enabled: bool = SettingsField(False)
     reposition_nodes: list[ReformatNodesRepositionNodes] = SettingsField(
-        default_factory=list,
-        title="Reposition knobs"
+        default_factory=list, title="Reposition knobs"
     )
 
 
@@ -150,11 +142,9 @@ class IntermediateOutputModel(BaseSettingsModel):
     name: str = SettingsField(title="Output name")
     publish: bool = SettingsField(title="Publish")
     filter: BakingStreamFilterModel = SettingsField(
-        title="Filter", default_factory=BakingStreamFilterModel)
-    read_raw: bool = SettingsField(
-        False,
-        title="Input read node RAW switch"
+        title="Filter", default_factory=BakingStreamFilterModel
     )
+    read_raw: bool = SettingsField(False, title="Input read node RAW switch")
     bake_viewer_process: bool = SettingsField(
         True,
         title="Bake viewer process",
@@ -163,7 +153,7 @@ class IntermediateOutputModel(BaseSettingsModel):
     colorspace_override: ColorspaceConfigurationModel = SettingsField(
         title="Target baking colorspace override",
         description="Override Baking target with colorspace or display/view",
-        default_factory=ColorspaceConfigurationModel
+        default_factory=ColorspaceConfigurationModel,
     )
     bake_viewer_input_process: bool = SettingsField(
         True,
@@ -171,21 +161,31 @@ class IntermediateOutputModel(BaseSettingsModel):
         section="Baking additional",
     )
     reformat_nodes_config: ReformatNodesConfigModel = SettingsField(
-        default_factory=ReformatNodesConfigModel,
-        title="Reformat Nodes")
-    extension: str = SettingsField(
-        "mov",
-        title="File extension"
+        default_factory=ReformatNodesConfigModel, title="Reformat Nodes"
     )
+    extension: str = SettingsField("mov", title="File extension")
     add_custom_tags: list[str] = SettingsField(
-        title="Custom tags", default_factory=list)
+        title="Custom tags", default_factory=list
+    )
 
-    fill_missing_frames:str = SettingsField(
+    fill_missing_frames: str = SettingsField(
         title="Handle missing frames",
         default="0",
         description="What to do about missing frames from entity frame range."
-                    "Used for filling gaps for Custom Frames",
-        enum_resolver=_handle_missing_frames_enum
+        "Used for filling gaps for Custom Frames",
+        enum_resolver=_handle_missing_frames_enum,
+    )
+
+
+class HornetReviewMediaModel(BaseSettingsModel):
+    """Settings for hornet review media generator."""
+
+    _layout = "expanded"
+    enabled: bool = SettingsField(title="Enabled")
+    template_script: str = SettingsField(
+        default=r"P:/dev/alexh_dev/hornet_publish/hornet_publish_template.nk",
+        title="Review media template script location",
+        description="The template script that will be rendered to generate review media.",
     )
 
 
@@ -193,8 +193,7 @@ class ExtractReviewIntermediatesModel(BaseSettingsModel):
     enabled: bool = SettingsField(title="Enabled")
     viewer_lut_raw: bool = SettingsField(title="Viewer lut raw")
     outputs: list[IntermediateOutputModel] = SettingsField(
-        default_factory=list,
-        title="Baking streams"
+        default_factory=list, title="Baking streams"
     )
 
 
@@ -224,24 +223,20 @@ class ExtractCameraFormatModel(BaseSettingsModel):
 
 class ExctractSlateFrameParamModel(BaseSettingsModel):
     f_submission_note: FSubmissionNoteModel = SettingsField(
-        title="f_submission_note",
-        default_factory=FSubmissionNoteModel
+        title="f_submission_note", default_factory=FSubmissionNoteModel
     )
     f_submitting_for: FSubmistingForModel = SettingsField(
-        title="f_submitting_for",
-        default_factory=FSubmistingForModel
+        title="f_submitting_for", default_factory=FSubmistingForModel
     )
     f_vfx_scope_of_work: FVFXScopeOfWorkModel = SettingsField(
-        title="f_vfx_scope_of_work",
-        default_factory=FVFXScopeOfWorkModel
+        title="f_vfx_scope_of_work", default_factory=FVFXScopeOfWorkModel
     )
 
 
 class ExtractSlateFrameModel(BaseSettingsModel):
     viewer_lut_raw: bool = SettingsField(title="Viewer lut raw")
     key_value_mapping: ExctractSlateFrameParamModel = SettingsField(
-        title="Key value mapping",
-        default_factory=ExctractSlateFrameParamModel
+        title="Key value mapping", default_factory=ExctractSlateFrameParamModel
     )
 
 
@@ -249,51 +244,49 @@ class PublishPluginsModel(BaseSettingsModel):
     CollectInstanceData: CollectInstanceDataModel = SettingsField(
         title="Collect Instance Version",
         default_factory=CollectInstanceDataModel,
-        section="Collectors"
+        section="Collectors",
     )
     ValidateCorrectAssetContext: OptionalPluginModel = SettingsField(
         title="Validate Correct Folder Name",
         default_factory=OptionalPluginModel,
-        section="Validators"
+        section="Validators",
     )
     ValidateKnobs: ValidateKnobsModel = SettingsField(
-        title="Validate Knobs",
-        default_factory=ValidateKnobsModel
+        title="Validate Knobs", default_factory=ValidateKnobsModel
     )
     ValidateOutputResolution: OptionalPluginModel = SettingsField(
-        title="Validate Output Resolution",
-        default_factory=OptionalPluginModel
+        title="Validate Output Resolution", default_factory=OptionalPluginModel
     )
     ValidateGizmo: OptionalPluginModel = SettingsField(
-        title="Validate Gizmo",
-        default_factory=OptionalPluginModel
+        title="Validate Gizmo", default_factory=OptionalPluginModel
     )
     ValidateBackdrop: OptionalPluginModel = SettingsField(
-        title="Validate Backdrop",
-        default_factory=OptionalPluginModel
+        title="Validate Backdrop", default_factory=OptionalPluginModel
     )
     ValidateScriptAttributes: OptionalPluginModel = SettingsField(
         title="Validate workfile attributes",
-        default_factory=OptionalPluginModel
+        default_factory=OptionalPluginModel,
     )
     ExtractReviewData: ExtractReviewDataModel = SettingsField(
-        title="Extract Review Data",
-        default_factory=ExtractReviewDataModel
+        title="Extract Review Data", default_factory=ExtractReviewDataModel
     )
 
     ExtractReviewIntermediates: ExtractReviewIntermediatesModel = (
         SettingsField(
             title="Extract Review Intermediates",
-            default_factory=ExtractReviewIntermediatesModel
+            default_factory=ExtractReviewIntermediatesModel,
         )
     )
     ExtractCameraFormat: ExtractCameraFormatModel = SettingsField(
-        title="Extract Camera Format",
-        default_factory=ExtractCameraFormatModel        
+        title="Extract Camera Format", default_factory=ExtractCameraFormatModel
     )
     ExtractSlateFrame: ExtractSlateFrameModel = SettingsField(
-        title="Extract Slate Frame",
-        default_factory=ExtractSlateFrameModel
+        title="Extract Slate Frame", default_factory=ExtractSlateFrameModel
+    )
+    HornetReviewMedia: HornetReviewMediaModel = SettingsField(
+        title="Hornet Review Media",
+        default_factory=HornetReviewMediaModel,
+        section="Integrators",
     )
     IncrementScriptVersion: OptionalPluginModel = SettingsField(
         title="Increment Workfile Version",
@@ -302,7 +295,7 @@ class PublishPluginsModel(BaseSettingsModel):
         description=(
             "Bumps up version of workfile if there are no errors in previous "
             "plugins."
-        )
+        ),
     )
     IncrementWriteNodePath: OptionalPluginModel = SettingsField(
         title="Increment path in Write node",
@@ -313,7 +306,7 @@ class PublishPluginsModel(BaseSettingsModel):
             "workfile version. This allows have versioned intermediate "
             "`renders` subfolders. "
             "It depends on setting `ayon+settings://core/tools/publish/custom_staging_dir_profiles/0`"
-        )
+        ),
     )
 
 
@@ -325,47 +318,33 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
             "gizmo",
             "source",
             "render",
-            "write"
+            "write",
         ]
     },
     "ValidateCorrectAssetContext": {
         "enabled": True,
         "optional": True,
-        "active": True
+        "active": True,
     },
     "ValidateKnobs": {
         "enabled": False,
-        "knobs": "\n".join([
-            '{',
-            '    "render": {',
-            '        "review": true',
-            '    }',
-            '}'
-        ])
+        "knobs": "\n".join(
+            ["{", '    "render": {', '        "review": true', "    }", "}"]
+        ),
     },
     "ValidateOutputResolution": {
         "enabled": True,
         "optional": True,
-        "active": True
+        "active": True,
     },
-    "ValidateGizmo": {
-        "enabled": True,
-        "optional": True,
-        "active": True
-    },
-    "ValidateBackdrop": {
-        "enabled": True,
-        "optional": True,
-        "active": True
-    },
+    "ValidateGizmo": {"enabled": True, "optional": True, "active": True},
+    "ValidateBackdrop": {"enabled": True, "optional": True, "active": True},
     "ValidateScriptAttributes": {
         "enabled": True,
         "optional": True,
-        "active": True
+        "active": True,
     },
-    "ExtractReviewData": {
-        "enabled": False
-    },
+    "ExtractReviewData": {"enabled": False},
     "ExtractReviewIntermediates": {
         "enabled": True,
         "viewer_lut_raw": False,
@@ -376,17 +355,14 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
                 "filter": {
                     "task_types": [],
                     "product_types": [],
-                    "product_names": []
+                    "product_names": [],
                 },
                 "read_raw": False,
                 "colorspace_override": {
                     "enabled": False,
                     "type": "colorspace",
                     "colorspace": "",
-                    "display_view": {
-                        "display": "",
-                        "view": ""
-                    }
+                    "display_view": {"display": "", "view": ""},
                 },
                 "bake_viewer_process": True,
                 "bake_viewer_input_process": True,
@@ -399,37 +375,37 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
                                 {
                                     "type": "text",
                                     "name": "type",
-                                    "text": "to format"
+                                    "text": "to format",
                                 },
                                 {
                                     "type": "text",
                                     "name": "format",
-                                    "text": "HD_1080"
+                                    "text": "HD_1080",
                                 },
                                 {
                                     "type": "text",
                                     "name": "filter",
-                                    "text": "Lanczos6"
+                                    "text": "Lanczos6",
                                 },
                                 {
                                     "type": "boolean",
                                     "name": "black_outside",
-                                    "boolean": True
+                                    "boolean": True,
                                 },
                                 {
                                     "type": "boolean",
                                     "name": "pbb",
-                                    "boolean": False
-                                }
-                            ]
+                                    "boolean": False,
+                                },
+                            ],
                         }
-                    ]
+                    ],
                 },
                 "extension": "mov",
                 "add_custom_tags": [],
-                "fill_missing_frames": "0"
+                "fill_missing_frames": "0",
             }
-        ]
+        ],
     },
     "ExtractCameraFormat": {
         "export_camera_format": "abc",
@@ -437,28 +413,26 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
     "ExtractSlateFrame": {
         "viewer_lut_raw": False,
         "key_value_mapping": {
-            "f_submission_note": {
-                "enabled": True,
-                "template": "{comment}"
-            },
+            "f_submission_note": {"enabled": True, "template": "{comment}"},
             "f_submitting_for": {
                 "enabled": True,
-                "template": "{intent[value]}"
+                "template": "{intent[value]}",
             },
-            "f_vfx_scope_of_work": {
-                "enabled": False,
-                "template": ""
-            }
-        }
+            "f_vfx_scope_of_work": {"enabled": False, "template": ""},
+        },
+    },
+    "HornetReviewMedia": {
+        "enabled": True,
+        "template_script": r"P:/dev/alexh_dev/hornet_publish/hornet_publish_template.nk",
     },
     "IncrementScriptVersion": {
         "enabled": True,
         "optional": True,
-        "active": True
+        "active": True,
     },
     "IncrementWriteNodePath": {
         "enabled": False,
         "optional": True,
-        "active": True
-    }
+        "active": True,
+    },
 }

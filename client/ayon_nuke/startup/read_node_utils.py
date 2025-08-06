@@ -1,14 +1,18 @@
-
-
 import re
 import os
 import glob
 import nuke
 import json
 import platform
-from pathlib import Path
-from ayon_core.lib import Logger
-from file_sequence import FileSequence, Components
+import pathlib
+from ayon_core.lib import Logger, StringTemplate
+from file_sequence import SequenceFactory
+from ayon_nuke.api.lib import (
+    get_server_pub_version,
+    is_version_file_linked,
+    get_version_from_path,
+    INSTANCE_DATA_KNOB,
+)
 
 log = Logger.get_logger(__name__)
 
@@ -60,8 +64,9 @@ def evaluate_filepath_new(
         filepath = os.path.abspath(filepath)
     except Exception as E:
         log.error(
-            "Cannot create Read node. Perhaps it needs to be \
-                  rendered first :) Error: `{}`".format(E)
+            "Cannot create Read node. Perhaps it needs to be \nrendered first :) Error: `{}`".format(
+                E
+            )
         )
         return None
 
@@ -134,7 +139,9 @@ def write_to_read(write_group_node, allow_relative=False):
 
     group_read_nodes = []
     with write_group_node:
-        height = write_group_node.screenHeight()  # get group height and position
+        height = (
+            write_group_node.screenHeight()
+        )  # get group height and position
         new_xpos = int(write_group_node.knob("xpos").value())
         new_ypos = int(write_group_node.knob("ypos").value()) + height + 20
         group_writes = [n for n in nuke.allNodes() if n.Class() == "Write"]
@@ -143,7 +150,6 @@ def write_to_read(write_group_node, allow_relative=False):
             n = group_writes[0]
 
             if n.knob("file") is not None:
-
                 result = evaluate_filepath_new(
                     n.knob("file").getValue(),
                     n.knob("file").evaluate(),
@@ -191,8 +197,10 @@ def write_to_read(write_group_node, allow_relative=False):
 def slice_path(path, start, end):
     # return a re-joined path from a slice of path parts
 
-    path = Path(path)
-    return Path(path.parts[start]).joinpath(*path.parts[start + 1 : end])
+    path = pathlib.Path(path)
+    return pathlib.Path(path.parts[start]).joinpath(
+        *path.parts[start + 1 : end]
+    )
 
 
 def get_publish_instance_data(write_node):
@@ -211,26 +219,47 @@ def assemble_publish_path(ayon_write_node):
     instance_data = get_publish_instance_data(ayon_write_node)
     anatomy = Anatomy()
     directory_template = anatomy.templates["publish"]["render"]["directory"]
-    file_termplate = anatomy.templates["publish"]["render"]["file"]
+    file_template = anatomy.templates["publish"]["render"]["file"]
 
     root = anatomy.roots["work"].value.rstrip("/")
     project_name = context["project_name"]
-    hierarchy = Path(context["folder_path"].lstrip("/")).parent
-    shot = Path(context["folder_path"]).name
-    product = get_publish_instance_data(ayon_write_node)["productType"]
-    name = get_publish_instance_data(ayon_write_node)["productName"]
-    version = 0  # temp value so we can parse the template
+    hierarchy = pathlib.Path(context["folder_path"].lstrip("/")).parent
+    shot = pathlib.Path(context["folder_path"]).name
+    product = instance_data["productType"]
+    name = instance_data["productName"]
 
-    # directory_data = {
-    #     "root": {"work": root},
-    #     "project": {"name": project_name},
-    #     "hierarchy": hierarchy,
-    #     "folder": {"name": shot},
-    #     "product": {"type": product, "name": name},
-    #     "version": version,
-    # }
+    if INSTANCE_DATA_KNOB in ayon_write_node.knobs():
+        data = json.loads(
+            ayon_write_node[INSTANCE_DATA_KNOB].value().replace("JSON:::", "", 1)
+        )
+        is_ovs = data["is_ovs"]
+    else:
+        is_ovs = False
 
-    publish_path = Path(
+    # If the write node path is linked to a version file, get the version from there
+    server_version = get_server_pub_version(project_name, name, context["folder_path"])
+    if is_version_file_linked() and is_ovs:
+        file_version_num = get_version_from_path(
+            ayon_write_node["File output"].value()
+        )
+        if int(file_version_num) < server_version[0]:
+            log.warning(
+                f"File version {file_version_num} is lower than server version {server_version[0]}. Using server version."
+            )
+            versions = server_version
+        
+        else:
+            versions = (file_version_num, "v" + file_version_num)
+
+    else:
+        versions = server_version
+
+
+
+
+
+
+    publish_path = pathlib.Path(
         directory_template.format_map(
             {
                 "root": {"work": root},
@@ -238,78 +267,79 @@ def assemble_publish_path(ayon_write_node):
                 "hierarchy": hierarchy,
                 "folder": {"name": shot},
                 "product": {"type": product, "name": name},
-                "version": version,
+                "version": versions[0],
             }
         )
-    ).parent
+    )
 
-    print(f"Publish path: {publish_path}")
-    nuke.tprint(f"Publish path: {publish_path}")
-
-    try:
-        newest_version = Path(
-            sorted([d.name for d in publish_path.iterdir() if d.is_dir()])[-1]
-        )
-    except IndexError:
-        print("No versions, has it been published?")
-        log.error("No versions, has it been published?")
-        return
-    except Exception as e:
-        print(f"Unexpected error: {e}")
-        log.error(f"Unexpected error: {e}")
-        return
-
-    publish_path /= newest_version
-    log.info(f"Publish path: {publish_path}")
+    # try:
+    #     newest_version = Path(
+    #         sorted([d.name for d in publish_path.iterdir() if d.is_dir()])[-1]
+    #     )
+    # except IndexError:
+    #     print("No versions, has it been published?")
+    #     log.error("No versions, has it been published?")
+    #     return
+    # except Exception as e:
+    #     print(f"Unexpected error: {e}")
+    #     log.error(f"Unexpected error: {e}")
+    #     return
 
     extension = ayon_write_node["file_type"].value()
-
-
 
     # first_frame = int(ayon_write_node["Render Start"].getValue())
     # last_frame = int(ayon_write_node["Render End"].getValue())
     # pad_count = len(str(last_frame))
 
-    # file_data = {
-    #     "folder": {"name": shot},
-    #     "product": {"type": product, "name": name},
-    #     "version": newest_version,
-    #     "output": "",  # TODO what is this?
-    #     "extension": extension,
-    # }
-    
-    """
-    Ideally we would query the database for products to get the latest version, 
-    and parse "file_template" to get the file name. 
-    
-    For now I am finding the latest version from the file system, and 
-    using FileSequence lib to extract a valid image sequence from that location
-    """
+    file_data = {
+        "folder": {"name": shot},
+        "product": {"name": name},
+        "frame": "%04d",
+        "version": versions[0],
+        "ext": extension,
+    }
 
-    
+    # first_frame = instance_data.get("frameStart")
+    # last_frame = instance_data.get("frameEnd")
 
-    seqs = FileSequence.match_components_in_path(
-        Components(
-            extension=extension,
-        ),
-        publish_path,
+    file_string = StringTemplate(file_template).format_strict(file_data)
+    # file_string = f"{file_string} {first_frame}-{last_frame}"
+
+    # """
+    # Ideally we would query the database for products to get the latest version,
+    # and parse "file_template" to get the file name.
+
+    # For now I am finding the latest version from the file system, and
+    # using FileSequence lib to extract a valid image sequence from that location
+    # """
+    # RESOLVED
+
+    # seqs = FileSequence.match_components_in_path(
+    #     Components(
+    #         extension=extension,
+    #     ),
+    #     publish_path,
+    # )
+
+    # if not seqs:
+    #     print("No sequence found")
+    #     return
+
+    # sequence = seqs[0]
+    # string = sequence.sequence_string(sequence.StringVariant.NUKE)
+
+    result = publish_path / file_string
+
+    fs = SequenceFactory.from_sequence_string_absolute(result)
+    result = (
+        f"{fs.absolute_file_name} {fs.first_frame}-{fs.last_frame}"
     )
+    result = pathlib.Path(result)
 
-    if not seqs:
-        print("No sequence found")
-        return
+    print(result)
+    log.debug(f"Assembled publish path:{result}")
 
-    sequence = seqs[0]
-    string = sequence.sequence_string(sequence.StringVariant.NUKE)
-
-    result = publish_path / string
-    
-    print(f"Publish path: {result}")
-    nuke.tprint(f"Publish path: {result}")
-    
-    # return str(result)
     return result
-
 
 
 def read_from_publish(ayon_write_node):
@@ -343,16 +373,15 @@ def get_publish_instance_data(write_node):
     )
 
 
-
 def navigate_to_render(write_node):
-    ''' Open explorer at the location of the render file
+    """Open explorer at the location of the render file
 
     Args:
         Ayon write node
 
-    ''' 
+    """
 
-    file_path = Path(write_node['File output'].evaluate()).parent
+    file_path = pathlib.Path(write_node["File output"].evaluate()).parent
     if not file_path.exists():
         return
 
@@ -365,13 +394,12 @@ def navigate_to_render(write_node):
 
 
 def navigate_to_publish(write_node):
-
-    ''' Open explorer at the location of the publish file
+    """Open explorer at the location of the publish file
 
     Args:
         Ayon write node
 
-    ''' 
+    """
 
     path = assemble_publish_path(write_node)
     if not path:
@@ -383,27 +411,21 @@ def navigate_to_publish(write_node):
     if not path.exists():
         return
 
-
-
     if platform.system() == "Windows":
         os.startfile(path)
     elif platform.system() == "Darwin":  # macOS
         subprocess.run(["open", path])
     else:  # Linux
         subprocess.run(["xdg-open", path])
-        
-
-
 
 
 def filter_write_nodes(nodes):
-
-    filtered_nodes = [n for n in nodes if n.Class() == "Group" and 'publish_instance' in n.knobs() and "submit" in n.knobs()]
+    filtered_nodes = [
+        n
+        for n in nodes
+        if n.Class() == "Group"
+        and "publish_instance" in n.knobs()
+        and "submit" in n.knobs()
+    ]
 
     return filtered_nodes
-
-
-
-
-
-

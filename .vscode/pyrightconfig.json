@@ -1,0 +1,10 @@
+{
+    "extraPaths": [
+        "C:/Users/alexh/AppData/Local/Ynput/AYON/addons/core_1.1.0",
+        "C:/Program Files/Ynput/AYON 1.0.0-rc.2/dependencies", 
+        "C:/Program Files/Ynput/AYON 1.1.0/dependencies",
+        "P:/dev/alexh_dev/ayon_v2/hornet/ayon-nuke/client",
+        "P:/dev/alexh_dev/ayon_v2/hornet/ayon-launch-scripts/client"
+    ],
+    "pythonVersion": "3.9"
+}

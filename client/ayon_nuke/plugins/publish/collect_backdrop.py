@@ -54,6 +54,7 @@ class CollectBackdrops(pyblish.api.InstancePlugin):
             bckn.name(), len(instance.data["transientData"]["childNodes"]))
 
         # get version
+        
         version = instance.context.data.get('version')
 
         if version:
