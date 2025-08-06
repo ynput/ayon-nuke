@@ -6255,7 +6255,6 @@ def get_server_pub_version(project, product, folder_path):
         folder_ids=[folder_query["id"]]
     ))
 
-    nuke.tprint(product_query)
     if product_query:
 
         versions = list(con.get_versions(
@@ -6284,32 +6283,12 @@ def is_version_file_linked():
     """
     con = ayon_api.get_server_api_connection()
     active_variant = con.get_default_settings_variant()
+    settings = con.get_addons_project_settings(
+        project_name = os.environ["AYON_PROJECT_NAME"],
+        variant = active_variant
+    )
 
-    bundle_settings = con.get_bundle_settings(active_variant)["addons"]
-
-
-    for setting in bundle_settings:
-        if setting["name"]=="core":
-            addon_version = setting["version"]
-
-    if "AYON_PROJECT_NAME" in os.environ:
-        settings = con.get_addon_project_settings(
-            addon_name="core",
-            addon_version=addon_version,
-            project_name=os.environ["AYON_PROJECT_NAME"],
-        )
-
-        result = settings["publish"]["CollectAnatomyInstanceData"]["follow_workfile_version"]
-
-    else:
-        log.warning("AYON_PROJECT_NAME not found in environment variables. ")
-        settings = con.get_addon_studio_settings(
-            addon_name = "core",
-            addon_version=addon_version
-        )
-
-        result = settings["publish"]["CollectAnatomyInstanceData"]["follow_workfile_version"]
-        
+    result = settings["core"]["publish"]["CollectAnatomyInstanceData"]["follow_workfile_version"]
     log.debug(f"Version file link status: {result}")
     ayon_api.close_connection()
 
