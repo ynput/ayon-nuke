@@ -8,7 +8,7 @@ import pathlib
 from ayon_core.lib import Logger, StringTemplate
 from file_sequence import SequenceFactory
 from ayon_nuke.api.lib import (
-    get_pub_version,
+    get_server_pub_version,
     is_version_file_linked,
     get_version_from_path,
     INSTANCE_DATA_KNOB,
@@ -227,21 +227,37 @@ def assemble_publish_path(ayon_write_node):
     shot = pathlib.Path(context["folder_path"]).name
     product = instance_data["productType"]
     name = instance_data["productName"]
-    data = json.loads(
-        ayon_write_node[INSTANCE_DATA_KNOB].value().replace("JSON:::", "", 1)
-    )
-    is_ovs = data["is_ovs"]
 
-    # New get version
+    if INSTANCE_DATA_KNOB in ayon_write_node.knobs():
+        data = json.loads(
+            ayon_write_node[INSTANCE_DATA_KNOB].value().replace("JSON:::", "", 1)
+        )
+        is_ovs = data["is_ovs"]
+    else:
+        is_ovs = False
+
+    # If the write node path is linked to a version file, get the version from there
+    server_version = get_server_pub_version(project_name, name, context["folder_path"])
     if is_version_file_linked() and is_ovs:
-        version_num = get_version_from_path(
+        file_version_num = get_version_from_path(
             ayon_write_node["File output"].value()
         )
-        version_name = "v" + version_num
-        versions = (version_num, version_name)
+        if int(file_version_num) < server_version[0]:
+            log.warning(
+                f"File version {file_version_num} is lower than server version {server_version[0]}. Using server version."
+            )
+            versions = server_version
+        
+        else:
+            versions = (file_version_num, "v" + file_version_num)
 
     else:
-        versions = get_pub_version(project_name, name, context["folder_path"])
+        versions = server_version
+
+
+
+
+
 
     publish_path = pathlib.Path(
         directory_template.format_map(

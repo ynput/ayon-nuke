@@ -3281,7 +3281,7 @@ def update_node_data(node, knobname, data):
 
     Args:
         node (nuke.Node): node object
-        knobname (str): knob name
+        knobname (str): knob name 
         data (dict): data to update knob value
     """
     knob = node[knobname]
@@ -4207,8 +4207,7 @@ def create_write_node(
     Return:
         node (obj): group node with avalon data as Knobs
     '''
-    # Emergency status
-    is_ovs = data["is_ovs"]
+
 
 
     # Ensure name does not contain any invalid characters.
@@ -4266,14 +4265,21 @@ def create_write_node(
         "ext": ext
     })
 
-
     data["work"] = get_work_default_directory(data)
-    # build file path to workfiles
-    if is_ovs is False:
-        fpath = StringTemplate(data["fpath_template"]).format_strict(data)
+
+    # Emergency status
+    
+    if "is_ovs" in data.keys():
+        is_ovs = data["is_ovs"]
+        if is_ovs:
+            fpath = get_ovs_pathing(data)
+        else:
+            fpath = StringTemplate(data["fpath_template"]).format_strict(data)
     else:
-        fpath = get_ovs_pathing(data)
- 
+        data["is_ovs"] = False
+        is_ovs= False
+        fpath = StringTemplate(data["fpath_template"]).format_strict(data)
+
     # Override output directory is provided staging directory.
     if data.get("staging_dir"):
         basename = os.path.basename(fpath)
@@ -4417,8 +4423,6 @@ def create_write_node(
         GN["tile_color"].setValue(
             color_gui_to_int([255,102,204,255])
         )
-
-
 
     return GN
 
@@ -6182,16 +6186,11 @@ def get_ovs_pathing(data):
         )
     ).parent
 
+    versions = handle_pub_version(project_name, name,data["folderPath"] )
+
     if is_version_file_linked():
-        ver = get_version_from_path(nuke.Root().name())
-        render_version = int(ver)
-        render_version_name = "v"+ver
-
-
-    else:    
-        versions = get_pub_version(project_name, name, context["folder_path"])
-        if not versions:
-            return
+        render_version, render_version_name = (versions[0], versions[1])
+    else:
         render_version, render_version_name = incriment_pub_version(versions[0],versions[1])
 
     publish_path /= render_version_name
@@ -6230,10 +6229,11 @@ def incriment_pub_version(version_num, version_name):
     return inc_version_num, inc_version_name
 
 
-def get_pub_version(project, product, folder_path):
+# OLD get_pub_version function
+def get_server_pub_version(project, product, folder_path):
     """
     Query the latest version of a publish via the ayon api
-
+ 
     Args:
         project (string): The name of the project
         product (string): The name of the publish product
@@ -6255,6 +6255,7 @@ def get_pub_version(project, product, folder_path):
         folder_ids=[folder_query["id"]]
     ))
 
+    nuke.tprint(product_query)
     if product_query:
 
         versions = list(con.get_versions(
@@ -6286,20 +6287,72 @@ def is_version_file_linked():
 
     bundle_settings = con.get_bundle_settings(active_variant)["addons"]
 
+
     for setting in bundle_settings:
         if setting["name"]=="core":
             addon_version = setting["version"]
 
-    settings = con.get_addon_project_settings(
-        addon_name="core",
-        addon_version=addon_version,
-        project_name=os.environ["AYON_PROJECT_NAME"],
-    )
+    if "AYON_PROJECT_NAME" in os.environ:
+        settings = con.get_addon_project_settings(
+            addon_name="core",
+            addon_version=addon_version,
+            project_name=os.environ["AYON_PROJECT_NAME"],
+        )
 
-    result = settings["publish"]["CollectAnatomyInstanceData"]["follow_workfile_version"]
+        result = settings["publish"]["CollectAnatomyInstanceData"]["follow_workfile_version"]
+
+    else:
+        log.warning("AYON_PROJECT_NAME not found in environment variables. ")
+        settings = con.get_addon_studio_settings(
+            addon_name = "core",
+            addon_version=addon_version
+        )
+
+        result = settings["publish"]["CollectAnatomyInstanceData"]["follow_workfile_version"]
+        
     log.debug(f"Version file link status: {result}")
     ayon_api.close_connection()
 
     return result
+
+
+# file version is lower than published version
+def handle_pub_version(project, product, folder_path):
+    """
+    Handle possibel version options
+    Args:
+        data (dict): Data from the workfile
+        file_path (str): Path to the current workfile
+
+    Returns:
+        result_version (tuple): Tuple of the latest version number and name
+    """
+
+    server_version = get_server_pub_version(project, product, folder_path)
+    file_version = get_version_from_path(nuke.Root().name())
+    file_linked = is_version_file_linked()
+
+    if file_linked:
+        if server_version[0] > int(file_version):
+            log.debug(
+                f"Server version {server_version[0]} is greater than "
+                f"file linked version {file_version}. Using server version."
+            )
+            result_version = server_version
+
+        else:
+            result_version = (int(file_version), "v" + file_version)
+
+
+    else:
+        result_version = server_version
+
+    return result_version
+
+
+
+
+        
+
 
 
