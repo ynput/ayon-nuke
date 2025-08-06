@@ -7,10 +7,11 @@ from ayon_core.lib import Logger
 from ayon_nuke.api.lib import (
     create_write_node,
     INSTANCE_DATA_KNOB,
-    get_pub_version,
-    incriment_pub_version,
-    is_version_file_linked,
+    handle_pub_version,
     get_version_from_path,
+    is_version_file_linked,
+    incriment_pub_version,
+    get_ovs_pathing
 )
 
 try:
@@ -215,6 +216,20 @@ def embedOptions():
                 group.removeKnob(knb)
         except:
             continue
+
+    # Expose publish knobs based on emergency status
+    if INSTANCE_DATA_KNOB in group.knobs():
+        data = json.loads(
+            group.knobs()[INSTANCE_DATA_KNOB].value().replace("JSON:::", "", 1)
+        )
+        
+        if "is_ovs" in data.keys():
+            is_ovs = data["is_ovs"]
+        else:
+            is_ovs = False
+    else:
+        is_ovs = False
+
     beginGroup = nuke.Tab_Knob("beginoutput", "Output", nuke.TABBEGINGROUP)
     group.addKnob(beginGroup)
 
@@ -276,7 +291,9 @@ def embedOptions():
     group.addKnob(usePublishRange)
 
     submit_to_deadline = nuke.PyScript_Knob(
-        "submit", "Submit to Deadline", "deadlineNetworkSubmit()"
+        "submit", 
+        "Submit to Deadline", 
+        "update_ovs_write_version(nuke.thisNode());deadlineNetworkSubmit()"
     )
 
     clear_temp_outputs_button = nuke.PyScript_Knob(
@@ -298,7 +315,7 @@ def embedOptions():
     render_local_button = nuke.PyScript_Knob(
         "renderlocal",
         "Render Local",
-        "nuke.toNode(f'inside_{nuke.thisNode().name()}').knob('Render').execute();save_script_with_render(nuke.thisNode()['File output'].getValue())",
+        "update_ovs_write_version(nuke.thisNode());nuke.toNode(f'inside_{nuke.thisNode().name()}').knob('Render').execute();save_script_with_render(nuke.thisNode()['File output'].getValue())",
     )
 
     div = nuke.Text_Knob("div", "", "")
@@ -358,12 +375,6 @@ def embedOptions():
     deadlineChunkSize.clearFlag(nuke.STARTLINE)  # Don't start a new line
     #    concurrentTasks.clearFlag(nuke.STARTLINE)
     concurrent_warning.clearFlag(nuke.STARTLINE)
-
-    # Expose publish knobs based on emergency status
-    data = json.loads(
-        group.knobs()["publish_instance"].value().replace("JSON:::", "", 1)
-    )
-    is_ovs = data["is_ovs"]
 
     group.addKnob(render_local_button)
 
@@ -554,49 +565,55 @@ def handle_farm_publish_logic():
         nde.knob("generate_review_media_on_farm").setEnabled(True)
 
 
-def set_hwrite_version():
+def update_ovs_write_version(node):
     """
-    Set the version of quickwrite filepaths based on latest target version.
+    Set the version of ovs quickwrite filepaths based on latest target version.
+    This runs on Render Local and Submit to Deadline buttons.
+
+    Args:
+        node (nuke.Node): The OVS write node to update.
+        This node should have the INSTANCE_DATA_KNOB containing the necessary data.
     """
 
-    nodes = nuke.allNodes()
-    for node in nodes:
-        if INSTANCE_DATA_KNOB in node.knobs():
-            data = json.loads(
-                node[INSTANCE_DATA_KNOB].value().replace("JSON:::", "", 1)
+    if INSTANCE_DATA_KNOB in node.knobs():
+        data = json.loads(
+            node.knobs()[INSTANCE_DATA_KNOB].value().replace("JSON:::", "", 1)
+        )
+        if "is_ovs" not in data.keys():
+            log.warning(
+                f"{node.name()} is missing is_ovs key, it is probably an old node"
             )
+        else:
+            if data["is_ovs"]:
 
-            if "is_ovs" not in data.keys():
-                log.warning(
-                    f"{node.name()} is missing is_ovs key, it is probably an old node"
-                )
-
-            if data.get("is_ovs", False):
-                fpath = node["File output"].value()
-                if is_version_file_linked():
-                    node_ver = "v" + get_version_from_path(fpath)
-                    file_ver = "v" + get_version_from_path(nuke.Root().name())
-                    fpath_new = fpath.replace(node_ver, file_ver)
-
+                prompt = nuke.ask("Set render output path to latest new product version?")
+                if prompt:
+                    try:
+                        fpath_new = get_ovs_pathing(data)
+                        node_name = node["name"].value()
+                        interior_write = "inside_" + node_name
+                        wnode = nuke.toNode(interior_write)
+                        if wnode is not None:
+                            wnode["file"].setValue(fpath_new)
+                            node["File output"].setValue(fpath_new)
+                            log.info(f"Updating ovs write path for {node_name}: {fpath_new}")
+                            nuke.toNode(node_name)
+                        else:
+                            log.warning(
+                                f"Interior write node {interior_write} not found, cannot set file path."
+                            )
+                    except Exception as e:
+                        log.error(f"Error setting ovs write version: {e}")
+                        nuke.message(
+                            "Error setting ovs write version. Check the console for details."
+                        )
                 else:
-                    versions = get_pub_version(
-                        data["project"]["name"],
-                        data["productName"],
-                        data["folderPath"],
+                    log.warning(
+                        f"{node.name()} is potentially set to output to an old version, this may overwrite existing files on disk"
                     )
-                    inc_versions = incriment_pub_version(
-                        versions[0], versions[1]
-                    )
-                    fpath_new = fpath.replace(versions[1], inc_versions[1])
+    else:
+        log.debug(f"{node.name()} is missing instance data knob, cannot set version")
 
-                node_name = node["name"].value()
-                interior_write = "inside_" + node_name
-                node.begin()
-                wnode = nuke.toNode(interior_write)
-                wnode["file"].setValue(fpath_new)
-                node["File output"].setValue(fpath_new)
-                log.info(f"Updating ovs write path for {node_name}")
-                node.end()
 
 
 def get_all_ayon_write_nodes():

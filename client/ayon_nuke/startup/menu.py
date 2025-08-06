@@ -18,7 +18,6 @@ import read_node_utils
 from quick_write import (
     embedOptions,
     presets,
-    set_hwrite_version,
     embed_experimental,
     handle_farm_publish_logic,
     quick_publish_wrapper,
@@ -29,13 +28,15 @@ from quick_write import (
     quick_write_node,
     ovs_write_node,
     quick_publish_wrapper,
+    update_ovs_write_version,
 )
-from hornet_deadline_utils import save_script_with_render
+from hornet_deadline_utils import save_script_with_render, deadlineNetworkSubmit
 from hornet_publish_utils import quick_publish
 from ayon_core.pipeline import install_host
 from ayon_nuke.api import NukeHost
 from ayon_core.lib import Logger
 from ayon_nuke.api.lib import WorkfileSettings
+
 
 import hornet_publish_review_media
 import hornet_deadline_utils
@@ -206,7 +207,7 @@ nuke.addKnobChanged(embed_experimental, nodeClass="Write")
 nuke.addKnobChanged(enable_publish_range, nodeClass="Group")
 nuke.addKnobChanged(handle_farm_publish_logic, nodeClass="Group")
 nuke.addKnobChanged(enable_disable_frame_range, nodeClass="Write")
-nuke.addOnScriptSave(set_hwrite_version)
+#nuke.addOnScriptSave(set_hwrite_version)
 nuke.addOnScriptSave(writes_ver_sync)
 nuke.addOnScriptLoad(WorkfileSettings().set_colorspace)
 nuke.addOnCreate(WorkfileSettings().set_colorspace, nodeClass="Root")
