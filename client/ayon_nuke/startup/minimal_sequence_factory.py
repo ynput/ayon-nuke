@@ -11,9 +11,17 @@ from typing import List, Optional, Union
 # Import the needed classes from file_sequence if possible
 try:
     # Try to import the full module first
+
+    startup = os.path.dirname(__file__)
+    fs_loc = startup + "/file_sequence/file_sequence.py"
+
+    # fs_spec = importlib.util.spec_from_file_location(
+    #     "file_sequence",
+    #     "P:/dev/alexh_dev/ayon_v2/hornet/ayon-nuke/client/ayon_nuke/startup/file_sequence/file_sequence.py",
+    # )
     fs_spec = importlib.util.spec_from_file_location(
         "file_sequence",
-        "P:/dev/alexh_dev/ayon_v2/hornet/ayon-nuke/client/ayon_nuke/startup/file_sequence/file_sequence.py",
+        fs_loc,
     )
     fs_module = importlib.util.module_from_spec(fs_spec)
     fs_spec.loader.exec_module(fs_module)

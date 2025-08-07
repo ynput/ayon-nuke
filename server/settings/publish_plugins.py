@@ -183,7 +183,8 @@ class HornetReviewMediaModel(BaseSettingsModel):
     _layout = "expanded"
     enabled: bool = SettingsField(title="Enabled")
     template_script: str = SettingsField(
-        default=r"P:/dev/alexh_dev/hornet_publish/hornet_publish_template.nk",
+        #default=r"P:/dev/alexh_dev/hornet_publish/hornet_publish_template.nk",
+        default=r"T:\util\nuke\scripts\publishTemplate\hornet_publish_template.nk",
         title="Review media template script location",
         description="The template script that will be rendered to generate review media.",
     )
@@ -423,7 +424,8 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
     },
     "HornetReviewMedia": {
         "enabled": True,
-        "template_script": r"P:/dev/alexh_dev/hornet_publish/hornet_publish_template.nk",
+        "template_script": r"T:\util\nuke\scripts\publishTemplate\hornet_publish_template.nk",
+        #"template_script": r"P:/dev/alexh_dev/hornet_publish/hornet_publish_template.nk",
     },
     "IncrementScriptVersion": {
         "enabled": True,

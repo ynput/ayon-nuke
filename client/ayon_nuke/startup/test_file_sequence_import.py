@@ -1,10 +1,13 @@
 import importlib.util
 import sys
 import traceback
+import os
 
 print("=== Testing file_sequence import in isolation ===")
 
-fs_loc = "P:/dev/alexh_dev/ayon_v2/hornet/ayon-nuke/client/ayon_nuke/startup/file_sequence/file_sequence.py"
+#fs_loc = "P:/dev/alexh_dev/ayon_v2/hornet/ayon-nuke/client/ayon_nuke/startup/file_sequence/file_sequence.py"
+startup = os.path.dirname(__file__)
+fs_loc = startup + "/file_sequence/file_sequence.py"
 
 try:
     print(f"Creating spec from: {fs_loc}")

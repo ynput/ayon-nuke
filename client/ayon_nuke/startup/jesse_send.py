@@ -4,7 +4,9 @@ from pathlib import Path
 from datetime import datetime
 from PySide2.QtCore import QTimer
 
-NODE_LOCATION = Path(r"P:\dev\alexh_dev\jesseSend")
+# Changing node locations for jesse send to the T drive
+#NODE_LOCATION = Path(r"P:\dev\alexh_dev\jesseSend")
+NODE_LOCATION = Path(r"T:\util\nuke\scripts\jesseSend")
 
 """
 This system allows users to copy a kind of URL associated with a scriptlet, and paste
