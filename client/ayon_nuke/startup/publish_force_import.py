@@ -1,6 +1,7 @@
 import importlib.util
 import sys
-
+import os
+import nuke
 """
 Deadline nuke instances launched from staging are failing to import the modules.
 It appears that they don't inherit the new ayon_nuke environment.
@@ -22,10 +23,14 @@ except ImportError as import_error:
     print(f"Normal imports failed ({import_error}), using force import...")
 
     try:
-        # File paths
-        hdu_loc = "P:/dev/alexh_dev/ayon_v2/hornet/ayon-nuke/client/ayon_nuke/startup/hornet_deadline_utils.py"
-        dprm_loc = "P:/dev/alexh_dev/ayon_v2/hornet/ayon-nuke/client/ayon_nuke/startup/hornet_publish_review_media.py"
-        fs_loc = "P:/dev/alexh_dev/ayon_v2/hornet/ayon-nuke/client/ayon_nuke/startup/file_sequence/file_sequence.py"
+        # File paths localized from the hard coded path
+
+        startup = os.path.dirname(__file__)
+
+        hdu_loc = startup + "/hornet_deadline_utils.py"
+        dprm_loc = startup + "/hornet_publish_review_media.py"
+
+        fs_loc = startup + "/file_sequence/file_sequence.py"
 
         # Create specs
         spec1 = importlib.util.spec_from_file_location(
