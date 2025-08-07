@@ -6186,7 +6186,7 @@ def get_ovs_pathing(data):
         )
     ).parent
 
-    versions = handle_pub_version(project_name, name,data["folderPath"] )
+    versions = handle_pub_version(project_name, name, context["folder_path"])
 
     if is_version_file_linked():
         render_version, render_version_name = (versions[0], versions[1])
