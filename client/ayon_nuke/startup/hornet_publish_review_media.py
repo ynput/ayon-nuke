@@ -194,8 +194,48 @@ def generate_review_media_local(data, logger=None):
     nuke.nodePaste(template_script)
     new_nodes = set(nuke.allNodes()) - current_nodes
     
-    
-    # minimise clutter in user's node graph in case the script fails and they have to delete them 
+    # TODO set env for local generation
+    # Same code as found in the JobLoad script for deadline nuke
+    pub_data = data
+    new_env = {}
+
+    first_frame_key = "REVIEW_FF"
+    first_frame_value = str(pub_data["first_frame"])
+    new_env[first_frame_key] = first_frame_value
+
+    last_frame_key = "REVIEW_LF"
+    last_frame_val = str(pub_data["last_frame"])
+    new_env[last_frame_key] = last_frame_val
+
+    shot_name_key = "REVIEW_SHOT_NAME"
+    shot_name_val = pub_data["shot"]
+    new_env[shot_name_key] = shot_name_val
+
+    render_name_key = "REVIEW_RENDER_NAME"
+    render_name_val = pub_data["name"]
+    new_env[render_name_key] = render_name_val
+
+    burnin_key = "REVIEW_BURNIN"
+    burnin_val = str(pub_data["burnin"])
+    new_env[burnin_key] = burnin_val
+
+    version_key = "REVIEW_VERSION"
+    version_val = str(pub_data["version"])
+    new_env[version_key] = version_val
+
+    project_name_key = "REVIEW_PROJECT_NAME"
+    project_name_val = pub_data["project"]
+    new_env[project_name_key] = project_name_val
+
+    pub_seq_key = "REVIEW_PUB_SEQ"
+    pub_seq_val = pub_data["publishedSequence"]
+    new_env[pub_seq_key] = pub_seq_val
+
+    # Inject environment variables for the nuke script
+    for k,v in new_env.items():
+        os.environ[k] = v
+
+    # minimise clutter in user's node graph in case the script fails and they have to delete them
     backdrops = []
     for node in new_nodes:
         if node.Class() == "BackdropNode":
@@ -213,12 +253,21 @@ def generate_review_media_local(data, logger=None):
     write_nodes = [n.name() for n in new_nodes if n.Class() == "Write"]
 
     # this is the same script that is called from the onScriptLoad callback on the farm
-    hornet_publish_configurate(data, new_nodes)
+    # deprecated way to inject review data into template, now uses env variables to enable farm
+    #hornet_publish_configurate(data, new_nodes)
 
 
     # render the review media - on farm handled by the deadline plugin 
     for node_name in write_nodes:
         n = nuke.toNode(node_name)
+
+        output_path = Path(pub_data["publishDir"]) / "review"
+        output_name = pub_data["shot"]+"_"+pub_data["name"]+"_"+node_name
+        output_path_key = "REVIEW_"+node_name
+        output_path_val = output_path / output_name
+        os.environ[output_path_key] = output_path_val.as_posix()
+        log.info(f"Set output environment variables {output_path_key} = {output_path_val.as_posix()}")
+
         if nuke.toNode(node_name) is None:
             log.error(f"failed to get write node: {node_name}")
             print(f"failed to get write node: {node_name}")
