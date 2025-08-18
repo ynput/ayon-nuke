@@ -1303,23 +1303,6 @@ class ExporterReviewMov(ExporterReview):
             product_name, r_node, "Read...   `{}`"
         )
 
-        # add reformat node
-        reformat_nodes_config = kwargs["reformat_nodes_config"]
-        if reformat_nodes_config["enabled"]:
-            reposition_nodes = reformat_nodes_config["reposition_nodes"]
-            for reposition_node in reposition_nodes:
-                node_class = reposition_node["node_class"]
-                knobs = reposition_node["knobs"]
-                node = nuke.createNode(node_class)
-                set_node_knobs_from_settings(node, knobs)
-
-                # connect in order
-                self._connect_to_above_nodes(
-                    node, product_name, "Reposition node...   `{}`"
-                )
-            # append reformatted tag
-            add_tags.append("reformatted")
-
         # only create colorspace baking if toggled on
         if bake_viewer_process:
             if bake_viewer_input_process_node:
@@ -1393,6 +1376,23 @@ class ExporterReviewMov(ExporterReview):
                 self._connect_to_above_nodes(
                     node, product_name, message
                 )
+
+        # add reformat node
+        reformat_nodes_config = kwargs["reformat_nodes_config"]
+        if reformat_nodes_config["enabled"]:
+            reposition_nodes = reformat_nodes_config["reposition_nodes"]
+            for reposition_node in reposition_nodes:
+                node_class = reposition_node["node_class"]
+                knobs = reposition_node["knobs"]
+                node = nuke.createNode(node_class)
+                set_node_knobs_from_settings(node, knobs)
+
+                # connect in order
+                self._connect_to_above_nodes(
+                    node, product_name, "Reposition node...   `{}`"
+                )
+            # append reformatted tag
+            add_tags.append("reformatted")
 
         # Write node
         write_node = nuke.createNode("Write")
