@@ -1,4 +1,5 @@
 import os
+import re
 import nuke
 
 import pyblish.api
@@ -313,6 +314,22 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "{{:0{}d}}".format(len(str(last_frame)))
         ).format(first_frame)
 
+    def _get_frame_start_index(self, collected_frames, frame_start):
+        """Get index of *frame_start* within *collected_frames*.
+
+        Args:
+            collected_frames (list): collected frames.
+            frame_start (str): initial frame of the sequence.
+
+        Returns:
+            int: index of the initial frame in **collected_frames**.
+
+        """
+        pattern = rf"\b{frame_start}\b"
+        for index, file_name in enumerate(collected_frames):
+            if re.search(pattern, file_name):
+                return index
+
     def _add_slate_frame_to_collected_frames(
         self,
         instance,
@@ -344,8 +361,10 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
                 first_frame - 1,
                 last_frame
             )
-
-            slate_frame = collected_frames[0].replace(
+            frame_start_index = self._get_frame_start_index(
+                collected_frames, frame_start_str
+            )
+            slate_frame = collected_frames[frame_start_index].replace(
                 frame_start_str, frame_slate_str)
             collected_frames.insert(0, slate_frame)
 

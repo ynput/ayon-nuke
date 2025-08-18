@@ -925,13 +925,6 @@ def get_version_from_path(file):
         )
 
 
-def version_up_script():
-    ''' Raising working script's version
-    '''
-    import nukescripts
-    nukescripts.script_and_write_nodes_version_up()
-
-
 def check_product_name_exists(nodes, product_name):
     """
     Checking if node is not already created to secure there is no duplicity
