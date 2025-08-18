@@ -203,6 +203,17 @@ class CreateWriteImageModel(BaseSettingsModel):
         return value
 
 
+class CreateWorkfileModel(BaseSettingsModel):
+    is_mandatory: bool = SettingsField(
+        default=False,
+        title="Mandatory workfile",
+        description=(
+            "Workfile cannot be disabled by user in UI."
+            " Requires core addon 1.4.1 or newer."
+        )
+    )
+
+
 class CreatorPluginsSettings(BaseSettingsModel):
     CreateWriteRender: CreateWriteRenderModel = SettingsField(
         default_factory=CreateWriteRenderModel,
@@ -215,6 +226,10 @@ class CreatorPluginsSettings(BaseSettingsModel):
     CreateWriteImage: CreateWriteImageModel = SettingsField(
         default_factory=CreateWriteImageModel,
         title="Create Write Image"
+    )
+    WorkfileCreator: CreateWorkfileModel = SettingsField(
+        default_factory=CreateWorkfileModel,
+        title="Create Workfile"
     )
 
 
