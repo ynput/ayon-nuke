@@ -15,6 +15,7 @@ import nuke
 class WorkfileCreator(AutoCreator):
 
     settings_category = "nuke"
+    is_mandatory = False
 
     identifier = "workfile"
     product_type = "workfile"
@@ -65,6 +66,8 @@ class WorkfileCreator(AutoCreator):
         instance = CreatedInstance(
             self.product_type, product_name, instance_data, self
         )
+        if hasattr(instance, "set_mandatory"):
+            instance.set_mandatory(self.is_mandatory)
         instance.transient_data["node"] = root_node
         self._add_instance_to_context(instance)
 
