@@ -1213,7 +1213,7 @@ def batch_publish(
 
         hornet_publish_utils.batch_publish_write_nodes(
             publis_nodes,
-            delay=0.25,
+            delay_between_publishes=0.25,
             review=review,
             review_farm=review_farm,
             integrate_farm=integrate_farm,
