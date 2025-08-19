@@ -15,6 +15,7 @@ import nuke
 import os
 import quick_write
 import read_node_utils
+from view_manager import show as show_view_manager
 from quick_write import (
     embedOptions,
     presets,
@@ -29,6 +30,7 @@ from quick_write import (
     ovs_write_node,
     quick_publish_wrapper,
     update_ovs_write_version,
+    _quick_write_node,
 )
 from hornet_deadline_utils import save_script_with_render, deadlineNetworkSubmit
 from hornet_publish_utils import quick_publish
@@ -41,6 +43,7 @@ from ayon_nuke.api.lib import WorkfileSettings
 import hornet_publish_review_media
 import hornet_deadline_utils
 import file_sequence
+import kroger_write
 
 host = NukeHost()
 install_host(host)
@@ -198,8 +201,13 @@ m.addCommand(
     "quick_write_node(family='prerender')",
     "Ctrl+Shift+W",
 )
-
 m.addCommand("&Oversized Write Node", "ovs_write_node()")
+m.addCommand(
+        "Kroger Write Node",
+        "kroger_write.kroger_write_node(_quick_write_node)",
+        tooltip="Create a kroger write node that generates write nodes for all views",
+)
+
 nuke.addKnobChanged(apply_format_presets, nodeClass="Write")
 nuke.addKnobChanged(switchExtension, nodeClass="Write")
 nuke.addKnobChanged(embedOptions, nodeClass="Write")
