@@ -11,7 +11,8 @@ from ayon_nuke.api.lib import (
     get_version_from_path,
     is_version_file_linked,
     incriment_pub_version,
-    get_ovs_pathing
+    get_ovs_pathing,
+    get_node_data
 )
 
 try:
@@ -315,7 +316,7 @@ def embedOptions():
     render_local_button = nuke.PyScript_Knob(
         "renderlocal",
         "Render Local",
-        "update_ovs_write_version(nuke.thisNode());nuke.toNode(f'inside_{nuke.thisNode().name()}').knob('Render').execute();save_script_with_render(nuke.thisNode()['File output'].getValue())",
+        "import ayon_nuke.api.lib as lib;update_ovs_write_version(nuke.thisNode());nuke.toNode(f'inside_{nuke.thisNode().name()}').knob('Render').execute();save_script_with_render(nuke.thisNode()['File output'].getValue(),lib.get_node_data(nuke.thisNode(),'publish_instance')['is_ovs'])",
     )
 
     div = nuke.Text_Knob("div", "", "")

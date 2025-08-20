@@ -303,13 +303,17 @@ def build_request(knobValues, temp_script_path, node):
     return body
 
 
-def save_script_with_render(write_node_file_path):
+def save_script_with_render(write_node_file_path, is_ovs=False):
     """
     Back up the script next to the render files
 
     Args:
         write_node_file_path (Path): the value of the "File" knob of the write node
+        is_ovs (bool): whether the write node is an OVS write node
     """
+    if is_ovs:
+        nuke.tprint("Render is OVS: Skipping script save with local render.")
+        return
 
     if not isinstance(write_node_file_path, Path):
         write_node_file_path = Path(write_node_file_path)
