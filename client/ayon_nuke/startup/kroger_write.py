@@ -16,8 +16,6 @@ class Render_submission_dialog(QtWidgets.QDialog):
         self.setup_ui()
         self.populate_view_table()
         self.load_saved_data()
-        print(self.get_file_format_options())
-        print(self.get_colorspace_options())
 
     def setup_ui(self):
         self.setWindowTitle("Render Submission")
@@ -270,7 +268,7 @@ class Render_submission_dialog(QtWidgets.QDialog):
                 if checkbox:
                     checkbox.setChecked(view_name in selected_views)
                     
-    #TODO
+
     def get_file_format_options(self):
         """
         Get available file format options from the interior write nodes.
