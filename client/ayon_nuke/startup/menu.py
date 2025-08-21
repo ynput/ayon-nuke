@@ -194,7 +194,7 @@ def enable_publish_range():
 
 
 hornet_menu = nuke.menu("Nuke")
-m = hornet_menu.addMenu("&Hornet")
+m = hornet_menu.addMenu("&Hornet Write")
 m.addCommand("&Quick Write Node", "quick_write_node()", "Ctrl+W")
 m.addCommand(
     "&Quick PreWrite Node",
