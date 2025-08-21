@@ -16,6 +16,8 @@ class Render_submission_dialog(QtWidgets.QDialog):
         self.setup_ui()
         self.populate_view_table()
         self.load_saved_data()
+        print(self.get_file_format_options())
+        print(self.get_colorspace_options())
 
     def setup_ui(self):
         self.setWindowTitle("Render Submission")
@@ -79,15 +81,16 @@ class Render_submission_dialog(QtWidgets.QDialog):
 
         # File Format
         self.file_format_combo = QtWidgets.QComboBox()
-        self.file_format_combo.addItems(["dpx", "exr"])
+        self.file_format_combo.addItems(self.get_file_format_options())
         self.file_format_combo.setCurrentText("dpx")
         global_layout.addRow("File Format:", self.file_format_combo)
 
         # Colorspace
         self.colorspace_combo = QtWidgets.QComboBox()
-        self.colorspace_combo.addItems(COLORSPACE_LIST)
+        self.colorspace_combo.addItems(self.get_colorspace_options())
         self.colorspace_combo.setCurrentText("rec709")
         global_layout.addRow("Colorspace:", self.colorspace_combo)
+        #self.colorspace_combo.currentIndexChanged.connect(self.on_colorspace_changed)
 
         layout.addWidget(global_group)
 
@@ -266,7 +269,46 @@ class Render_submission_dialog(QtWidgets.QDialog):
                 checkbox = self.get_checkbox_from_row(row)
                 if checkbox:
                     checkbox.setChecked(view_name in selected_views)
+                    
+    #TODO
+    def get_file_format_options(self):
+        """
+        Get available file format options from the interior write nodes.
+        """
+        interior_groups=[node for node in self.kroger_node.nodes() if node.Class() == "Group"]
+        if interior_groups:
+            interior_writes = [node for node in interior_groups[0].nodes() if node.Class() == "Write"]
+            if interior_writes:
+                return self.get_combo_box_options(interior_writes[0], "file_type")
+        return []
+    
+    def get_colorspace_options(self):
+        """
+        Get available colorspace options from the interior write nodes.
+        """
+        interior_groups = [node for node in self.kroger_node.nodes() if node.Class() == "Group"]
+        if interior_groups:
+            interior_writes = [node for node in interior_groups[0].nodes() if node.Class() == "Write"]
+            if interior_writes:
+                color_paths = self.get_combo_box_options(interior_writes[0], "out_colorspace")
+                if color_paths:
+                    names = []
+                    for color in color_paths:
+                        names.append(color.split("/")[-1])
+                    return names
+                else:
+                    return []
+        return []
 
+    def get_combo_box_options(self, node, knob_name):
+        """
+        Return all options from a combo box (Enumeration_Knob) on a Nuke node.
+        """
+        knob = node.knobs().get(knob_name)
+        if knob and knob.Class() == "Enumeration_Knob":
+            return [knob.enumName(i) for i in range(knob.numValues())]
+        return []
+    
     def get_checkbox_from_row(self, row):
         """Get the checkbox widget from a specific row"""
         checkbox_widget = self.view_table.cellWidget(row, 3)
@@ -1233,3 +1275,4 @@ def batch_publish(
         traceback.print_exc()
         nuke.message(error_msg)
         return
+    
