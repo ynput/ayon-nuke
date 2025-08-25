@@ -298,6 +298,15 @@ class PublishPluginsModel(BaseSettingsModel):
             "plugins."
         ),
     )
+    IncrementOvsPublish: OptionalPluginModel = SettingsField(
+        title="Increment OVS Workfile Version",
+        default_factory=OptionalPluginModel,
+        section="Integrators",
+        description=(
+            "Bumps up version of workfile if publish is ovs "
+            "plugins."
+        ),
+    )
     IncrementWriteNodePath: OptionalPluginModel = SettingsField(
         title="Increment path in Write node",
         default_factory=OptionalPluginModel,
@@ -428,6 +437,11 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
         #"template_script": r"P:/dev/alexh_dev/hornet_publish/hornet_publish_template.nk",
     },
     "IncrementScriptVersion": {
+        "enabled": True,
+        "optional": True,
+        "active": True,
+    },
+    "IncrementOvsPublish": {
         "enabled": True,
         "optional": True,
         "active": True,
