@@ -354,7 +354,8 @@ def embedOptions():
     ovswarn = nuke.Text_Knob(
         "ovswarn",
         "",
-        "- This node is for writing where the pipeline steps needs to be bypassed due to an incredibly long or large render.",
+        """- This node is for when pipeline steps needs to be bypassed due to an incredibly long or large render.\n
+        - Publishing ovs renders will force increment your workfile.""",
     )
 
     concurrent_warning = nuke.Text_Knob(
