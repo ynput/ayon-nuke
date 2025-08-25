@@ -1,8 +1,10 @@
 import nuke
 import pyblish.api
+import os
 
 from ayon_core.pipeline import OptionalPyblishPluginMixin
 from ayon_core.lib import version_up
+import version
 
 
 class IncrementOvsPublish(pyblish.api.ContextPlugin,
@@ -37,7 +39,8 @@ class IncrementOvsPublish(pyblish.api.ContextPlugin,
         if ovs_count > 0:
             self.log.info(f"Found {ovs_count} OVS instances.")
             path = context.data["currentFile"]
-            nuke.scriptSaveAs(version_up(path))
+            versioned_path = version_up(path)
+            nuke.scriptSaveAs(versioned_path)
             self.log.info('Incrementing script version due to ovs render having version dependant render output')
 
         else:
