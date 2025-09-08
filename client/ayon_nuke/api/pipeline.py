@@ -425,6 +425,7 @@ def containerise(node,
             ("namespace", namespace),
             ("loader", str(loader)),
             ("representation", context["representation"]["id"]),
+            ("project_name", context["project"]["name"]),
         ],
 
         **data or dict()
