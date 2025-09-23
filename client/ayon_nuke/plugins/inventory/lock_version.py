@@ -22,6 +22,7 @@ class LockVersions(InventoryAction):
             container["version_locked"] = True
             imprint(node, {"avalon:version_locked": True})
             node["avalon:version_locked"].setLabel("Version locked")
+        return True
 
 
 class UnlockVersions(InventoryAction):
@@ -45,3 +46,4 @@ class UnlockVersions(InventoryAction):
             container["version_locked"] = False
             imprint(node, {"avalon:version_locked": False})
             node["avalon:version_locked"].setLabel("Version locked")
+        return True
