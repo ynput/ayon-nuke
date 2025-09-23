@@ -1,5 +1,3 @@
-import ayon_api
-
 import ayon_nuke.api as api
 from ayon_core.pipeline import (
     AutoCreator,
