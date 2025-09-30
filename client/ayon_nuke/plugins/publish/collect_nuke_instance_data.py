@@ -2,19 +2,19 @@ import nuke
 import pyblish.api
 
 
-class CollectInstanceData(pyblish.api.InstancePlugin):
+class CollectNukeInstanceData(pyblish.api.InstancePlugin):
     """Collect Nuke instance data
 
     """
 
-    order = pyblish.api.CollectorOrder - 0.49
+    order = pyblish.api.CollectorOrder + 0.001
     label = "Collect Nuke Instance Data"
     hosts = ["nuke", "nukeassist"]
 
     settings_category = "nuke"
 
     # presets
-    sync_workfile_version_on_families = []
+    sync_workfile_version_on_product_types = []
 
     def process(self, instance):
         product_type = instance.data["productType"]
@@ -27,7 +27,7 @@ class CollectInstanceData(pyblish.api.InstancePlugin):
         pixel_aspect = format_.pixelAspect()
 
         # sync workfile version
-        if product_type in self.sync_workfile_version_on_families:
+        if product_type in self.sync_workfile_version_on_product_types:
             self.log.debug(
                 "Syncing version with workfile for '{}'".format(
                     product_type
