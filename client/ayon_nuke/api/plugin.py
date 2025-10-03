@@ -529,9 +529,12 @@ class NukeWriteCreator(NukeCreator):
 
     def apply_settings(self, project_settings):
         """Method called on initialization of plugin to apply settings."""
-
-        # plugin settings
+        # plugin settings for particular creator
         plugin_settings = self.get_creator_settings(project_settings)
+        # enabled
+        self.enabled = plugin_settings.get("enabled")
+        # order
+        self.order = plugin_settings.get("order")
         temp_rendering_path_template = (
             plugin_settings.get("temp_rendering_path_template")
             or self.temp_rendering_path_template

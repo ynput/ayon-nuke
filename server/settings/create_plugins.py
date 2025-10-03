@@ -94,6 +94,16 @@ class PrenodeModel(BaseSettingsModel):
 
 
 class CreateWriteRenderModel(BaseSettingsModel):
+    enabled: bool = SettingsField(
+        True,
+        title="Enabled",
+        description="Enable or disable the plugin"
+    )
+    order: int = SettingsField(
+        100,
+        title="Order",
+        description="Order of the plugin in the list"
+    )
     temp_rendering_path_template: str = SettingsField(
         title="Temporary rendering path template"
     )
@@ -131,6 +141,16 @@ class CreateWriteRenderModel(BaseSettingsModel):
 
 
 class CreateWritePrerenderModel(BaseSettingsModel):
+    enabled: bool = SettingsField(
+        True,
+        title="Enabled",
+        description="Enable or disable the plugin"
+    )
+    order: int = SettingsField(
+        100,
+        title="Order",
+        description="Order of the plugin in the list"
+    )
     temp_rendering_path_template: str = SettingsField(
         title="Temporary rendering path template"
     )
@@ -168,6 +188,16 @@ class CreateWritePrerenderModel(BaseSettingsModel):
 
 
 class CreateWriteImageModel(BaseSettingsModel):
+    enabled: bool = SettingsField(
+        True,
+        title="Enabled",
+        description="Enable or disable the plugin"
+    )
+    order: int = SettingsField(
+        100,
+        title="Order",
+        description="Order of the plugin in the list"
+    )
     temp_rendering_path_template: str = SettingsField(
         title="Temporary rendering path template"
     )
@@ -213,19 +243,51 @@ class CreateWorkfileModel(BaseSettingsModel):
         )
     )
 
+class DefaultPluginModel(BaseSettingsModel):
+    enabled: bool = SettingsField(
+        True,
+        title="Enabled",
+        description="Enable or disable the plugin"
+    )
+    order: int = SettingsField(
+        100,
+        title="Order",
+        description="Order of the plugin in the list"
+    )
+
 
 class CreatorPluginsSettings(BaseSettingsModel):
     CreateWriteRender: CreateWriteRenderModel = SettingsField(
         default_factory=CreateWriteRenderModel,
-        title="Create Write Render"
+        title="Render (write)"
     )
     CreateWritePrerender: CreateWritePrerenderModel = SettingsField(
         default_factory=CreateWritePrerenderModel,
-        title="Create Write Prerender"
+        title="Prerender (write)"
     )
     CreateWriteImage: CreateWriteImageModel = SettingsField(
         default_factory=CreateWriteImageModel,
-        title="Create Write Image"
+        title="Image (write)"
+    )
+    CreateBackdrop: DefaultPluginModel = SettingsField(
+        default_factory=DefaultPluginModel,
+        title="Nukenodes (backdrop)"
+    )
+    CreateCamera: DefaultPluginModel = SettingsField(
+        default_factory=DefaultPluginModel,
+        title="Camera (3d)"
+    )
+    CreateGizmo: DefaultPluginModel = SettingsField(
+        default_factory=DefaultPluginModel,
+        title="Gizmo (group)"
+    )
+    CreateModel: DefaultPluginModel = SettingsField(
+        default_factory=DefaultPluginModel,
+        title="Model (3d)"
+    )
+    CreateSource: DefaultPluginModel = SettingsField(
+        default_factory=DefaultPluginModel,
+        title="Source (read)"
     )
     WorkfileCreator: CreateWorkfileModel = SettingsField(
         default_factory=CreateWorkfileModel,
@@ -235,6 +297,8 @@ class CreatorPluginsSettings(BaseSettingsModel):
 
 DEFAULT_CREATE_SETTINGS = {
     "CreateWriteRender": {
+        "enabled": True,
+        "order": 100,
         "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}",
         "default_variants": [
             "Main",
@@ -267,6 +331,8 @@ DEFAULT_CREATE_SETTINGS = {
         ]
     },
     "CreateWritePrerender": {
+        "enabled": True,
+        "order": 100,
         "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}",
         "default_variants": [
             "Key01",
@@ -284,6 +350,8 @@ DEFAULT_CREATE_SETTINGS = {
         "prenodes": []
     },
     "CreateWriteImage": {
+        "enabled": True,
+        "order": 100,
         "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{ext}",
         "default_variants": [
             "StillFrame",
@@ -309,5 +377,25 @@ DEFAULT_CREATE_SETTINGS = {
                 ]
             }
         ]
-    }
+    },
+    "CreateBackdrop": {
+        "enabled": True,
+        "order": 100,
+    },
+    "CreateCamera": {
+        "enabled": True,
+        "order": 100,
+    },
+    "CreateGizmo": {
+        "enabled": True,
+        "order": 100,
+    },
+    "CreateModel": {
+        "enabled": True,
+        "order": 100,
+    },
+    "CreateSource": {
+        "enabled": True,
+        "order": 100,
+    },
 }
