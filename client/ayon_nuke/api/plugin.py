@@ -532,9 +532,9 @@ class NukeWriteCreator(NukeCreator):
         # plugin settings for particular creator
         plugin_settings = self.get_creator_settings(project_settings)
         # enabled
-        self.enabled = plugin_settings.get("enabled")
+        self.enabled: bool = plugin_settings.get("enabled", True)
         # order
-        self.order = plugin_settings.get("order")
+        self.order: int = plugin_settings.get("order", 0)
         temp_rendering_path_template = (
             plugin_settings.get("temp_rendering_path_template")
             or self.temp_rendering_path_template
