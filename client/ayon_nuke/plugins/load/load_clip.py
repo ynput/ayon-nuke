@@ -64,7 +64,7 @@ class LoadClip(plugin.NukeLoader):
     options_defaults = {
         "start_at_workfile": True,
         "add_retime": True,
-        "deep_exr": False
+        "node_type": "auto",
     }
 
     node_name_template = "{class_name}_{ext}"
@@ -82,11 +82,12 @@ class LoadClip(plugin.NukeLoader):
                 help="Load with retime",
                 default=cls.options_defaults["add_retime"]
             ),
-            qargparse.Boolean(
-                "deep_exr",
-                help="Read with deep exr",
-                default=cls.options_defaults["deep_exr"]
-            )
+            qargparse.Enum(
+                "node_type",
+                help="which type of Read Node to create.",
+                default=0,  # index for "auto"
+                items=["auto", "Read", "DeepRead"],
+            ),
         ]
 
     @classmethod
@@ -120,9 +121,6 @@ class LoadClip(plugin.NukeLoader):
 
         add_retime = options.get(
             "add_retime", self.options_defaults["add_retime"])
-
-        deep_exr = options.get(
-            "deep_exr", self.options_defaults["deep_exr"])
 
         repre_id = repre_entity["id"]
 
@@ -164,21 +162,18 @@ class LoadClip(plugin.NukeLoader):
             return
 
         read_name = self._get_node_name(context)
-        read_node = None
-        if deep_exr:
-            # Create the Loader with the filename path set
-            read_node = nuke.createNode(
-                "DeepRead",
-                "name {}".format(read_name),
-                inpanel=False
-            )
-        else:
-            # Create the Loader with the filename path set
-            read_node = nuke.createNode(
-                "Read",
-                "name {}".format(read_name),
-                inpanel=False
-            )
+
+        node_type = options.get("node_type", self.options_defaults["node_type"])
+        if node_type == "auto":
+            # guess the read node type via nuke's node_for_sequence-function
+            repre_filepath = get_representation_path(repre_entity)
+            node_type = nuke.tcl("node_for_sequence", repre_filepath)
+
+        read_node = nuke.createNode(
+            node_type,
+            "name {}".format(read_name),
+            inpanel=False
+        )
 
         # to avoid multiple undo steps for rest of process
         # we will switch off undo-ing
