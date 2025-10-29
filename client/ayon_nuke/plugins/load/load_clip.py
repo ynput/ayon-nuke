@@ -71,6 +71,18 @@ class LoadClip(plugin.NukeLoader):
 
     @classmethod
     def get_options(cls, *args):
+
+        # map default value (str) to index
+        # "newer" versions of qargparse support providing default value as string
+        # see https://github.com/mottosso/qargparse.py/pull/10
+        node_type_options = ["auto", "Read", "DeepRead"]
+        node_type_default_value = cls.options_defaults.get("node_type", "auto")
+        try:
+            node_type_default_index = node_type_options.index(node_type_default_value)
+        except ValueError:
+            cls.log.warning("Unknown node type default value: %s", node_type_default_value)
+            node_type_default_index = 0
+
         return [
             qargparse.Boolean(
                 "start_at_workfile",
@@ -85,7 +97,7 @@ class LoadClip(plugin.NukeLoader):
             qargparse.Enum(
                 "node_type",
                 help="which type of Read Node to create.",
-                default=0,  # index for "auto"
+                default=node_type_default_index,
                 items=["auto", "Read", "DeepRead"],
             ),
         ]
@@ -162,10 +174,9 @@ class LoadClip(plugin.NukeLoader):
             return
 
         read_name = self._get_node_name(context)
-
         node_type = options.get("node_type", self.options_defaults["node_type"])
         if node_type == "auto":
-            # guess the read node type via nuke's node_for_sequence-function
+            # guess the read node type using nukes "node_for_sequence"-function
             repre_filepath = get_representation_path(repre_entity)
             node_type = nuke.tcl("node_for_sequence", repre_filepath)
 
