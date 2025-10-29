@@ -24,7 +24,7 @@ def node_type_enum_options():
         {
             "value": "auto",
             "label": "auto"
-        },        
+        },
         {
             "value": "Read",
             "label": "Read"
@@ -98,7 +98,7 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
         "options_defaults": {
             "start_at_workfile": False,
             "add_retime": True,
-            "deep_exr": False
+            "node_type": "auto"
         }
     },
     "GeoImportLoader": {

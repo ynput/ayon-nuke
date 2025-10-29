@@ -96,9 +96,9 @@ class LoadClip(plugin.NukeLoader):
             ),
             qargparse.Enum(
                 "node_type",
-                help="which type of Read Node to create.",
+                help="Which type of Read Node to create.",
                 default=node_type_default_index,
-                items=["auto", "Read", "DeepRead"],
+                items=node_type_options,
             ),
         ]
 
