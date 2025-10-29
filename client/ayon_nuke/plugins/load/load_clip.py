@@ -1,9 +1,9 @@
 from copy import deepcopy
 
 import nuke
-import qargparse
 import ayon_api
 
+from ayon_core.lib import BoolDef, EnumDef
 from ayon_core.lib import Logger
 from ayon_core.pipeline import (
     get_representation_path,
@@ -71,34 +71,23 @@ class LoadClip(plugin.NukeLoader):
 
     @classmethod
     def get_options(cls, *args):
-
-        # map default value (str) to index
-        # "newer" versions of qargparse support providing default value as string
-        # see https://github.com/mottosso/qargparse.py/pull/10
-        node_type_options = ["auto", "Read", "DeepRead"]
-        node_type_default_value = cls.options_defaults.get("node_type", "auto")
-        try:
-            node_type_default_index = node_type_options.index(node_type_default_value)
-        except ValueError:
-            cls.log.warning("Unknown node type default value: %s", node_type_default_value)
-            node_type_default_index = 0
-
         return [
-            qargparse.Boolean(
+            BoolDef(
                 "start_at_workfile",
-                help="Load at workfile start frame",
+                label="Start at workfile's start frame",
                 default=cls.options_defaults["start_at_workfile"]
             ),
-            qargparse.Boolean(
+            BoolDef(
                 "add_retime",
-                help="Load with retime",
+                label="Load with retime",
                 default=cls.options_defaults["add_retime"]
             ),
-            qargparse.Enum(
+            EnumDef(
                 "node_type",
-                help="Which type of Read Node to create.",
-                default=node_type_default_index,
-                items=node_type_options,
+                label="Read Node Type",
+                tooltip="Which type of Read Node to create.",
+                items=["auto", "Read", "DeepRead"],
+                default="auto",
             ),
         ]
 
