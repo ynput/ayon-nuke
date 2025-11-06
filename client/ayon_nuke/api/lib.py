@@ -2618,7 +2618,7 @@ def add_scripts_gizmo():
                 path = StringTemplate.format_template(path, template_data)
                 gizmo_paths_to_add.append(path)
             if gizmo_paths_to_add:
-                toolbar_menu.add_gizmo_path(path)
+                toolbar_menu.add_gizmo_path(gizmo_paths_to_add)
         elif option == "gizmo_definition":
             for gizmo in gizmos:
                 for gizmo_item in gizmo["sub_gizmo_list"]:
