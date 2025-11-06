@@ -28,6 +28,8 @@ class WorkfileCreator(AutoCreator):
         instance_data = api.get_node_data(
             root_node, api.INSTANCE_DATA_KNOB
         )
+        if instance_data is None:
+            instance_data = {}
 
         project_entity = self.create_context.get_current_project_entity()
         folder_entity = self.create_context.get_current_folder_entity()
