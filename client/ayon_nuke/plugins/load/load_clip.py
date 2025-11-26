@@ -112,7 +112,6 @@ class LoadClip(plugin.NukeLoader):
             original_filepath = self.filepath_from_context(context)
             node_type = nuke.tcl("node_for_sequence", original_filepath)
 
-
         is_sequence = len(repre_entity["files"]) > 1
 
         if is_sequence:
