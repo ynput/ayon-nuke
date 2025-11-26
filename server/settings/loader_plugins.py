@@ -23,7 +23,7 @@ def node_type_enum_options():
     return [
         {
             "value": "auto",
-            "label": "auto"
+            "label": "Auto-detect"
         },
         {
             "value": "Read",
