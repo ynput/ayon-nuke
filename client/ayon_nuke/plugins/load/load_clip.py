@@ -106,6 +106,13 @@ class LoadClip(plugin.NukeLoader):
         # reset container id so it is always unique for each instance
         self.reset_container_id()
 
+        # Calculate the node type before frame in path is replaced with hashes.
+        node_type = options.get("node_type", self.options_defaults["node_type"])
+        if node_type == "auto":
+            original_filepath = self.filepath_from_context(context)
+            node_type = nuke.tcl("node_for_sequence", original_filepath)
+
+
         is_sequence = len(repre_entity["files"]) > 1
 
         if is_sequence:
@@ -163,12 +170,6 @@ class LoadClip(plugin.NukeLoader):
             return
 
         read_name = self._get_node_name(context)
-        node_type = options.get("node_type", self.options_defaults["node_type"])
-        if node_type == "auto":
-            # guess the read node type using nukes "node_for_sequence"-function
-            repre_filepath = get_representation_path(repre_entity)
-            node_type = nuke.tcl("node_for_sequence", repre_filepath)
-
         read_node = nuke.createNode(
             node_type,
             "name {}".format(read_name),
