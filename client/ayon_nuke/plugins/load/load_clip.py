@@ -1,9 +1,9 @@
 from copy import deepcopy
 
 import nuke
-import qargparse
 import ayon_api
 
+from ayon_core.lib import BoolDef, EnumDef
 from ayon_core.lib import Logger
 from ayon_core.pipeline import (
     get_representation_path,
@@ -64,7 +64,7 @@ class LoadClip(plugin.NukeLoader):
     options_defaults = {
         "start_at_workfile": True,
         "add_retime": True,
-        "deep_exr": False
+        "node_type": "auto",
     }
 
     node_name_template = "{class_name}_{ext}"
@@ -72,21 +72,23 @@ class LoadClip(plugin.NukeLoader):
     @classmethod
     def get_options(cls, *args):
         return [
-            qargparse.Boolean(
+            BoolDef(
                 "start_at_workfile",
-                help="Load at workfile start frame",
+                label="Start at workfile's start frame",
                 default=cls.options_defaults["start_at_workfile"]
             ),
-            qargparse.Boolean(
+            BoolDef(
                 "add_retime",
-                help="Load with retime",
+                label="Load with retime",
                 default=cls.options_defaults["add_retime"]
             ),
-            qargparse.Boolean(
-                "deep_exr",
-                help="Read with deep exr",
-                default=cls.options_defaults["deep_exr"]
-            )
+            EnumDef(
+                "node_type",
+                label="Read Node Type",
+                tooltip="Which type of Read Node to create.",
+                items=["auto", "Read", "DeepRead"],
+                default="auto",
+            ),
         ]
 
     @classmethod
@@ -104,6 +106,12 @@ class LoadClip(plugin.NukeLoader):
         # reset container id so it is always unique for each instance
         self.reset_container_id()
 
+        # Calculate the node type before frame in path is replaced with hashes.
+        node_type = options.get("node_type", self.options_defaults["node_type"])
+        if node_type == "auto":
+            original_filepath = self.filepath_from_context(context)
+            node_type = nuke.tcl("node_for_sequence", original_filepath)
+
         is_sequence = len(repre_entity["files"]) > 1
 
         if is_sequence:
@@ -120,9 +128,6 @@ class LoadClip(plugin.NukeLoader):
 
         add_retime = options.get(
             "add_retime", self.options_defaults["add_retime"])
-
-        deep_exr = options.get(
-            "deep_exr", self.options_defaults["deep_exr"])
 
         repre_id = repre_entity["id"]
 
@@ -164,21 +169,11 @@ class LoadClip(plugin.NukeLoader):
             return
 
         read_name = self._get_node_name(context)
-        read_node = None
-        if deep_exr:
-            # Create the Loader with the filename path set
-            read_node = nuke.createNode(
-                "DeepRead",
-                "name {}".format(read_name),
-                inpanel=False
-            )
-        else:
-            # Create the Loader with the filename path set
-            read_node = nuke.createNode(
-                "Read",
-                "name {}".format(read_name),
-                inpanel=False
-            )
+        read_node = nuke.createNode(
+            node_type,
+            "name {}".format(read_name),
+            inpanel=False
+        )
 
         # to avoid multiple undo steps for rest of process
         # we will switch off undo-ing
