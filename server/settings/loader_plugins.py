@@ -19,6 +19,22 @@ class LoadImageModel(BaseSettingsModel):
     )
 
 
+def node_type_enum_options():
+    return [
+        {
+            "value": "auto",
+            "label": "Auto-detect"
+        },
+        {
+            "value": "Read",
+            "label": "Read"
+        },
+        {
+            "value": "DeepRead",
+            "label": "DeepRead"
+        }
+    ]
+
 class LoadClipOptionsModel(BaseSettingsModel):
     start_at_workfile: bool = SettingsField(
         title="Start at workfile's start frame"
@@ -26,8 +42,10 @@ class LoadClipOptionsModel(BaseSettingsModel):
     add_retime: bool = SettingsField(
         title="Add retime"
     )
-    deep_exr: bool = SettingsField(
-        title="Deep Exr Read Node"
+    node_type: str = SettingsField(
+        title="Read Node Type",
+        enum_resolver=node_type_enum_options,
+        default="auto",
     )
 
 class LoadClipModel(BaseSettingsModel):
@@ -80,7 +98,7 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
         "options_defaults": {
             "start_at_workfile": False,
             "add_retime": True,
-            "deep_exr": False
+            "node_type": "auto"
         }
     },
     "GeoImportLoader": {

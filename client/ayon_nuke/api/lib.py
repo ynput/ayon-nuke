@@ -2611,10 +2611,13 @@ def add_scripts_gizmo():
             continue
 
         if option == "gizmo_source_dir":
-            gizmo_paths_to_add = gizmos[platform_name]
+            gizmo_paths_to_add = []
+            for path in gizmos[platform_name]:
+                if not path:
+                    continue
+                path = StringTemplate.format_template(path, template_data)
+                gizmo_paths_to_add.append(path)
             if gizmo_paths_to_add:
-                gizmo_paths_to_add = StringTemplate.format_template(
-                    gizmo_paths_to_add, template_data)
                 toolbar_menu.add_gizmo_path(gizmo_paths_to_add)
         elif option == "gizmo_definition":
             for gizmo in gizmos:
