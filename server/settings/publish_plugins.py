@@ -36,7 +36,7 @@ def nuke_export_formats_enum():
     """Return all nuke export format available in creators."""
     return [
         {"value": "abc", "label": "Alembic"},
-        {"value": "fbx", "label": "FBX"},    
+        {"value": "fbx", "label": "FBX"},
     ]
 
 
@@ -148,7 +148,10 @@ class ReformatNodesConfigModel(BaseSettingsModel):
 
 class IntermediateOutputModel(BaseSettingsModel):
     name: str = SettingsField(title="Output name")
-    publish: bool = SettingsField(title="Publish")
+    publish: bool = SettingsField(
+        False,
+        title="Publish"
+    )
     filter: BakingStreamFilterModel = SettingsField(
         title="Filter", default_factory=BakingStreamFilterModel)
     read_raw: bool = SettingsField(
@@ -289,7 +292,7 @@ class PublishPluginsModel(BaseSettingsModel):
     )
     ExtractCameraFormat: ExtractCameraFormatModel = SettingsField(
         title="Extract Camera Format",
-        default_factory=ExtractCameraFormatModel        
+        default_factory=ExtractCameraFormatModel
     )
     ExtractSlateFrame: ExtractSlateFrameModel = SettingsField(
         title="Extract Slate Frame",
