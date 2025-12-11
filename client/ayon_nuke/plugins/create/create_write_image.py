@@ -14,6 +14,7 @@ class CreateWriteImage(napi.NukeWriteCreator):
     identifier = "create_write_image"
     label = "Image (write)"
     product_type = "image"
+    product_base_type = "image"
     icon = "sign-out"
 
     instance_attributes = [

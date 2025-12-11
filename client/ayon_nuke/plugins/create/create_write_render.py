@@ -10,6 +10,7 @@ class CreateWriteRender(napi.NukeWriteCreator):
     identifier = "create_write_render"
     label = "Render (write)"
     product_type = "render"
+    product_base_type = "render"
     icon = "sign-out"
 
     instance_attributes = [

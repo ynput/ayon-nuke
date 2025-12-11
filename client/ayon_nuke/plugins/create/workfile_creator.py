@@ -17,6 +17,7 @@ class WorkfileCreator(AutoCreator):
 
     identifier = "workfile"
     product_type = "workfile"
+    product_base_type = "workfile"
 
     default_variant = "Main"
 
