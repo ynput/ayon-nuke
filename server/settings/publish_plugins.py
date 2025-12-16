@@ -73,7 +73,7 @@ class NodeModel(BaseSettingsModel):
         return value
 
 
-class CollectInstanceDataModel(BaseSettingsModel):
+class CollectNukeInstanceDataModel(BaseSettingsModel):
     sync_workfile_version_on_product_types: list[str] = SettingsField(
         default_factory=list,
         enum_resolver=nuke_product_types_enum,
@@ -249,9 +249,9 @@ class ExtractSlateFrameModel(BaseSettingsModel):
 
 
 class PublishPluginsModel(BaseSettingsModel):
-    CollectInstanceData: CollectInstanceDataModel = SettingsField(
+    CollectNukeInstanceData: CollectNukeInstanceDataModel = SettingsField(
         title="Collect Instance Version",
-        default_factory=CollectInstanceDataModel,
+        default_factory=CollectNukeInstanceDataModel,
         section="Collectors"
     )
     ValidateCorrectAssetContext: OptionalPluginModel = SettingsField(
@@ -321,14 +321,13 @@ class PublishPluginsModel(BaseSettingsModel):
 
 
 DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
-    "CollectInstanceData": {
+    "CollectNukeInstanceData": {
         "sync_workfile_version_on_product_types": [
             "nukenodes",
             "camera",
             "gizmo",
             "source",
             "render",
-            "write"
         ]
     },
     "ValidateCorrectAssetContext": {
