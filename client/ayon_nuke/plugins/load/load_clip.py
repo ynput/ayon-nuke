@@ -16,6 +16,7 @@ from ayon_nuke.api.lib import (
     get_imageio_input_colorspace,
     maintained_selection
 )
+from ayon_core.plugins.load.export_otio import get_image_info_metadata
 from ayon_nuke.api import (
     containerise,
     update_container,
@@ -27,6 +28,20 @@ from ayon_core.lib.transcoding import (
     IMAGE_EXTENSIONS
 )
 from ayon_nuke.api import plugin
+
+
+def get_duration_from_filepath(filepath: str) -> int:
+    """Get duration from filepath.
+    
+    Args:
+        filepath (str): File path.
+
+    Returns:
+        int: Duration in frames.
+
+    """
+    info = get_image_info_metadata(filepath)
+    return int(info.get("nb_frames", 0))
 
 
 class LoadClip(plugin.NukeLoader):
@@ -65,6 +80,7 @@ class LoadClip(plugin.NukeLoader):
         "start_at_workfile": True,
         "add_retime": True,
         "node_type": "auto",
+        "auto_duration": False,
     }
 
     node_name_template = "{class_name}_{ext}"
@@ -88,6 +104,11 @@ class LoadClip(plugin.NukeLoader):
                 tooltip="Which type of Read Node to create.",
                 items=["auto", "Read", "DeepRead"],
                 default="auto",
+            ),
+            BoolDef(
+                "auto_duration",
+                tooltip="Auto-detect duration from file",
+                default=cls.options_defaults["auto_duration"],
             ),
         ]
 
@@ -143,7 +164,11 @@ class LoadClip(plugin.NukeLoader):
         last += self.handle_end
 
         if not is_sequence:
-            duration = last - first
+            if options.get("auto_duration", False):
+                duration = get_duration_from_filepath(filepath) - 1
+            else:
+                duration = last - first
+
             first = 1
             last = first + duration
 
