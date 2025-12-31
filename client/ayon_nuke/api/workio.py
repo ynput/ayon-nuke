@@ -3,6 +3,7 @@ import os
 import nuke
 import shutil
 from .utils import is_headless
+from .constants import ASSIST
 
 
 def file_extensions():
@@ -24,11 +25,14 @@ def save_file(filepath):
 def open_file(filepath):
 
     def read_script(nuke_script):
-        nuke.scriptClear()
-        nuke.scriptReadFile(nuke_script)
-        nuke.Root()["name"].setValue(nuke_script)
-        nuke.Root()["project_directory"].setValue(os.path.dirname(nuke_script))
-        nuke.Root().setModified(False)
+        if not ASSIST:
+            nuke.scriptClear()
+            nuke.scriptReadFile(nuke_script)
+            nuke.Root()["name"].setValue(nuke_script)
+            nuke.Root()["project_directory"].setValue(os.path.dirname(nuke_script))
+            nuke.Root().setModified(False)
+        else:
+            nuke.scriptOpen(nuke_script)
 
     filepath = filepath.replace("\\", "/")
 
