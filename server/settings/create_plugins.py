@@ -92,6 +92,16 @@ class PrenodeModel(BaseSettingsModel):
         ensure_unique_names(value)
         return value
 
+class ProductTypeItemModel(BaseSettingsModel):
+    product_type: str = SettingsField(
+        title="Product type",
+        description="Product type name"
+    )
+    label: str = SettingsField(
+        title="Label",
+        description="Label to show in UI for the product type"
+    )
+
 
 class CreateWriteRenderModel(BaseSettingsModel):
     enabled: bool = SettingsField(
@@ -133,6 +143,14 @@ class CreateWriteRenderModel(BaseSettingsModel):
         description=PRENODES_LIST_DESCRIPTION
     )
 
+    product_type_items: list[ProductTypeItemModel] = SettingsField(
+        default_factory=list,
+        title="Product type items",
+        description=(
+            "Optional list of product types this plugin can create. "
+        )
+    )
+
     @validator("prenodes")
     def ensure_unique_names(cls, value):
         """Ensure name fields within the lists have unique names."""
@@ -171,13 +189,20 @@ class CreateWritePrerenderModel(BaseSettingsModel):
         description=RENDER_TARGET_DESCRIPTION,
     )
     exposed_knobs: list[str] = SettingsField(
-        title="Write Node Exposed Knobs",
-        default_factory=list
+        title="Write Node Exposed Knobs", default_factory=list
     )
     prenodes: list[PrenodeModel] = SettingsField(
         default_factory=list,
         title="Preceding nodes",
         description=PRENODES_LIST_DESCRIPTION,
+    )
+
+    product_type_items: list[ProductTypeItemModel] = SettingsField(
+        default_factory=list,
+        title="Product type items",
+        description=(
+            "Optional list of product types this plugin can create. "
+        ),
     )
 
     @validator("prenodes")
