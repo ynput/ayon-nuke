@@ -329,6 +329,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         for index, file_name in enumerate(collected_frames):
             if re.search(pattern, file_name):
                 return index
+        return 0
 
     def _add_slate_frame_to_collected_frames(
         self,
@@ -363,10 +364,6 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             )
             frame_start_index = self._get_frame_start_index(
                 collected_frames, frame_start_str
-            )
-            frame_start_index = (
-                frame_start_index
-                if frame_start_index is not None else 0
             )
             slate_frame = collected_frames[frame_start_index].replace(
                 frame_start_str, frame_slate_str)
