@@ -364,12 +364,13 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             frame_start_index = self._get_frame_start_index(
                 collected_frames, frame_start_str
             )
-            if frame_start_index is None:
-                slate_frame = collected_frames[0].replace(
-                    frame_start_str, frame_slate_str)
-            else:    
-                slate_frame = collected_frames[frame_start_index].replace(
-                    frame_start_str, frame_slate_str)
+            frame_start_index = (
+                frame_start_index
+                if frame_start_index is not None else 0
+            )
+            slate_frame = collected_frames[frame_start_index].replace(
+                frame_start_str, frame_slate_str)
+
             collected_frames.insert(0, slate_frame)
 
         return collected_frames
