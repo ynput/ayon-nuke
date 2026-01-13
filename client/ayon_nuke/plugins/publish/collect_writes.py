@@ -1,7 +1,6 @@
 import os
-import re
 import nuke
-
+import clique
 import pyblish.api
 
 from ayon_core.pipeline import publish
@@ -325,10 +324,20 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             int: index of the initial frame in **collected_frames**.
 
         """
-        pattern = rf"\b{frame_start}\b"
-        for index, file_name in enumerate(collected_frames):
-            if re.search(pattern, file_name):
-                return index
+        target_frame = int(frame_start)
+        # Assemble the collection
+        collections, _ = clique.assemble(
+            collected_frames,
+            patterns=[clique.PATTERNS["frames"]]
+        )
+        if not collections:
+            return 0
+
+        collection = collections[0]
+        indexes = list(collection.indexes)
+        if target_frame in indexes:
+            return indexes.index(target_frame)
+
         return 0
 
     def _add_slate_frame_to_collected_frames(
