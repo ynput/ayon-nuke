@@ -110,9 +110,14 @@ class CreateWriteRenderModel(BaseSettingsModel):
         description="Enable or disable the plugin"
     )
     order: int = SettingsField(
-        100,
-        title="Order",
-        description="Order of the plugin in the list"
+        100, title="Order", description="Order of the plugin in the list"
+    )
+    product_type_items: list[ProductTypeItemModel] = SettingsField(
+        default_factory=list,
+        title="Product type items",
+        description=(
+            "Optional list of product types this plugin can create. "
+        ),
     )
     temp_rendering_path_template: str = SettingsField(
         title="Temporary rendering path template"
@@ -143,14 +148,6 @@ class CreateWriteRenderModel(BaseSettingsModel):
         description=PRENODES_LIST_DESCRIPTION
     )
 
-    product_type_items: list[ProductTypeItemModel] = SettingsField(
-        default_factory=list,
-        title="Product type items",
-        description=(
-            "Optional list of product types this plugin can create. "
-        )
-    )
-
     @validator("prenodes")
     def ensure_unique_names(cls, value):
         """Ensure name fields within the lists have unique names."""
@@ -160,14 +157,17 @@ class CreateWriteRenderModel(BaseSettingsModel):
 
 class CreateWritePrerenderModel(BaseSettingsModel):
     enabled: bool = SettingsField(
-        True,
-        title="Enabled",
-        description="Enable or disable the plugin"
+        True, title="Enabled", description="Enable or disable the plugin"
     )
     order: int = SettingsField(
-        100,
-        title="Order",
-        description="Order of the plugin in the list"
+        100, title="Order", description="Order of the plugin in the list"
+    )
+    product_type_items: list[ProductTypeItemModel] = SettingsField(
+        default_factory=list,
+        title="Product type items",
+        description=(
+            "Optional list of product types this plugin can create. "
+        ),
     )
     temp_rendering_path_template: str = SettingsField(
         title="Temporary rendering path template"
@@ -197,14 +197,6 @@ class CreateWritePrerenderModel(BaseSettingsModel):
         description=PRENODES_LIST_DESCRIPTION,
     )
 
-    product_type_items: list[ProductTypeItemModel] = SettingsField(
-        default_factory=list,
-        title="Product type items",
-        description=(
-            "Optional list of product types this plugin can create. "
-        ),
-    )
-
     @validator("prenodes")
     def ensure_unique_names(cls, value):
         """Ensure name fields within the lists have unique names."""
@@ -222,6 +214,13 @@ class CreateWriteImageModel(BaseSettingsModel):
         100,
         title="Order",
         description="Order of the plugin in the list"
+    )
+    product_type_items: list[ProductTypeItemModel] = SettingsField(
+        default_factory=list,
+        title="Product type items",
+        description=(
+            "Optional list of product types this plugin can create. "
+        ),
     )
     temp_rendering_path_template: str = SettingsField(
         title="Temporary rendering path template"
@@ -270,14 +269,17 @@ class CreateWorkfileModel(BaseSettingsModel):
 
 class DefaultPluginModel(BaseSettingsModel):
     enabled: bool = SettingsField(
-        True,
-        title="Enabled",
-        description="Enable or disable the plugin"
+        True, title="Enabled", description="Enable or disable the plugin"
     )
     order: int = SettingsField(
-        100,
-        title="Order",
-        description="Order of the plugin in the list"
+        100, title="Order", description="Order of the plugin in the list"
+    )
+    product_type_items: list[ProductTypeItemModel] = SettingsField(
+        default_factory=list,
+        title="Product type items",
+        description=(
+            "Optional list of product types this plugin can create. "
+        ),
     )
 
 
