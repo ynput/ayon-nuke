@@ -137,8 +137,16 @@ class LoadClip(plugin.NukeLoader):
         self.handle_start = version_attributes.get("handleStart") or 0
         self.handle_end = version_attributes.get("handleEnd") or 0
 
-        first = version_attributes.get("frameStart")
-        last = version_attributes.get("frameEnd")
+        first = (
+            version_attributes.get("frameStart")
+            if version_attributes.get("frameStart") is not None
+            else 1001
+        )
+        last = (
+            version_attributes.get("frameEnd")
+            if version_attributes.get("frameEnd") is not None
+            else 1001
+        )
         first -= self.handle_start
         last += self.handle_end
 
@@ -309,8 +317,16 @@ class LoadClip(plugin.NukeLoader):
         self.handle_start = version_attributes.get("handleStart") or 0
         self.handle_end = version_attributes.get("handleEnd") or 0
 
-        first = version_attributes.get("frameStart")
-        last = version_attributes.get("frameEnd")
+        first = (
+            version_attributes.get("frameStart")
+            if version_attributes.get("frameStart") is not None
+            else 1001
+        )
+        last = (
+            version_attributes.get("frameEnd")
+            if version_attributes.get("frameEnd") is not None
+            else 1001
+        )
         first -= self.handle_start
         last += self.handle_end
 
