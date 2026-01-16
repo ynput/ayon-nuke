@@ -134,21 +134,14 @@ class LoadClip(plugin.NukeLoader):
         self.log.debug(
             "Representation id `{}` ".format(repre_id))
 
-        self.handle_start = version_attributes.get("handleStart") or 0
-        self.handle_end = version_attributes.get("handleEnd") or 0
+        handle_start = version_attributes.get("handleStart") or 0
+        handle_end = version_attributes.get("handleEnd") or 0
 
-        first = (
-            version_attributes.get("frameStart")
-            if version_attributes.get("frameStart") is not None
-            else 1001
+        first, last = self._get_frame_range(
+            version_attributes,
+            handle_start,
+            handle_end
         )
-        last = (
-            version_attributes.get("frameEnd")
-            if version_attributes.get("frameEnd") is not None
-            else 1001
-        )
-        first -= self.handle_start
-        last += self.handle_end
 
         if not is_sequence:
             duration = last - first
@@ -236,7 +229,12 @@ class LoadClip(plugin.NukeLoader):
                 data=data_imprint)
 
         if add_retime and version_data.get("retime"):
-            self._make_retimes(read_node, version_attributes, version_data)
+            self._make_retimes(
+                read_node,
+                version_attributes,
+                version_data,
+                handle_start
+            )
 
         self.set_as_member(read_node)
 
@@ -314,21 +312,14 @@ class LoadClip(plugin.NukeLoader):
 
         repre_id = repre_entity["id"]
 
-        self.handle_start = version_attributes.get("handleStart") or 0
-        self.handle_end = version_attributes.get("handleEnd") or 0
+        handle_start = version_attributes.get("handleStart") or 0
+        handle_end = version_attributes.get("handleEnd") or 0
 
-        first = (
-            version_attributes.get("frameStart")
-            if version_attributes.get("frameStart") is not None
-            else 1001
+        first, last = self._get_frame_range(
+            version_attributes,
+            handle_start,
+            handle_end
         )
-        last = (
-            version_attributes.get("frameEnd")
-            if version_attributes.get("frameEnd") is not None
-            else 1001
-        )
-        first -= self.handle_start
-        last += self.handle_end
 
         if not is_sequence:
             duration = last - first
@@ -362,8 +353,8 @@ class LoadClip(plugin.NukeLoader):
                 "frameEnd": str(last),
                 "version": str(version_entity["version"]),
                 "source": version_attributes.get("source"),
-                "handleStart": str(self.handle_start),
-                "handleEnd": str(self.handle_end),
+                "handleStart": str(handle_start),
+                "handleEnd": str(handle_end),
                 "fps": str(version_attributes.get("fps"))
             }
 
@@ -384,7 +375,12 @@ class LoadClip(plugin.NukeLoader):
             )
 
         if add_retime and version_data.get("retime"):
-            self._make_retimes(read_node, version_attributes, version_data)
+            self._make_retimes(
+                read_node,
+                version_attributes,
+                version_data,
+                handle_start
+            )
         else:
             self.clear_members(read_node)
 
@@ -448,7 +444,7 @@ class LoadClip(plugin.NukeLoader):
 
             read_node['frame'].setValue(str(start_frame))
 
-    def _make_retimes(self, parent_node, version_attributes, version_data):
+    def _make_retimes(self, parent_node, version_attributes, version_data, handle_start):
         ''' Create all retime and timewarping nodes with copied animation '''
         speed = version_data.get('speed', 1)
         time_warp_nodes = version_data.get('timewarps', [])
@@ -486,7 +482,7 @@ class LoadClip(plugin.NukeLoader):
                 last_node = rtn
 
             if time_warp_nodes != []:
-                start_anim = self.script_start + (self.handle_start / speed)
+                start_anim = self.script_start + (handle_start / speed)
                 for timewarp in time_warp_nodes:
                     twn = nuke.createNode(
                         timewarp["Class"],
@@ -587,3 +583,30 @@ class LoadClip(plugin.NukeLoader):
             or old_parsed_colorspace
             or colorspace
         )
+
+    def _get_frame_range(self, version_attributes, handle_start, handle_end):
+        """Get first and last frame from version attributes
+
+        Args:
+            version_attributes (dict): version attributes
+            handle_start (int): handle start frames
+            handle_end (int): handle end frames
+
+        Returns:
+            tuple: first and last frame numbers
+        """
+
+        first = (
+            version_attributes.get("frameStart")
+            if version_attributes.get("frameStart") is not None
+            else 1001
+        )
+        last = (
+            version_attributes.get("frameEnd")
+            if version_attributes.get("frameEnd") is not None
+            else 1001
+        )
+        first -= handle_start
+        last += handle_end
+
+        return first, last
