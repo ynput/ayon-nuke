@@ -1,4 +1,5 @@
 from copy import deepcopy
+import os
 
 import nuke
 import ayon_api
@@ -12,6 +13,7 @@ from ayon_core.pipeline.colorspace import (
     get_imageio_file_rules_colorspace_from_filepath,
     get_current_context_imageio_config_preset,
 )
+from ayon_core.pipeline.load import LoadError
 from ayon_nuke.api.lib import (
     get_imageio_input_colorspace,
     maintained_selection
@@ -138,9 +140,7 @@ class LoadClip(plugin.NukeLoader):
         handle_end = version_attributes.get("handleEnd") or 0
 
         first, last = self._get_frame_range(
-            version_attributes,
-            handle_start,
-            handle_end
+            version_attributes, handle_start, handle_end
         )
 
         if not is_sequence:
@@ -188,10 +188,14 @@ class LoadClip(plugin.NukeLoader):
                     version_entity,
                     repre_entity
                 )
-
-            self._set_range_to_node(
-                read_node, first, last, start_at_workfile, slate_frames
-            )
+            if first and last:
+                self._set_range_to_node(
+                    read_node, first, last, start_at_workfile, slate_frames
+                )
+            else:
+                first, last = self._set_range_to_node_by_nuke(
+                    read_node, filepath, start_at_workfile, slate_frames
+                )
 
             version_name = version_entity["version"]
             if version_name < 0:
@@ -316,9 +320,7 @@ class LoadClip(plugin.NukeLoader):
         handle_end = version_attributes.get("handleEnd") or 0
 
         first, last = self._get_frame_range(
-            version_attributes,
-            handle_start,
-            handle_end
+            version_attributes, handle_start, handle_end
         )
 
         if not is_sequence:
@@ -344,8 +346,14 @@ class LoadClip(plugin.NukeLoader):
                     version_entity,
                     repre_entity
                 )
-
-            self._set_range_to_node(read_node, first, last, start_at_workfile)
+            if first and last:
+                self._set_range_to_node(
+                    read_node, first, last, start_at_workfile
+                )
+            else:
+                first, last = self._set_range_to_node_by_nuke(
+                    read_node, filepath, start_at_workfile
+                )
 
             updated_dict = {
                 "representation": repre_entity["id"],
@@ -431,6 +439,7 @@ class LoadClip(plugin.NukeLoader):
     def _set_range_to_node(
         self, read_node, first, last, start_at_workfile, slate_frames=0
     ):
+
         read_node['origfirst'].setValue(int(first))
         read_node['first'].setValue(int(first))
         read_node['origlast'].setValue(int(last))
@@ -438,11 +447,36 @@ class LoadClip(plugin.NukeLoader):
 
         # set start frame depending on workfile or version
         if start_at_workfile:
-            read_node['frame_mode'].setValue("start at")
+            self._start_at_workfile_frame(read_node, slate_frames)
 
-            start_frame = self.script_start - slate_frames
+    def _set_range_to_node_by_nuke(
+        self, read_node,filepath, start_at_workfile, slate_frames=0
+    ):
+        basename = os.path.basename(filepath)
+        dirname = os.path.dirname(filepath)
 
-            read_node['frame'].setValue(str(start_frame))
+        for nuke_file_name in nuke.getFileNameList(dirname):
+            if basename in nuke_file_name :
+                break
+        else:
+            raise LoadError(f"Cannot find nuke media path for: {filepath}.")
+
+        # Let nuke configure read node from media source.
+        nuke_media_path = os.path.join(dirname, nuke_file_name)
+        read_node["file"].fromUserText(nuke_media_path)
+        frame_start = int(read_node['first'].value())
+        frame_end = int(read_node['last'].value())
+
+        if start_at_workfile:
+            self._start_at_workfile_frame(read_node, slate_frames)
+
+        return frame_start, frame_end
+
+    def _start_at_workfile_frame(self, read_node, slate_frames):
+        """Set read node to start at workfile's start frame"""
+        read_node['frame_mode'].setValue("start at")
+        start_frame = self.script_start - slate_frames
+        read_node['frame'].setValue(str(start_frame))
 
     def _make_retimes(self, parent_node, version_attributes, version_data, handle_start):
         ''' Create all retime and timewarping nodes with copied animation '''
@@ -596,16 +630,12 @@ class LoadClip(plugin.NukeLoader):
             tuple: first and last frame numbers
         """
 
-        first = (
-            version_attributes.get("frameStart")
-            if version_attributes.get("frameStart") is not None
-            else 1001
-        )
-        last = (
-            version_attributes.get("frameEnd")
-            if version_attributes.get("frameEnd") is not None
-            else 1001
-        )
+        first = version_attributes.get("frameStart")
+
+        last = version_attributes.get("frameEnd")
+        if not first or not last:
+            return None, None
+
         first -= handle_start
         last += handle_end
 
