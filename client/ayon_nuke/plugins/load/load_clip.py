@@ -143,7 +143,7 @@ class LoadClip(plugin.NukeLoader):
             version_attributes, handle_start, handle_end
         )
 
-        if not is_sequence:
+        if first is not None and last is not None and not is_sequence:
             duration = last - first
             first = 1
             last = first + duration
@@ -323,7 +323,7 @@ class LoadClip(plugin.NukeLoader):
             version_attributes, handle_start, handle_end
         )
 
-        if not is_sequence:
+        if first is not None and last is not None and not is_sequence:
             duration = last - first
             first = 1
             last = first + duration
