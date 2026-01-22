@@ -2,10 +2,7 @@ import nuke
 import nukescripts
 import ayon_api
 
-from ayon_core.pipeline import (
-    load,
-    get_representation_path,
-)
+from ayon_core.pipeline import load
 from ayon_nuke.api.lib import (
     find_free_space_to_paste_nodes,
     maintained_selection,
@@ -32,6 +29,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
     icon = "eye"
     color = "white"
     node_color = "0x7533c1ff"
+    remove_nodes_from_backdrop = False
 
     def load(self, context, name, namespace, data):
         """
@@ -150,23 +148,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
             reset_selection()
             select_nodes(new_nodes)
             # place on backdrop
-            bdn = nukescripts.autoBackdrop()
-
-            # add frame offset
-            xpos = bdn.xpos() - bdn_frame
-            ypos = bdn.ypos() - bdn_frame
-            bdwidth = bdn["bdwidth"].value() + (bdn_frame*2)
-            bdheight = bdn["bdheight"].value() + (bdn_frame*2)
-
-            bdn["xpos"].setValue(xpos)
-            bdn["ypos"].setValue(ypos)
-            bdn["bdwidth"].setValue(bdwidth)
-            bdn["bdheight"].setValue(bdheight)
-
-            bdn["name"].setValue(object_name)
-            bdn["label"].setValue("Version tracked frame: \n`{}`\n\nPLEASE DO NOT REMOVE OR MOVE \nANYTHING FROM THIS FRAME!".format(object_name))
-            bdn["note_font_size"].setValue(20)
-
+            bdn = self.set_autobackdrop(xpos, ypos, object_name)
             return containerise(
                 node=bdn,
                 name=name,
@@ -193,7 +175,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
         # get corresponding node
         GN = container["node"]
 
-        file = get_representation_path(repre_entity).replace("\\", "/")
+        file = self.filepath_from_context(context).replace("\\", "/")
 
         name = container["name"]
         namespace = container["namespace"]
@@ -219,15 +201,14 @@ class LoadBackdropNodes(load.LoaderPlugin):
             xpos = GN.xpos()
             ypos = GN.ypos()
             avalon_data = get_avalon_knob_data(GN)
+            for node in GN.getNodes():
+                nuke.delete(node)
             nuke.delete(GN)
             # add group from nk
             nuke.nodePaste(file)
 
-            GN = nuke.selectedNode()
+            GN = self.set_autobackdrop(xpos, ypos, object_name)
             set_avalon_knob_data(GN, avalon_data)
-            GN.setXYpos(xpos, ypos)
-            GN["name"].setValue(object_name)
-
         # get all versions in list
         last_version_entity = ayon_api.get_last_version_by_product_id(
             project_name, version_entity["productId"], fields={"id"}
@@ -252,4 +233,39 @@ class LoadBackdropNodes(load.LoaderPlugin):
     def remove(self, container):
         node = container["node"]
         with viewer_update_and_undo_stop():
+            if self.remove_nodes_from_backdrop:
+                for n in node.getNodes():
+                    nuke.delete(n)
             nuke.delete(node)
+
+    def set_autobackdrop(self, xpos, ypos, object_name, bdn_frame=50):
+        """Set auto backdrop around selected nodes
+
+        Args:
+            xpos (int): x position
+            ypos (int): y position
+            object_name (str): name of the object
+            bdn_frame (int, optional): frame size around the backdrop. Defaults to 50.
+
+        Returns:
+            nuke.BackdropNode: the created backdrop node
+        """
+        # place on backdrop
+        bdn = nukescripts.autoBackdrop()
+
+        # add frame offset
+        xpos = bdn.xpos() - bdn_frame
+        ypos = bdn.ypos() - bdn_frame
+        bdwidth = bdn["bdwidth"].value() + (bdn_frame*2)
+        bdheight = bdn["bdheight"].value() + (bdn_frame*2)
+
+        bdn["xpos"].setValue(xpos)
+        bdn["ypos"].setValue(ypos)
+        bdn["bdwidth"].setValue(bdwidth)
+        bdn["bdheight"].setValue(bdheight)
+
+        bdn["name"].setValue(object_name)
+        bdn["label"].setValue("Version tracked frame: \n`{}`\n\nPLEASE DO NOT REMOVE OR MOVE \nANYTHING FROM THIS FRAME!".format(object_name))
+        bdn["note_font_size"].setValue(20)
+
+        return bdn
