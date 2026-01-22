@@ -52,7 +52,7 @@ class LoadClipOptionsModel(BaseSettingsModel):
 
 class LoadBackdropNodesModel(BaseSettingsModel):
     remove_nodes_from_backdrop: bool = SettingsField(
-        title="Remove existing Ayon backdrops when removing container"
+        title="Remove existing AYON backdrops when removing container"
     )
 
 
