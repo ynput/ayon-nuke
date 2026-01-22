@@ -206,7 +206,8 @@ class LoadBackdropNodes(load.LoaderPlugin):
             nuke.delete(GN)
             # add group from nk
             nuke.nodePaste(file)
-
+            # create new backdrop so that the nodes can be
+            # filled within it
             GN = self.set_autobackdrop(xpos, ypos, object_name)
             set_avalon_knob_data(GN, avalon_data)
         # get all versions in list
