@@ -234,8 +234,8 @@ class LoadBackdropNodes(load.LoaderPlugin):
         node = container["node"]
         with viewer_update_and_undo_stop():
             if self.remove_nodes_from_backdrop:
-                for n in node.getNodes():
-                    nuke.delete(n)
+                for child_node in node.getNodes():
+                    nuke.delete(child_node)
             nuke.delete(node)
 
     def set_autobackdrop(self, xpos, ypos, object_name, bdn_frame=50):
