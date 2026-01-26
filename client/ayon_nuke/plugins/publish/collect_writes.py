@@ -198,7 +198,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "color_channels": color_channels
         })
 
-        if product_type == "render":
+        if product_base_type == "render":
             instance.data.update({
                 "handleStart": handle_start,
                 "handleEnd": handle_end,
