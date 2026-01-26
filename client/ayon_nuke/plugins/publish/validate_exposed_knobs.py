@@ -29,8 +29,13 @@ class RepairExposedKnobs(pyblish.api.Action):
                 if x.Class() == "Write":
                     write_node = x
 
-            product_type = instance.data["productType"]
-            plugin_name = plugin.product_types_mapping[product_type]
+            product_base_type = (
+                instance.data.get(
+                    "productBaseType",
+                    instance.data["productType"]
+                )
+            )
+            plugin_name = plugin.product_types_mapping[product_base_type]
             nuke_settings = instance.context.data["project_settings"]["nuke"]
             create_settings = nuke_settings["create"][plugin_name]
             exposed_knobs = create_settings["exposed_knobs"]
@@ -55,7 +60,7 @@ class ValidateExposedKnobs(
 
     settings_category = "nuke"
 
-    product_types_mapping = {
+    product_base_types_mapping = {
         "render": "CreateWriteRender",
         "prerender": "CreateWritePrerender",
         "image": "CreateWriteImage"
@@ -65,8 +70,10 @@ class ValidateExposedKnobs(
         if not self.is_active(instance.data):
             return
 
-        product_type = instance.data["productType"]
-        plugin = self.product_types_mapping[product_type]
+        product_base_type = (
+            instance.data.get("productBaseType", instance.data["productType"])
+        )
+        plugin = self.product_base_types_mapping[product_base_type]
         group_node = instance.data["transientData"]["node"]
         nuke_settings = instance.context.data["project_settings"]["nuke"]
         create_settings = nuke_settings["create"][plugin]

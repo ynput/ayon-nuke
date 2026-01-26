@@ -23,9 +23,9 @@ class BuilderProfileItemModel(BaseSettingsModel):
         default_factory=list,
         title="Product name"
     )
-    product_types: list[str] = SettingsField(
+    product_base_types: list[str] = SettingsField(
         default_factory=list,
-        title="Product types"
+        title="Product base types"
     )
     repre_names: list[str] = SettingsField(
         default_factory=list,

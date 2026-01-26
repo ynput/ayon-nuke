@@ -1864,10 +1864,16 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             nuke_imageio_writes = None
             if avalon_knob_data:
                 # establish families
-                product_type = avalon_knob_data.get("productType")
-                if product_type is None:
-                    product_type = avalon_knob_data["family"]
-                families = [product_type]
+                product_base_type = (
+                    avalon_knob_data.get("productBaseType") or
+                    avalon_knob_data.get("productType")
+                )
+                # this shouldn't happen anymore, only with very old data
+                # and should be removed later when all avalon data api is
+                # also removed.
+                if product_base_type is None:
+                    product_base_type = avalon_knob_data["family"]
+                families = [product_base_type]
                 if avalon_knob_data.get("families"):
                     families.append(avalon_knob_data.get("families"))
 

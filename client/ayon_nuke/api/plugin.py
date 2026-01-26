@@ -318,6 +318,7 @@ class NukeWriteCreator(NukeCreator):
     identifier = "create_write"
     label = "Create Write"
     product_type = "write"
+    product_base_type = "write"
     icon = "sign-out"
 
     temp_rendering_path_template = (  # default to be applied if settings is missing
@@ -489,15 +490,15 @@ class NukeWriteCreator(NukeCreator):
         # make sure selected nodes are added
         node_selection = self._get_current_selected_nodes(pre_create_data)
 
-        # make sure product name is unique
+        # make sure the product name is unique
         self.check_existing_product(product_name)
 
         try:
             instance = CreatedInstance(
-                self.product_type,
-                product_name,
-                instance_data,
-                self
+                product_type = self.product_type,
+                product_name = product_name,
+                data = instance_data,
+                creator = self
             )
 
             staging_dir = self.apply_staging_dir(instance)
@@ -1488,7 +1489,6 @@ def convert_to_valid_instaces():
             "nukenodes": "create_backdrop",
             "gizmo": "create_gizmo",
             "source": "create_source"
-
         }
         return mapping[product_type]
 
