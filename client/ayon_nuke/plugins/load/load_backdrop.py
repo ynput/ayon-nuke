@@ -201,15 +201,60 @@ class LoadBackdropNodes(load.LoaderPlugin):
             xpos = GN.xpos()
             ypos = GN.ypos()
             avalon_data = get_avalon_knob_data(GN)
-            for node in GN.getNodes():
+
+            # Preserve incoming and outgoing connections of nodes within the backdrop
+            backdrop_nodes = GN.getNodes()
+            node_connections = []
+
+            for node in backdrop_nodes:
+                # Incoming connections of the node
+                for input_index in range(node.inputs()):
+                    input_node = node.input(input_index)
+                    if input_node:
+                        node_connections.append({
+                            "node_name": node.name(),
+                            "input_index": input_index,
+                            "input_node_name": input_node.name()
+                        })
+
+                # Outgoing connections of the node
+                for dependent in node.dependent():
+                    for input_index, depcy in enumerate(dependent.dependencies()):
+                        if node is depcy:
+                            node_connections.append({
+                                "node_name": node.name(),
+                                "dependent_name": dependent.name(),
+                                "dependent_input_index": input_index
+                            })
+
+                # Delete old backdrop nodes
                 nuke.delete(node)
+
             nuke.delete(GN)
+
             # add group from nk
             nuke.nodePaste(file)
             # create new backdrop so that the nodes can be
             # filled within it
             GN = self.set_autobackdrop(xpos, ypos, object_name)
             set_avalon_knob_data(GN, avalon_data)
+            # Restore connections
+            node_map = {
+                node.name(): node for node in GN.getNodes()
+            }
+            for conn in node_connections:
+                if "input_node_name" in conn:
+                    # Restore incoming connections
+                    node = node_map.get(conn["node_name"])
+                    input_node = node_map.get(conn["input_node_name"])
+                    if node and input_node:
+                        node.setInput(conn["input_index"], input_node)
+                else:
+                    # Restore outgoing connections
+                    node = node_map.get(conn["node_name"])
+                    dependent = node_map.get(conn["dependent_name"])
+                    if node and dependent:
+                        dependent.setInput(conn["dependent_input_index"], node)
         # get all versions in list
         last_version_entity = ayon_api.get_last_version_by_product_id(
             project_name, version_entity["productId"], fields={"id"}
