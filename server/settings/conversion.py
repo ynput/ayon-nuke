@@ -232,7 +232,6 @@ def _convert_baking_stream_filter_product_base_type_0_4_9(
             )
 
 
-
 def convert_settings_overrides(
     source_version: str,
     overrides: dict[str, Any],
@@ -242,5 +241,3 @@ def convert_settings_overrides(
     _convert_publish_plugins(overrides)
     _convert_imageio_subsets_0_3_2(overrides)
     return overrides
-
-

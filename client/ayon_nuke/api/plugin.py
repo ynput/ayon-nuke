@@ -495,10 +495,10 @@ class NukeWriteCreator(NukeCreator):
 
         try:
             instance = CreatedInstance(
-                product_type = self.product_type,
-                product_name = product_name,
-                data = instance_data,
-                creator = self
+                product_type=self.product_type,
+                product_name=product_name,
+                data=instance_data,
+                creator=self,
             )
 
             staging_dir = self.apply_staging_dir(instance)
