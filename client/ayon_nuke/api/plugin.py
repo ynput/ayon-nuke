@@ -17,11 +17,13 @@ from ayon_core.lib import StringTemplate
 from ayon_core.pipeline import (
     LoaderPlugin,
     CreatorError,
-    Creator as NewCreator,
+    Creator,
     CreatedInstance,
     get_current_task_name,
     AYON_INSTANCE_ID,
     AVALON_INSTANCE_ID,
+    # Backwards compatibility
+    Creator as NewCreator,  # noqa: F401
 )
 from ayon_core.pipeline.colorspace import (
     get_display_view_colorspace_name,
@@ -75,7 +77,7 @@ class NukeCreatorError(CreatorError):
     pass
 
 
-class NukeCreator(NewCreator):
+class NukeCreator(Creator):
     node_class_name = None
 
     def _pass_pre_attributes_to_instance(
