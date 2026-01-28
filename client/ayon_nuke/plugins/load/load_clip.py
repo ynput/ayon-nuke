@@ -152,10 +152,6 @@ class LoadClip(plugin.NukeLoader):
         # but file sequences its the first frame that is 1 frame lower.
         slate_frames = repre_entity["data"].get("slateFrames", 0)
         extension = "." + repre_entity["context"]["ext"]
-
-        if extension in VIDEO_EXTENSIONS:
-        slate_frames = repre_entity["data"].get("slateFrames", 0)
-        extension = "." + repre_entity["context"]["ext"]
         files_count = len(repre_entity["files"])
 
         if first is not None and last is not None:
