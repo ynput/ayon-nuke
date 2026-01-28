@@ -1,3 +1,4 @@
+import contextlib
 import nuke
 import nukescripts
 import ayon_api
@@ -204,57 +205,19 @@ class LoadBackdropNodes(load.LoaderPlugin):
 
             # Preserve incoming and outgoing connections of nodes within the backdrop
             backdrop_nodes = GN.getNodes()
-            node_connections = []
+            with restore_node_connections(backdrop_nodes):
+                for node in backdrop_nodes:
+                    # Delete old backdrop nodes
+                    nuke.delete(node)
+                nuke.delete(GN)
 
-            for node in backdrop_nodes:
-                # Incoming connections of the node
-                for input_index in range(node.inputs()):
-                    input_node = node.input(input_index)
-                    if input_node:
-                        node_connections.append({
-                            "node_name": node.name(),
-                            "input_index": input_index,
-                            "input_node_name": input_node.name()
-                        })
+                # add group from nk
+                nuke.nodePaste(file)
+                # create new backdrop so that the nodes can be
+                # filled within it
+                GN = self.set_autobackdrop(xpos, ypos, object_name)
+                set_avalon_knob_data(GN, avalon_data)
 
-                # Outgoing connections of the node
-                for dependent in node.dependent():
-                    for input_index, depcy in enumerate(dependent.dependencies()):
-                        if node is depcy:
-                            node_connections.append({
-                                "node_name": node.name(),
-                                "dependent_name": dependent.name(),
-                                "dependent_input_index": input_index
-                            })
-
-                # Delete old backdrop nodes
-                nuke.delete(node)
-
-            nuke.delete(GN)
-
-            # add group from nk
-            nuke.nodePaste(file)
-            # create new backdrop so that the nodes can be
-            # filled within it
-            GN = self.set_autobackdrop(xpos, ypos, object_name)
-            set_avalon_knob_data(GN, avalon_data)
-            # Restore connections
-            node_map = {
-                node.name(): node for node in GN.getNodes()
-            }
-            for conn in node_connections:
-                if "input_node_name" in conn:
-                    # Restore incoming connections
-                    node = node_map.get(conn["node_name"])
-                    input_node = node_map.get(conn["input_node_name"])
-                    if node and input_node:
-                        node.setInput(conn["input_index"], input_node)
-                else:
-                    # Restore outgoing connections
-                    node = node_map.get(conn["node_name"])
-                    dependent = node_map.get(conn["dependent_name"])
-                    if node and dependent:
-                        dependent.setInput(conn["dependent_input_index"], node)
         # get all versions in list
         last_version_entity = ayon_api.get_last_version_by_product_id(
             project_name, version_entity["productId"], fields={"id"}
@@ -315,3 +278,136 @@ class LoadBackdropNodes(load.LoaderPlugin):
         bdn["note_font_size"].setValue(20)
 
         return bdn
+
+def _get_expression_safe(knob):
+    """Safely get expression from a knob.
+
+    Args:
+        knob: Nuke knob object to check.
+
+    Returns:
+        str: Expression string if exists, None otherwise.
+    """
+    if knob and hasattr(knob, 'expression'):
+        expr = knob.expression()
+        return expr if expr else None
+    return None
+
+
+def _restore_connection(conn, node_map):
+    """Restore a single node connection or expression.
+
+    Args:
+        conn (dict): Connection dictionary with serialized node names and metadata.
+        node_map (dict): Mapping of node names to actual node objects.
+    """
+    if "input_node_name" in conn:
+        # Restore incoming connections
+        node_name = conn["node_name"]
+        input_node_name = conn["input_node_name"]
+
+        if node_name not in node_map or input_node_name not in node_map:
+            return
+
+        node = node_map[node_name]
+        input_node = node_map[input_node_name]
+        input_index = conn["input_index"]
+
+        # Restore connection
+        if conn.get("expression"):
+            node.input(input_index).setExpression(conn["expression"])
+        else:
+            node.setInput(input_index, input_node)
+    else:
+        # Restore outgoing connections
+        node_name = conn["node_name"]
+        dependent_name = conn["dependent_name"]
+
+        if node_name not in node_map or dependent_name not in node_map:
+            return
+
+        node = node_map[node_name]
+        dependent = node_map[dependent_name]
+        input_index = conn["dependent_input_index"]
+
+        # Restore connection
+        if conn.get("expression"):
+            dependent.input(input_index).setExpression(conn["expression"])
+        else:
+            dependent.setInput(input_index, node)
+
+
+def _capture_node_connections(backdrop_nodes):
+    """Capture incoming and outgoing connections for backdrop nodes.
+    
+    Serializes connection data to avoid "PythonObject not attached" errors
+    when nodes are deleted and recreated.
+
+    Args:
+        backdrop_nodes (list): List of nodes to capture connections from.
+
+    Returns:
+        list: List of connection dictionaries with serialized node names.
+    """
+    connections = []
+
+    for node in backdrop_nodes:
+        node_name = node.name()
+
+        # Incoming connections
+        for input_index in range(node.inputs()):
+            input_node = node.input(input_index)
+            if input_node:
+                # Capture expression if it exists
+                knob = node.input(input_index)
+                expr = _get_expression_safe(knob)
+                connections.append({
+                    "node_name": node_name,
+                    "input_index": input_index,
+                    "input_node_name": input_node.name(),
+                    "expression": expr,
+                })
+
+        # Outgoing connections
+        for dependent in node.dependent():
+            for input_index, depcy in enumerate(dependent.dependencies()):
+                if node is depcy:
+                    # Capture expression if it exists
+                    knob = dependent.input(input_index)
+                    expr = _get_expression_safe(knob)
+                    connections.append({
+                        "node_name": node_name,
+                        "dependent_name": dependent.name(),
+                        "dependent_input_index": input_index,
+                        "expression": expr,
+                    })
+
+    return connections
+
+
+@contextlib.contextmanager
+def restore_node_connections(backdrop_nodes):
+    """Context manager to capture and restore node connections.
+
+    Captures all incoming and outgoing connections before backdrop nodes
+    are deleted, then restores them after new nodes are pasted.
+    Uses serialized node names to avoid "PythonObject not attached" errors.
+
+    Args:
+        backdrop_nodes (list): List of nodes whose connections to preserve.
+
+    Yields:
+        None
+    """
+    original_connections = _capture_node_connections(backdrop_nodes)
+    try:
+        yield
+    finally:
+        # Build node map by name from current nodes
+        node_map = {
+            node.name(): node
+            for node in nuke.allNodes()
+        }
+        # Restore connections using the node map
+        for conn in original_connections:
+            _restore_connection(conn, node_map)
