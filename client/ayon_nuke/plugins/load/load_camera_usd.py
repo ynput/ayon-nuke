@@ -124,13 +124,13 @@ class UsdCameraLoader(load.LoaderPlugin):
         # Get the USD file path from the node
         usd_path = camera_node["file"].value()
         if not usd_path:
-            nuke.message("No USD file set on Camera4 node")
+            self.log.error("No USD file set on Camera4 node")
             return
 
         # Open USD stage
         stage = Usd.Stage.Open(usd_path)
         if not stage:
-            nuke.message("Failed to open USD stage")
+            self.log.error("Failed to open USD stage")
             return
 
         # If prim path is already set (e.g. on update) and the prim
