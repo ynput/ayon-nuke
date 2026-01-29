@@ -22,7 +22,7 @@ class UsdCameraLoader(load.LoaderPlugin):
     color = "orange"
     order = 2
 
-    extensions = {"usd"}
+    extensions = {"usd", "usda", "usdc"}
     # There are essentially no 'camera' product type USD publishers available
     # in the majority of integrations, so we allow loading any usd
     # file. This way also USD Shots with cameras can be loaded.
