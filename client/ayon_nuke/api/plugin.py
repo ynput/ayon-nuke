@@ -531,6 +531,7 @@ class NukeWriteCreator(NukeCreator):
     def apply_settings(self, project_settings):
         """Method called on initialization of plugin to apply settings."""
         # plugin settings for particular creator
+        super().apply_settings(project_settings)
         plugin_settings = self.get_creator_settings(project_settings)
         # enabled
         self.enabled: bool = plugin_settings.get("enabled", True)
