@@ -203,7 +203,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
             ypos = GN.ypos()
             avalon_data = get_avalon_knob_data(GN)
 
-            # Preserve incoming and outgoing connections of nodes within the backdrop
+            # Preserve external connections (to/from outside the backdrop)
             backdrop_nodes = GN.getNodes()
             with restore_node_connections(backdrop_nodes):
                 for node in backdrop_nodes:
@@ -338,26 +338,28 @@ def _restore_connection(conn, node_map):
 
 
 def _capture_node_connections(backdrop_nodes):
-    """Capture incoming and outgoing connections for backdrop nodes.
+    """Capture only external connections (to/from nodes outside the backdrop).
     
+    Does not capture connections between nodes within the backdrop itself.
     Serializes connection data to avoid "PythonObject not attached" errors
     when nodes are deleted and recreated.
 
     Args:
-        backdrop_nodes (list): List of nodes to capture connections from.
+        backdrop_nodes (list): List of nodes to capture external connections for.
 
     Returns:
         list: List of connection dictionaries with serialized node names.
     """
     connections = []
+    filtered_backdrop_nodes = {node.name() for node in backdrop_nodes}
 
     for node in backdrop_nodes:
         node_name = node.name()
 
-        # Incoming connections
+        # Incoming connections from OUTSIDE the backdrop only
         for input_index in range(node.inputs()):
             input_node = node.input(input_index)
-            if input_node:
+            if input_node and input_node.name() not in filtered_backdrop_nodes:
                 # Capture expression if it exists
                 knob = node.input(input_index)
                 expr = _get_expression_safe(knob)
@@ -368,19 +370,20 @@ def _capture_node_connections(backdrop_nodes):
                     "expression": expr,
                 })
 
-        # Outgoing connections
+        # Outgoing connections to OUTSIDE the backdrop only
         for dependent in node.dependent():
-            for input_index, depcy in enumerate(dependent.dependencies()):
-                if node is depcy:
-                    # Capture expression if it exists
-                    knob = dependent.input(input_index)
-                    expr = _get_expression_safe(knob)
-                    connections.append({
-                        "node_name": node_name,
-                        "dependent_name": dependent.name(),
-                        "dependent_input_index": input_index,
-                        "expression": expr,
-                    })
+            if dependent.name() not in filtered_backdrop_nodes:
+                for input_index, depcy in enumerate(dependent.dependencies()):
+                    if node is depcy:
+                        # Capture expression if it exists
+                        knob = dependent.input(input_index)
+                        expr = _get_expression_safe(knob)
+                        connections.append({
+                            "node_name": node_name,
+                            "dependent_name": dependent.name(),
+                            "dependent_input_index": input_index,
+                            "expression": expr,
+                        })
 
     return connections
 
