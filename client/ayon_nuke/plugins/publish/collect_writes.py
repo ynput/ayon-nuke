@@ -1,6 +1,5 @@
 import os
 import nuke
-import clique
 import pyblish.api
 
 from ayon_core.pipeline import publish
