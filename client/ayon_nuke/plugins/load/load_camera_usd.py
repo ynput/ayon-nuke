@@ -5,11 +5,9 @@ from ayon_core.pipeline import load
 from ayon_nuke.api import (
     containerise,
     update_container,
-    viewer_update_and_undo_stop
+    viewer_update_and_undo_stop,
 )
-from ayon_nuke.api.lib import (
-    maintained_selection
-)
+from ayon_nuke.api.lib import maintained_selection
 
 from pxr import Usd, UsdGeom
 
@@ -18,6 +16,7 @@ class UsdCameraLoader(load.LoaderPlugin):
     """
     This will load usd camera into script.
     """
+
     label = "Load USD Camera"
     icon = "camera"
     color = "orange"
@@ -47,8 +46,9 @@ class UsdCameraLoader(load.LoaderPlugin):
             camera_node = nuke.createNode(
                 "Camera4",
                 "name {} file {} import_enabled True".format(
-                    object_name, file),
-                inpanel=False
+                    object_name, file
+                ),
+                inpanel=False,
             )
             camera_node.forceValidate()
             camera_node["frame_rate"].setValue(float(fps))
@@ -94,8 +94,7 @@ class UsdCameraLoader(load.LoaderPlugin):
         return update_container(camera_node, {})
 
     def node_version_color(self, project_name, version_entity, node):
-        """ Coloring a node by correct color by actual version
-        """
+        """Coloring a node by correct color by actual version"""
         # get all versions in list
         last_version_entity = ayon_api.get_last_version_by_product_id(
             project_name, version_entity["productId"], fields={"id"}
@@ -123,7 +122,7 @@ class UsdCameraLoader(load.LoaderPlugin):
         camera prim in the USD file and sets it.
         """
         # Get the USD file path from the node
-        usd_path = camera_node['file'].value()
+        usd_path = camera_node["file"].value()
         if not usd_path:
             nuke.message("No USD file set on Camera4 node")
             return
@@ -136,7 +135,7 @@ class UsdCameraLoader(load.LoaderPlugin):
 
         # If prim path is already set (e.g. on update) and the prim
         # is an existing camera in the stage, do nothing.
-        existing_prim_path = camera_node['import_prim_path'].value()
+        existing_prim_path = camera_node["import_prim_path"].value()
         if existing_prim_path:
             prim = stage.GetPrimAtPath(existing_prim_path)
             if prim and prim.IsA(UsdGeom.Camera):
@@ -151,10 +150,9 @@ class UsdCameraLoader(load.LoaderPlugin):
                 prim_path = prim.GetPath().pathString
 
                 # Set Import Prim Path
-                camera_node['import_prim_path'].setValue(prim_path)
+                camera_node["import_prim_path"].setValue(prim_path)
 
                 self.log.info(f"Set camera to: {prim_path}")
                 return
 
         self.log.error("No camera found in USD file")
-
