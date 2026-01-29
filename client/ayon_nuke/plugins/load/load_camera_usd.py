@@ -34,7 +34,6 @@ class UsdCameraLoader(load.LoaderPlugin):
     settings_category = "nuke"
 
     def load(self, context, name, namespace, data):
-        # get main variables
         version_entity = context["version"]
         version_attributes = version_entity["attrib"]
         fps = version_attributes.get("fps") or nuke.root()["fps"].getValue()
@@ -70,29 +69,10 @@ class UsdCameraLoader(load.LoaderPlugin):
         )
 
     def update(self, container, context):
-        """
-            Called by Scene Inventory when look should be updated to current
-            version.
-            If any reference edits cannot be applied, eg. shader renamed and
-            material not present, reference is unloaded and cleaned.
-            All failed edits are highlighted to the user via message box.
-
-        Args:
-            container: object that has look to be updated
-            representation: (dict): relationship data to get proper
-                                    representation from DB and persisted
-                                    data in .json
-        Returns:
-            None
-        """
-        # Get version from io
         version_entity = context["version"]
-
-        # get main variables
         version_attributes = version_entity["attrib"]
         fps = version_attributes.get("fps") or nuke.root()["fps"].getValue()
 
-        # getting file path
         file = self.filepath_from_context(context).replace("\\", "/")
 
         with maintained_selection():
