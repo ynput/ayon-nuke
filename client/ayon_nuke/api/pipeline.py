@@ -12,7 +12,6 @@ from ayon_core.host import (
     ILoadHost,
     IPublishHost
 )
-from ayon_core.settings import get_current_project_settings
 from ayon_core.lib import register_event_callback, Logger
 from ayon_core.pipeline import (
     register_loader_plugin_path,
@@ -30,6 +29,20 @@ from ayon_core.pipeline.workfile import BuildWorkfile
 from ayon_core.tools.utils import host_tools
 from ayon_nuke import NUKE_ROOT_DIR
 from ayon_core.tools.workfile_template_build import open_template_ui
+
+# Function 'get_current_project_settings' was moved in ayon-core 1.5.1
+try:
+    from ayon_core.pipeline.context_tools import get_current_project_settings
+except ImportError:
+    from ayon_core.settings import get_current_project_settings
+
+# Function 'save_next_version' was introduced in ayon-core 1.5.0
+try:
+    from ayon_core.pipeline.workfile import save_next_version
+except ImportError:
+    from ayon_core.pipeline.context_tools import (
+        version_up_current_workfile as save_next_version
+    )
 
 from .lib import (
     Context,
@@ -122,15 +135,15 @@ class NukeHost(
         # Register AYON event for workfiles loading.
         register_event_callback("workio.open_file", check_inventory_versions)
         register_event_callback("taskChanged", change_context_label)
-
+        project_settings = get_current_project_settings()
         if nuke.GUI:
-            _install_menu()
+            _install_menu(project_settings)
 
             # add script menu
             add_scripts_menu()
             add_scripts_gizmo()
 
-        add_nuke_callbacks()
+        add_nuke_callbacks(project_settings)
 
         launch_workfiles_app()
 
@@ -143,10 +156,9 @@ class NukeHost(
         set_node_data(root_node, ROOT_DATA_KNOB, data)
 
 
-def add_nuke_callbacks():
-    """ Adding all available nuke callbacks
-    """
-    nuke_settings = get_current_project_settings()["nuke"]
+def add_nuke_callbacks(project_settings: dict):
+    """Adding all available nuke callbacks"""
+    nuke_settings = project_settings["nuke"]
     workfile_settings = WorkfileSettings()
 
     # Set context settings.
@@ -217,7 +229,7 @@ def get_context_label():
     )
 
 
-def _install_menu():
+def _install_menu(project_settings: dict):
     """Install AYON menu into Nuke's main menu bar."""
 
     # uninstall original AYON menu
@@ -237,6 +249,13 @@ def _install_menu():
 
         # add separator after context label
         menu.addSeparator()
+
+    if project_settings["core"]["tools"]["ayon_menu"].get(
+            "version_up_current_workfile"):
+        menu.addCommand(
+            "Version Up Workfile",
+            lambda: save_next_version()
+        )
 
     menu.addCommand(
         "Work Files...",
@@ -346,7 +365,7 @@ def _install_menu():
         menu.addCommand("Reload Pipeline", reload_config)
 
     # adding shortcuts
-    add_shortcuts_from_presets()
+    add_shortcuts_from_presets(project_settings)
 
 
 def change_context_label():
@@ -367,9 +386,9 @@ def change_context_label():
         old_label, new_label))
 
 
-def add_shortcuts_from_presets():
+def add_shortcuts_from_presets(project_settings: dict):
     menubar = nuke.menu("Nuke")
-    nuke_presets = get_current_project_settings()["nuke"]["general"]
+    nuke_presets = project_settings["nuke"]["general"]
 
     if nuke_presets.get("menu"):
         menu_label_mapping = {
@@ -377,23 +396,27 @@ def add_shortcuts_from_presets():
             "manage": "Manage...",
             "load": "Load...",
             "build_workfile": "Build Workfile",
-            "publish": "Publish..."
+            "publish": "Publish...",
+            "version_up_workfile": "Version Up Workfile",
         }
 
+        menu = menubar.findItem(MENU_LABEL)
         for command_name, shortcut_str in nuke_presets.get("menu").items():
+            if not shortcut_str:
+                continue
+
+            item_label = menu_label_mapping[command_name]
+            menuitem = menu.findItem(item_label)
+            if not menuitem:
+                continue
+
             log.info("menu_name `{}` | menu_label `{}`".format(
                 command_name, MENU_LABEL
             ))
             log.info("Adding Shortcut `{}` to `{}`".format(
                 shortcut_str, command_name
             ))
-            try:
-                menu = menubar.findItem(MENU_LABEL)
-                item_label = menu_label_mapping[command_name]
-                menuitem = menu.findItem(item_label)
-                menuitem.setShortcut(shortcut_str)
-            except (AttributeError, KeyError) as e:
-                log.error(e)
+            menuitem.setShortcut(shortcut_str)
 
 
 def containerise(node,
