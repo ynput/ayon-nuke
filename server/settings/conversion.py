@@ -212,7 +212,7 @@ def _convert_builder_profile_product_base_type_0_4_0(overrides: dict) -> None:
         return
     
     for profile in overrides["workfile_builder"]["profiles"]:
-        if "product_type" in profile and not profile.get("product_base_type"):
+        if "product_type" in profile and "product_base_type" not in profile:
             profile["product_base_type"] = profile.pop("product_type")
             
 
@@ -226,7 +226,14 @@ def _convert_baking_stream_filter_product_base_type_0_4_0(
 
     for output in overrides["publish"]["ExtractReviewIntermediates"].get(
             "outputs", []):
-        if not output["filter"].get("product_base_type"):
+
+        if "filter" not in output:
+            break
+
+        if (
+                "product_base_type" not in output["filter"]
+                and "product_type" in output["filter"]
+        ):
             output["filter"]["product_base_type"] = (
                 output["filter"].pop("product_type")
             )
@@ -237,11 +244,11 @@ def _convert_collect_instance_data_model_0_4_0(overrides: dict) -> None:
     if "publish" not in overrides:
         return
 
-    if not overrides["publish"].get("CollectInstanceData"):
-        return
-
     collect_instance_data = overrides["publish"]["CollectInstanceData"]
     if not collect_instance_data:
+        return
+
+    if "sync_workfile_version_on_product_types" not in collect_instance_data:
         return
 
     collect_instance_data["sync_workfile_version_on_product_base_types"] = (
