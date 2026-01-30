@@ -216,7 +216,7 @@ def _convert_builder_profile_product_base_type_0_4_0(overrides: dict) -> None:
             profile["product_base_type"] = profile.pop("product_type")
             
 
-def _convert_baking_stream_filter_product_base_type_0_4_9(
+def _convert_baking_stream_filter_product_base_type_0_4_0(
         overrides: dict) -> None:
     """Convert product_type to product_base_type."""
     if "publish" not in overrides:
@@ -232,6 +232,25 @@ def _convert_baking_stream_filter_product_base_type_0_4_9(
             )
 
 
+def _convert_collect_instance_data_model_0_4_0(overrides: dict) -> None:
+    """Convert collect instance data model to include product_base_type."""
+    if "publish" not in overrides:
+        return
+
+    if not overrides["publish"].get("CollectInstanceData"):
+        return
+
+    collect_instance_data = overrides["publish"]["CollectInstanceData"]
+    if not collect_instance_data:
+        return
+
+    collect_instance_data["sync_workfile_version_on_product_base_types"] = (
+        overrides["publish"]["CollectInstanceData"].pop(
+            "sync_workfile_version_on_product_types", []
+        )
+    )
+
+
 def convert_settings_overrides(
     source_version: str,
     overrides: dict[str, Any],
@@ -240,4 +259,7 @@ def convert_settings_overrides(
     _convert_imageio_configs_0_2_3(overrides)
     _convert_publish_plugins(overrides)
     _convert_imageio_subsets_0_3_2(overrides)
+    _convert_builder_profile_product_base_type_0_4_0(overrides)
+    _convert_baking_stream_filter_product_base_type_0_4_0(overrides)
+    _convert_collect_instance_data_model_0_4_0(overrides)
     return overrides
