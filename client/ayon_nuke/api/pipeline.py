@@ -156,8 +156,11 @@ class NukeHost(
         set_node_data(root_node, ROOT_DATA_KNOB, data)
 
 
-def add_nuke_callbacks(project_settings: dict):
+def add_nuke_callbacks(project_settings: dict = None):
     """Adding all available nuke callbacks"""
+    if project_settings is None:
+        project_settings = get_current_project_settings()
+
     nuke_settings = project_settings["nuke"]
     workfile_settings = WorkfileSettings()
 
