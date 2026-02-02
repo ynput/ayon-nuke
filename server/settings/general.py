@@ -40,6 +40,6 @@ DEFAULT_GENERAL_SETTINGS = {
         "load": "ctrl+alt+l",
         "manage": "ctrl+alt+m",
         "build_workfile": "ctrl+alt+b",
-        "version_up_workfile": "ctrl+alt+s",
+        "version_up_workfile": "alt+shift+s",
     }
 }

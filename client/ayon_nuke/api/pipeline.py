@@ -252,9 +252,16 @@ def _install_menu(project_settings: dict):
 
     if project_settings["core"]["tools"]["ayon_menu"].get(
             "version_up_current_workfile"):
+        # To allow overriding the default version up shortcut we directly
+        # set the shortcut, because applying the shortcut later in
+        # add_shortcuts_from_presets would not override an existing one.
+        shortcut_str: str = project_settings["nuke"]["general"].get(
+            "menu", {}
+        ).get("version_up_workfile", "")
         menu.addCommand(
             "Version Up Workfile",
-            lambda: save_next_version()
+            lambda: save_next_version(),
+            shortcut_str
         )
 
     menu.addCommand(
@@ -390,18 +397,23 @@ def add_shortcuts_from_presets(project_settings: dict):
     menubar = nuke.menu("Nuke")
     nuke_presets = project_settings["nuke"]["general"]
 
-    if nuke_presets.get("menu"):
+    menu_shortctuts = nuke_presets.get("menu", {})
+    if menu_shortctuts:
         menu_label_mapping = {
             "create": "Create...",
             "manage": "Manage...",
             "load": "Load...",
             "build_workfile": "Build Workfile",
             "publish": "Publish...",
-            "version_up_workfile": "Version Up Workfile",
         }
 
         menu = menubar.findItem(MENU_LABEL)
-        for command_name, shortcut_str in nuke_presets.get("menu").items():
+        for command_name, shortcut_str in menu_shortctuts.items():
+            # Note: workfile version up shortcut is added directly in
+            # _install_menu to allow overriding default shortcut.
+            if command_name == "version_up_workfile":
+                continue
+
             if not shortcut_str:
                 continue
 
