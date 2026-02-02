@@ -123,11 +123,12 @@ class NukeHost(
         register_event_callback("workio.open_file", check_inventory_versions)
         register_event_callback("taskChanged", change_context_label)
 
-        _install_menu()
+        if nuke.GUI:
+            _install_menu()
 
-        # add script menu
-        add_scripts_menu()
-        add_scripts_gizmo()
+            # add script menu
+            add_scripts_menu()
+            add_scripts_gizmo()
 
         add_nuke_callbacks()
 
