@@ -1,3 +1,4 @@
+from __future__ import annotations
 import nuke
 import pyblish.api
 
@@ -14,7 +15,7 @@ class CollectInstanceData(pyblish.api.InstancePlugin):
     settings_category = "nuke"
 
     # presets
-    sync_workfile_version_on_families = []
+    sync_workfile_version_on_product_base_types: list[str] = []
 
     def process(self, instance):
         product_base_type = (
@@ -29,7 +30,7 @@ class CollectInstanceData(pyblish.api.InstancePlugin):
         pixel_aspect = format_.pixelAspect()
 
         # sync workfile version
-        if product_base_type in self.sync_workfile_version_on_families:
+        if product_base_type in self.sync_workfile_version_on_product_base_types:  # noqa: E501
             self.log.debug(
                 "Syncing version with workfile for '{}'".format(
                     product_base_type
