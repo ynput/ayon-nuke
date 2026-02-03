@@ -19,6 +19,9 @@ class MenuShortcut(BaseSettingsModel):
     build_workfile: str = SettingsField(
         title="Build Workfile..."
     )
+    version_up_workfile: str = SettingsField(
+        title="Version Up Workfile"
+    )
 
 
 class GeneralSettings(BaseSettingsModel):
@@ -36,6 +39,7 @@ DEFAULT_GENERAL_SETTINGS = {
         "publish": "ctrl+alt+p",
         "load": "ctrl+alt+l",
         "manage": "ctrl+alt+m",
-        "build_workfile": "ctrl+alt+b"
+        "build_workfile": "ctrl+alt+b",
+        "version_up_workfile": "alt+shift+s",
     }
 }
