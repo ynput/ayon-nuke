@@ -1983,7 +1983,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
 
             if nuke.ask(msg):
                 for nname, knobs in changes.items():
-                    n = nuke.toverride_node(nname)
+                    n = nuke.toNode(nname)
                     n["colorspace"].setValue(knobs["to"])
                     log.info(
                         "Setting `{0}` to `{1}`".format(
