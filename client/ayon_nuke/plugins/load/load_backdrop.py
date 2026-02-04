@@ -372,18 +372,17 @@ def _capture_node_connections(backdrop_nodes):
 
         # Outgoing connections to OUTSIDE the backdrop only
         for dependent in node.dependent():
-            if dependent.name() not in filtered_backdrop_nodes:
-                for input_index, depcy in enumerate(dependent.dependencies()):
-                    if node is depcy:
-                        # Capture expression if it exists
-                        knob = dependent.input(input_index)
-                        expr = _get_expression_safe(knob)
-                        connections.append({
-                            "node_name": node_name,
-                            "dependent_name": dependent.name(),
-                            "dependent_input_index": input_index,
-                            "expression": expr,
-                        })
+            for input_index, depcy in enumerate(dependent.dependencies()):
+                if node is depcy:
+                    # Capture expression if it exists
+                    knob = dependent.input(input_index)
+                    expr = _get_expression_safe(knob)
+                    connections.append({
+                        "node_name": node_name,
+                        "dependent_name": dependent.name(),
+                        "dependent_input_index": input_index,
+                        "expression": expr,
+                    })
 
     return connections
 
