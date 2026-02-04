@@ -2911,7 +2911,7 @@ def get_nodes_by_names(names):
     """
 
     return [
-        nuke.toverride_node(name)
+        nuke.toNode(name)
         for name in names
     ]
 
