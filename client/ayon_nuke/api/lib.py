@@ -819,7 +819,7 @@ def get_view_process_node():
     ipn_node = None
     for v_ in nuke.allNodes(filter="Viewer"):
         ipn = v_['input_process_node'].getValue()
-        ipn_node = nuke.toverride_node(ipn)
+        ipn_node = nuke.toNode(ipn)
 
         # skip if no input node is set
         if not ipn:
