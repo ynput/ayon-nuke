@@ -673,6 +673,48 @@ def get_nuke_imageio_settings():
     return get_project_settings(Context.project_name)["nuke"]["imageio"]
 
 
+def get_matching_override_node(node_class, plugin_name, product_name):
+    """Find matching override node for the given configuration.
+
+    Args:
+        node_class (str): Nuke node class name
+        plugin_name (str): Plugin name
+        product_name (str): Product name
+
+    Returns:
+        dict or None: Matching override node or None if not found
+    """
+    imageio_nodes = get_nuke_imageio_settings()["nodes"]
+    override_nodes = imageio_nodes["override_nodes"]
+
+    for override_node in override_nodes:
+        node_class_preset = override_node["nuke_node_class"]
+
+        if override_node.get("custom_class"):
+            node_class_preset = override_node["custom_class"]
+
+        if node_class not in node_class_preset:
+            continue
+
+        if plugin_name not in override_node["plugins"]:
+            continue
+
+        product_names = override_node["product_names"]
+
+        if (
+            product_names
+            and not any(
+                re.search(s.lower(), product_name.lower())
+                for s in product_names
+            )
+        ):
+            continue
+
+        return override_node
+
+    return None
+
+
 def get_imageio_node_setting(node_class, plugin_name, product_name):
     ''' Get preset data for dataflow (fileType, compression, bitDepth)
     '''
@@ -694,13 +736,24 @@ def get_imageio_node_setting(node_class, plugin_name, product_name):
     if not imageio_node:
         return
 
-    # find overrides and update knobs with them
-    get_imageio_node_override_setting(
-        node_class,
-        plugin_name,
-        product_name,
-        imageio_node["knobs"]
+    # Check if a node override exists for this configuration
+    override_imageio_node = get_matching_override_node(
+        node_class, plugin_name, product_name
     )
+
+    # If node override exists,
+    # use only override knobs
+    # (don't merge with original master knobs)
+    if override_imageio_node:
+        imageio_node["knobs"] = override_imageio_node.get("knobs", [])
+    else:
+        # Otherwise apply partial overrides to original master knobs
+        imageio_node["knobs"] = get_imageio_node_override_setting(
+            node_class,
+            plugin_name,
+            product_name,
+            imageio_node["knobs"]
+        )
     return imageio_node
 
 
@@ -709,37 +762,10 @@ def get_imageio_node_override_setting(
 ):
     ''' Get imageio node overrides from settings
     '''
-    imageio_nodes = get_nuke_imageio_settings()["nodes"]
-    override_nodes = imageio_nodes["override_nodes"]
-
     # find matching override node
-    override_imageio_node = None
-    for onode in override_nodes:
-
-        node_class_preset = onode["nuke_node_class"]
-
-        if onode.get("custom_class"):
-            node_class_preset = onode["custom_class"]
-
-        if node_class not in node_class_preset:
-            continue
-
-        if plugin_name not in onode["plugins"]:
-            continue
-
-        product_names = onode["product_names"]
-
-        if (
-            product_names
-            and not any(
-                re.search(s.lower(), product_name.lower())
-                for s in product_names
-            )
-        ):
-            continue
-
-        override_imageio_node = onode
-        break
+    override_imageio_node = get_matching_override_node(
+        node_class, plugin_name, product_name
+    )
 
     # add overrides to imageio_node
     if override_imageio_node:
@@ -793,7 +819,7 @@ def get_view_process_node():
     ipn_node = None
     for v_ in nuke.allNodes(filter="Viewer"):
         ipn = v_['input_process_node'].getValue()
-        ipn_node = nuke.toNode(ipn)
+        ipn_node = nuke.toverride_node(ipn)
 
         # skip if no input node is set
         if not ipn:
@@ -1957,7 +1983,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
 
             if nuke.ask(msg):
                 for nname, knobs in changes.items():
-                    n = nuke.toNode(nname)
+                    n = nuke.toverride_node(nname)
                     n["colorspace"].setValue(knobs["to"])
                     log.info(
                         "Setting `{0}` to `{1}`".format(
@@ -2885,7 +2911,7 @@ def get_nodes_by_names(names):
     """
 
     return [
-        nuke.toNode(name)
+        nuke.toverride_node(name)
         for name in names
     ]
 
