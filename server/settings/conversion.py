@@ -228,4 +228,5 @@ def convert_settings_overrides(
     _convert_imageio_configs_0_2_3(overrides)
     _convert_publish_plugins(overrides)
     _convert_imageio_subsets_0_3_2(overrides)
+    _convert_workfile_builder(overrides)
     return overrides
