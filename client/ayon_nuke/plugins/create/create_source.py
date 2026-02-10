@@ -57,11 +57,15 @@ class CreateSource(NukeCreator):
                     _product_name,
                     read_node
                 )
+                product_type = instance_data.get("productType")
+                if not product_type:
+                    product_type = self.product_base_type
                 instance = CreatedInstance(
-                    self.product_type,
-                    _product_name,
-                    instance_data,
-                    self
+                    product_base_type=self.product_base_type,
+                    product_type=product_type,
+                    product_name=_product_name,
+                    data=instance_data,
+                    creator=self,
                 )
 
                 # add staging dir related data to transient data

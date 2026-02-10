@@ -220,6 +220,10 @@ class NukeCreator(NewCreator):
         # make sure product name is unique
         self.check_existing_product(product_name)
 
+        product_type = instance_data.get("productType")
+        if not product_type:
+            product_type = self.product_base_type
+
         try:
             instance_node = self.create_instance_node(
                 product_name,
@@ -227,10 +231,11 @@ class NukeCreator(NewCreator):
                 node_selection=node_selection,
             )
             instance = CreatedInstance(
-                self.product_type,
-                product_name,
-                instance_data,
-                self
+                product_base_type=self.product_base_type,
+                product_type=product_type,
+                product_name=product_name,
+                data=instance_data,
+                creator=self,
             )
 
             self.apply_staging_dir(instance)
@@ -493,9 +498,13 @@ class NukeWriteCreator(NukeCreator):
         # make sure the product name is unique
         self.check_existing_product(product_name)
 
+        product_type = instance_data.get("productType")
+        if not product_type:
+            product_type = self.product_base_type
         try:
             instance = CreatedInstance(
-                product_type=self.product_type,
+                product_base_type=self.product_base_type,
+                product_type=product_type,
                 product_name=product_name,
                 data=instance_data,
                 creator=self,
@@ -1542,9 +1551,11 @@ def convert_to_valid_instaces():
 
         transfer_data["task"] = task_name
 
-        product_type = avalon_knob_data.get("productType")
-        if product_type is None:
-            product_type = avalon_knob_data["family"]
+        product_base_type = (
+            avalon_knob_data.get("productBaseType")
+            or product_type
+            or avalon_knob_data.get("family")
+        )
 
         # establish families
         families_ak = avalon_knob_data.get("families", [])
@@ -1564,7 +1575,7 @@ def convert_to_valid_instaces():
 
         # add identifier
         transfer_data["creator_identifier"] = product_type_to_identifier(
-            product_type
+            product_base_type
         )
 
         # Add all nodes in group instances.

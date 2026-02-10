@@ -969,12 +969,18 @@ def get_work_default_directory(data):
         project_name, folder_path, task_name, host_name
     )
     data.update(context_data)
+    product_type = data["productType"]
+    product_base_type = data.get("productBaseType")
+    if not product_base_type:
+        product_base_type = product_type
+
     data.update({
         "subset": data["productName"],
-        "family": data["productType"],
+        "family": product_base_type,
         "product": {
             "name": data["productName"],
-            "type": data["productType"],
+            "type": product_type,
+            "basetype": product_base_type,
         },
         "frame": "#" * frame_padding,
     })
