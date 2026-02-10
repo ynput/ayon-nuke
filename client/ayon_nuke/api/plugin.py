@@ -543,14 +543,6 @@ class NukeWriteCreator(NukeCreator):
             plugin_settings.get("temp_rendering_path_template")
             or self.temp_rendering_path_template
         )
-        # TODO remove template key replacements
-        temp_rendering_path_template = (
-            temp_rendering_path_template
-            .replace("{product[name]}", "{subset}")
-            .replace("{product[type]}", "{family}")
-            .replace("{task[name]}", "{task}")
-            .replace("{folder[name]}", "{asset}")
-        )
         # individual attributes
         self.instance_attributes = plugin_settings.get(
             "instance_attributes") or self.instance_attributes
