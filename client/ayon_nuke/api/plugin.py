@@ -1483,7 +1483,7 @@ def convert_to_valid_instaces():
 
     Also save as new minor version of workfile.
     """
-    def product_type_to_identifier(product_type):
+    def product_base_type_to_identifier(product_base_type):
         mapping = {
             "render": "create_write_render",
             "prerender": "create_write_prerender",
@@ -1494,7 +1494,7 @@ def convert_to_valid_instaces():
             "gizmo": "create_gizmo",
             "source": "create_source"
         }
-        return mapping[product_type]
+        return mapping[product_base_type]
 
     from ayon_nuke.api import workio
 
@@ -1555,7 +1555,7 @@ def convert_to_valid_instaces():
 
         product_base_type = (
             avalon_knob_data.get("productBaseType")
-            or product_type
+            or avalon_knob_data.get("productType")
             or avalon_knob_data.get("family")
         )
 
@@ -1576,7 +1576,7 @@ def convert_to_valid_instaces():
                 node["publish"].value())
 
         # add identifier
-        transfer_data["creator_identifier"] = product_type_to_identifier(
+        transfer_data["creator_identifier"] = product_base_type_to_identifier(
             product_base_type
         )
 
