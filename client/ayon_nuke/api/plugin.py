@@ -22,8 +22,6 @@ from ayon_core.pipeline import (
     get_current_task_name,
     AYON_INSTANCE_ID,
     AVALON_INSTANCE_ID,
-    # Backwards compatibility
-    Creator as NewCreator,  # noqa: F401
 )
 from ayon_core.pipeline.colorspace import (
     get_display_view_colorspace_name,
