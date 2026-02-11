@@ -118,13 +118,14 @@ class NukeCreator(Creator):
                 continue
 
             # test if product name is matching
-            if node_data.get("productType") == product_name:
+            product_base_type = node_data.get("productBaseType")
+            if not product_base_type:
+                product_base_type = node_data.get("productType")
+            if product_base_type == product_name:
                 raise NukeCreatorError(
-                    (
-                        "A publish instance for '{}' already exists "
-                        "in nodes! Please change the variant "
-                        "name to ensure unique output."
-                    ).format(product_name)
+                    f"A publish instance for '{product_name}' already exists"
+                    " in nodes! Please change the variant name to ensure"
+                    " unique output."
                 )
 
     def create_instance_node(
