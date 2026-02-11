@@ -65,7 +65,6 @@ class WorkfileCreator(AutoCreator):
         if not product_type:
             product_type = self.product_base_type
 
-        instance_data["productType"] = product_type
         instance = CreatedInstance(
             product_base_type=self.product_base_type,
             product_type=product_type,
