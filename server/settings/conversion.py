@@ -231,8 +231,8 @@ def _convert_baking_stream_filter_product_base_type_0_4_0(
             break
 
         if (
-                "product_base_type" not in output["filter"]
-                and "product_type" in output["filter"]
+            "product_base_type" not in output["filter"]
+            and "product_type" in output["filter"]
         ):
             output["filter"]["product_base_type"] = (
                 output["filter"].pop("product_type")

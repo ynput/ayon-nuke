@@ -378,7 +378,7 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
                 "publish": False,
                 "filter": {
                     "task_types": [],
-                    "product_types": [],
+                    "product_base_types": [],
                     "product_names": []
                 },
                 "read_raw": False,
