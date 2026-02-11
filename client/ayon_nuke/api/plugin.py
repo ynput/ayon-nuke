@@ -117,6 +117,8 @@ class NukeCreator(Creator):
                 # a node has no instance data
                 continue
 
+            # QUESTION what is this logic? Why product name is compared
+            #   against product type?
             # test if product name is matching
             product_base_type = node_data.get("productBaseType")
             if not product_base_type:
