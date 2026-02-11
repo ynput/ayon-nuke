@@ -33,7 +33,7 @@ class ExtractReviewIntermediates(publish.Extractor):
         families = set(instance.data["families"])
 
         # Add product type to families
-        families.add(instance.data["productType"])
+        families.add(instance.data["productBaseType"])
 
         task_type = instance.context.data["taskType"]
         product_name = instance.data["productName"]
@@ -63,7 +63,7 @@ class ExtractReviewIntermediates(publish.Extractor):
                 product_names = o_data["filter"]["product_names"]
 
                 self.log.debug(
-                    "f_product_types `{}` > families: {}".format(
+                    "f_product_base_types `{}` > families: {}".format(
                         f_product_base_types, families))
 
                 self.log.debug(

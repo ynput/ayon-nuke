@@ -18,9 +18,7 @@ class CollectInstanceData(pyblish.api.InstancePlugin):
     sync_workfile_version_on_product_base_types: list[str] = []
 
     def process(self, instance):
-        product_base_type = (
-            instance.data.get("productBaseType", instance.data["productType"])
-        )
+        product_base_type = instance.data["productBaseType"]
 
         # Get format
         root = nuke.root()

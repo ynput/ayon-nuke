@@ -149,9 +149,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             render_target (str): render target
             colorspace (str): colorspace
         """
-        product_base_type = (
-            instance.data.get("productBaseType", instance.data["productType"])
-        )
+        product_base_type = instance.data["productBaseType"]
 
         # add targeted family to families
         instance.data["families"].append(
