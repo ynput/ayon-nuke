@@ -27,6 +27,8 @@ class MenuShortcut(BaseSettingsModel):
 class GeneralSettings(BaseSettingsModel):
     """Nuke general project settings."""
 
+    set_context_settings_on_script_open: bool = SettingsField(True, title="Set Context Settings on Script Open")
+
     menu: MenuShortcut = SettingsField(
         default_factory=MenuShortcut,
         title="Menu Shortcuts",

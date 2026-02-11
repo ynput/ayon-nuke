@@ -6,7 +6,7 @@ from ayon_nuke.api.lib import (
     get_avalon_knob_data,
     NODE_TAB_NAME,
 )
-from ayon_nuke.api.plugin import convert_to_valid_instaces
+from ayon_nuke.api.plugin import convert_to_valid_instances
 
 import nuke
 
@@ -50,6 +50,6 @@ class LegacyConverted(ProductConvertorPlugin):
 
     def convert(self):
         # loop all instances and convert them
-        convert_to_valid_instaces()
+        convert_to_valid_instances()
         # remove legacy item if all is fine
         self.remove_convertor_item()

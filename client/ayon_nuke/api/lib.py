@@ -819,6 +819,25 @@ def get_view_process_node():
         return duplicate_node(ipn_node)
 
 
+def on_create_root():
+    if script_name():
+        log.info("Not a new Script. Skipping setup.")
+        return
+
+    log.info("New Script. Setting up ...")
+
+    workfile_settings = WorkfileSettings()
+
+    # Set context settings.
+    workfile_settings.set_context_settings()
+
+    # adding favorites to file browser
+    workfile_settings.set_favorites()
+
+    # template builder callbacks
+    start_workfile_template_builder()
+
+
 def on_script_load():
     ''' Callback for ffmpeg support
     '''
