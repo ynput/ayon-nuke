@@ -38,13 +38,14 @@ class LoadClip(plugin.NukeLoader):
     """
     log = Logger.get_logger(__name__)
 
-    product_types = {
+    product_base_types = {
         "source",
         "plate",
         "render",
         "prerender",
         "review",
     }
+    product_types = product_base_types
     representations = {"*"}
     extensions = set(
         ext.lstrip(".") for ext in IMAGE_EXTENSIONS.union(VIDEO_EXTENSIONS)

@@ -12,7 +12,8 @@ from ayon_nuke.api.lib import (
 class LoadGizmo(plugin.NukeGroupLoader):
     """Loading nuke Gizmo"""
 
-    product_types = {"gizmo", "lensDistortion"}
+    product_base_types = {"gizmo", "lensDistortion"}
+    product_types = product_base_types
     representations = {"*"}
     extensions = {"nk"}
 
@@ -64,7 +65,8 @@ class LoadGizmo(plugin.NukeGroupLoader):
 class LoadGizmoInputProcess(LoadGizmo):
     """Loading Nuke Gizmo and connect to active viewer"""
 
-    product_types = {"gizmo"}
+    product_base_types = {"gizmo"}
+    product_types = product_base_types
 
     label = "Load Gizmo - Input Process"
     icon = "eye"
