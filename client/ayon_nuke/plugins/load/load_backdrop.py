@@ -198,19 +198,19 @@ class LoadBackdropNodes(load.LoaderPlugin):
         # just in case we are in group lets jump out of it
         nuke.endGroup()
 
-        with maintained_selection():
-            xpos = GN.xpos()
-            ypos = GN.ypos()
-            avalon_data = get_avalon_knob_data(GN)
+        xpos = GN.xpos()
+        ypos = GN.ypos()
+        avalon_data = get_avalon_knob_data(GN)
 
-            # Preserve external connections (to/from outside the backdrop)
-            backdrop_nodes = GN.getNodes()
-            with restore_node_connections(backdrop_nodes):
-                for node in backdrop_nodes:
-                    # Delete old backdrop nodes
-                    nuke.delete(node)
-                nuke.delete(GN)
+        # Preserve external connections (to/from outside the backdrop)
+        backdrop_nodes = GN.getNodes()
+        with restore_node_connections(backdrop_nodes):
+            for node in backdrop_nodes:
+                # Delete old backdrop nodes
+                nuke.delete(node)
+            nuke.delete(GN)
 
+            with maintained_selection():
                 # add group from nk
                 nuke.nodePaste(file)
                 # create new backdrop so that the nodes can be
@@ -339,7 +339,7 @@ def _restore_connection(conn, node_map):
 
 def _capture_node_connections(backdrop_nodes):
     """Capture only external connections (to/from nodes outside the backdrop).
-    
+
     Does not capture connections between nodes within the backdrop itself.
     Serializes connection data to avoid "PythonObject not attached" errors
     when nodes are deleted and recreated.
