@@ -444,7 +444,7 @@ def set_avalon_knob_data(node, data=None, prefix="avalon:"):
     Examples:
         data = {
             'folderPath': 'sq020sh0280',
-            'productType': 'render',
+            'productBaseType': 'render',
             'productName': 'productMain'
         }
     """
@@ -1871,8 +1871,8 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             if avalon_knob_data:
                 # establish families
                 product_base_type = (
-                    avalon_knob_data.get("productBaseType") or
-                    avalon_knob_data.get("productType")
+                    avalon_knob_data.get("productBaseType")
+                    or avalon_knob_data.get("productType")
                 )
                 # this shouldn't happen anymore, only with very old data
                 # and should be removed later when all avalon data api is
