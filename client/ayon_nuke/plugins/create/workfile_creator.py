@@ -16,8 +16,8 @@ class WorkfileCreator(AutoCreator):
     is_mandatory = False
 
     identifier = "workfile"
-    product_type = "workfile"
     product_base_type = "workfile"
+    product_type = product_base_type
 
     default_variant = "Main"
 

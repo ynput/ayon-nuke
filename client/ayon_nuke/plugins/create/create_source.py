@@ -16,8 +16,8 @@ class CreateSource(NukeCreator):
 
     identifier = "create_source"
     label = "Source (read)"
-    product_type = "source"
     product_base_type = "source"
+    product_type = product_base_type
     icon = "film"
     default_variants = ["Effect", "Backplate", "Fire", "Smoke"]
 
