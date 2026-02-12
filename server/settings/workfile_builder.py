@@ -43,7 +43,7 @@ class BuilderProfileModel(BaseSettingsModel):
         title="Task types",
         enum_resolver=task_types_enum
     )
-    tasks: list[str] = SettingsField(
+    task_names: list[str] = SettingsField(
         default_factory=list,
         title="Task names"
     )
@@ -51,9 +51,9 @@ class BuilderProfileModel(BaseSettingsModel):
         default_factory=list,
         title="Current context"
     )
-    linked_assets: list[BuilderProfileItemModel] = SettingsField(
+    linked_folders: list[BuilderProfileItemModel] = SettingsField(
         default_factory=list,
-        title="Linked assets/shots"
+        title="Linked folders"
     )
 
 

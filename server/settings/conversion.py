@@ -198,22 +198,32 @@ def _convert_publish_plugins(overrides):
     _convert_extract_intermediate_files_0_2_3(overrides["publish"])
 
 
-def _convert_builder_profile_product_base_type_0_4_0(overrides: dict) -> None:
+def _convert_workfile_builder_0_4_0(overrides: dict) -> None:
     """Convert product_type to product_base_type.
 
     If a profile has product_type, but not product_base_type, copy
     product_type to product_base_type.
 
     """
-    if "workfile_builder" not in overrides:
+    profiles = overrides.get("workfile_builder", {}).get("profiles")
+    if not profiles:
         return
-    
-    if not overrides["workfile_builder"].get("profiles"):
-        return
-    
-    for profile in overrides["workfile_builder"]["profiles"]:
-        if "product_type" in profile and "product_base_type" not in profile:
-            profile["product_base_type"] = profile.pop("product_type")
+
+    opts = []
+    for profile in profiles:
+        if "tasks" in profile:
+            profile["task_names"] = profile.pop("tasks")
+
+        if "linked_assets" in profile:
+            profile["linked_folders"] = profile.pop("linked_assets")
+        if "linked_folders" in profile:
+            opts.append(profile["linked_folders"])
+        if "current_context" in profile:
+            opts.append(profile["current_context"])
+
+    for opt in opts:
+        if "product_base_types" not in opt and "product_types" in opt:
+            opt["product_base_types"] = opt.pop("product_types")
             
 
 def _convert_baking_stream_filter_product_base_type_0_4_0(
@@ -266,7 +276,7 @@ def convert_settings_overrides(
     _convert_imageio_configs_0_2_3(overrides)
     _convert_publish_plugins(overrides)
     _convert_imageio_subsets_0_3_2(overrides)
-    _convert_builder_profile_product_base_type_0_4_0(overrides)
+    _convert_workfile_builder_0_4_0(overrides)
     _convert_baking_stream_filter_product_base_type_0_4_0(overrides)
     _convert_collect_instance_data_model_0_4_0(overrides)
     return overrides
