@@ -255,7 +255,7 @@ def _convert_collect_instance_data_model_0_4_0(overrides: dict) -> None:
     collect_instance_data = (
         overrides
         .get("publish", {})
-        .get("CollectInstanceData", {})
+        .get("CollectInstanceData")
     )
     if not collect_instance_data:
         return
