@@ -1,11 +1,9 @@
+import contextlib
 import nuke
 import nukescripts
 import ayon_api
 
-from ayon_core.pipeline import (
-    load,
-    get_representation_path,
-)
+from ayon_core.pipeline import load
 from ayon_nuke.api.lib import (
     find_free_space_to_paste_nodes,
     maintained_selection,
@@ -32,6 +30,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
     icon = "eye"
     color = "white"
     node_color = "0x7533c1ff"
+    remove_nodes_from_backdrop = False
 
     def load(self, context, name, namespace, data):
         """
@@ -150,23 +149,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
             reset_selection()
             select_nodes(new_nodes)
             # place on backdrop
-            bdn = nukescripts.autoBackdrop()
-
-            # add frame offset
-            xpos = bdn.xpos() - bdn_frame
-            ypos = bdn.ypos() - bdn_frame
-            bdwidth = bdn["bdwidth"].value() + (bdn_frame*2)
-            bdheight = bdn["bdheight"].value() + (bdn_frame*2)
-
-            bdn["xpos"].setValue(xpos)
-            bdn["ypos"].setValue(ypos)
-            bdn["bdwidth"].setValue(bdwidth)
-            bdn["bdheight"].setValue(bdheight)
-
-            bdn["name"].setValue(object_name)
-            bdn["label"].setValue("Version tracked frame: \n`{}`\n\nPLEASE DO NOT REMOVE OR MOVE \nANYTHING FROM THIS FRAME!".format(object_name))
-            bdn["note_font_size"].setValue(20)
-
+            bdn = self.set_autobackdrop(xpos, ypos, object_name)
             return containerise(
                 node=bdn,
                 name=name,
@@ -193,7 +176,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
         # get corresponding node
         GN = container["node"]
 
-        file = get_representation_path(repre_entity).replace("\\", "/")
+        file = self.filepath_from_context(context).replace("\\", "/")
 
         name = container["name"]
         namespace = container["namespace"]
@@ -215,18 +198,25 @@ class LoadBackdropNodes(load.LoaderPlugin):
         # just in case we are in group lets jump out of it
         nuke.endGroup()
 
-        with maintained_selection():
-            xpos = GN.xpos()
-            ypos = GN.ypos()
-            avalon_data = get_avalon_knob_data(GN)
-            nuke.delete(GN)
-            # add group from nk
-            nuke.nodePaste(file)
+        xpos = GN.xpos()
+        ypos = GN.ypos()
+        avalon_data = get_avalon_knob_data(GN)
 
-            GN = nuke.selectedNode()
-            set_avalon_knob_data(GN, avalon_data)
-            GN.setXYpos(xpos, ypos)
-            GN["name"].setValue(object_name)
+        # Preserve external connections (to/from outside the backdrop)
+        backdrop_nodes = GN.getNodes()
+        with restore_node_connections(backdrop_nodes):
+            for node in backdrop_nodes:
+                # Delete old backdrop nodes
+                nuke.delete(node)
+            nuke.delete(GN)
+
+            with maintained_selection():
+                # add group from nk
+                nuke.nodePaste(file)
+                # create new backdrop so that the nodes can be
+                # filled within it
+                GN = self.set_autobackdrop(xpos, ypos, object_name)
+                set_avalon_knob_data(GN, avalon_data)
 
         # get all versions in list
         last_version_entity = ayon_api.get_last_version_by_product_id(
@@ -252,4 +242,174 @@ class LoadBackdropNodes(load.LoaderPlugin):
     def remove(self, container):
         node = container["node"]
         with viewer_update_and_undo_stop():
+            if self.remove_nodes_from_backdrop:
+                for child_node in node.getNodes():
+                    nuke.delete(child_node)
             nuke.delete(node)
+
+    def set_autobackdrop(self, xpos, ypos, object_name, bdn_frame=50):
+        """Set auto backdrop around selected nodes
+
+        Args:
+            xpos (int): x position
+            ypos (int): y position
+            object_name (str): name of the object
+            bdn_frame (int, optional): frame size around the backdrop. Defaults to 50.
+
+        Returns:
+            nuke.BackdropNode: the created backdrop node
+        """
+        # place on backdrop
+        bdn = nukescripts.autoBackdrop()
+
+        # add frame offset
+        xpos = bdn.xpos() - bdn_frame
+        ypos = bdn.ypos() - bdn_frame
+        bdwidth = bdn["bdwidth"].value() + (bdn_frame*2)
+        bdheight = bdn["bdheight"].value() + (bdn_frame*2)
+
+        bdn["xpos"].setValue(xpos)
+        bdn["ypos"].setValue(ypos)
+        bdn["bdwidth"].setValue(bdwidth)
+        bdn["bdheight"].setValue(bdheight)
+
+        bdn["name"].setValue(object_name)
+        bdn["label"].setValue("Version tracked frame: \n`{}`\n\nPLEASE DO NOT REMOVE OR MOVE \nANYTHING FROM THIS FRAME!".format(object_name))
+        bdn["note_font_size"].setValue(20)
+
+        return bdn
+
+def _get_expression_safe(knob):
+    """Safely get expression from a knob.
+
+    Args:
+        knob: Nuke knob object to check.
+
+    Returns:
+        str: Expression string if exists, None otherwise.
+    """
+    if knob and hasattr(knob, 'expression'):
+        expr = knob.expression()
+        return expr if expr else None
+    return None
+
+
+def _restore_connection(conn, node_map):
+    """Restore a single node connection or expression.
+
+    Args:
+        conn (dict): Connection dictionary with serialized node names and metadata.
+        node_map (dict): Mapping of node names to actual node objects.
+    """
+    if "input_node_name" in conn:
+        # Restore incoming connections
+        node_name = conn["node_name"]
+        input_node_name = conn["input_node_name"]
+
+        if node_name not in node_map or input_node_name not in node_map:
+            return
+
+        node = node_map[node_name]
+        input_node = node_map[input_node_name]
+        input_index = conn["input_index"]
+
+        # Restore connection
+        if conn.get("expression"):
+            node.input(input_index).setExpression(conn["expression"])
+        else:
+            node.setInput(input_index, input_node)
+    else:
+        # Restore outgoing connections
+        node_name = conn["node_name"]
+        dependent_name = conn["dependent_name"]
+
+        if node_name not in node_map or dependent_name not in node_map:
+            return
+
+        node = node_map[node_name]
+        dependent = node_map[dependent_name]
+        input_index = conn["dependent_input_index"]
+
+        # Restore connection
+        if conn.get("expression"):
+            dependent.input(input_index).setExpression(conn["expression"])
+        else:
+            dependent.setInput(input_index, node)
+
+
+def _capture_node_connections(backdrop_nodes):
+    """Capture only external connections (to/from nodes outside the backdrop).
+
+    Does not capture connections between nodes within the backdrop itself.
+    Serializes connection data to avoid "PythonObject not attached" errors
+    when nodes are deleted and recreated.
+
+    Args:
+        backdrop_nodes (list): List of nodes to capture external connections for.
+
+    Returns:
+        list: List of connection dictionaries with serialized node names.
+    """
+    connections = []
+    filtered_backdrop_nodes = {node.name() for node in backdrop_nodes}
+
+    for node in backdrop_nodes:
+        node_name = node.name()
+
+        # Incoming connections from OUTSIDE the backdrop only
+        for input_index in range(node.inputs()):
+            input_node = node.input(input_index)
+            if input_node and input_node.name() not in filtered_backdrop_nodes:
+                # Capture expression if it exists
+                knob = node.input(input_index)
+                expr = _get_expression_safe(knob)
+                connections.append({
+                    "node_name": node_name,
+                    "input_index": input_index,
+                    "input_node_name": input_node.name(),
+                    "expression": expr,
+                })
+
+        # Outgoing connections to OUTSIDE the backdrop only
+        for dependent in node.dependent():
+            for input_index, depcy in enumerate(dependent.dependencies()):
+                if node is depcy:
+                    # Capture expression if it exists
+                    knob = dependent.input(input_index)
+                    expr = _get_expression_safe(knob)
+                    connections.append({
+                        "node_name": node_name,
+                        "dependent_name": dependent.name(),
+                        "dependent_input_index": input_index,
+                        "expression": expr,
+                    })
+
+    return connections
+
+
+@contextlib.contextmanager
+def restore_node_connections(backdrop_nodes):
+    """Context manager to capture and restore node connections.
+
+    Captures all incoming and outgoing connections before backdrop nodes
+    are deleted, then restores them after new nodes are pasted.
+    Uses serialized node names to avoid "PythonObject not attached" errors.
+
+    Args:
+        backdrop_nodes (list): List of nodes whose connections to preserve.
+
+    Yields:
+        None
+    """
+    original_connections = _capture_node_connections(backdrop_nodes)
+    try:
+        yield
+    finally:
+        # Build node map by name from current nodes
+        node_map = {
+            node.name(): node
+            for node in nuke.allNodes()
+        }
+        # Restore connections using the node map
+        for conn in original_connections:
+            _restore_connection(conn, node_map)
