@@ -819,23 +819,15 @@ def get_view_process_node():
         return duplicate_node(ipn_node)
 
 
-def on_create_root():
+def set_context_settings_if_new():
     if script_name():
-        log.info("Not a new Script. Skipping setup.")
+        log.info("Not a new Script. Skipping setting context settings.")
         return
 
-    log.info("New Script. Setting up ...")
-
-    workfile_settings = WorkfileSettings()
+    log.info("New Script. Setting context settings ...")
 
     # Set context settings.
-    workfile_settings.set_context_settings()
-
-    # adding favorites to file browser
-    workfile_settings.set_favorites()
-
-    # template builder callbacks
-    start_workfile_template_builder()
+    WorkfileSettings().set_context_settings()
 
 
 def on_script_load():
