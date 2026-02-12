@@ -36,6 +36,7 @@ class GeneralSettings(BaseSettingsModel):
 
 
 DEFAULT_GENERAL_SETTINGS = {
+    "set_context_settings_on_script_open": True,
     "menu": {
         "create": "ctrl+alt+c",
         "publish": "ctrl+alt+p",
