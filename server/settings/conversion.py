@@ -229,32 +229,34 @@ def _convert_workfile_builder_0_4_0(overrides: dict) -> None:
 def _convert_baking_stream_filter_product_base_type_0_4_0(
         overrides: dict) -> None:
     """Convert product_type to product_base_type."""
-    if "publish" not in overrides:
-        return
-    if not overrides["publish"].get("ExtractReviewIntermediates"):
+    extract_review_outputs = (
+        overrides
+        .get("publish", {})
+        .get("ExtractReviewIntermediates", {})
+        .get("outputs")
+    )
+    if not extract_review_outputs:
         return
 
-    for output in overrides["publish"]["ExtractReviewIntermediates"].get(
-            "outputs", []):
-
-        if "filter" not in output:
+    for output in extract_review_outputs:
+        o_filter = output.get("filter")
+        if o_filter is None:
             break
 
         if (
-            "product_base_type" not in output["filter"]
-            and "product_type" in output["filter"]
+            "product_base_type" not in o_filter
+            and "product_type" in o_filter
         ):
-            output["filter"]["product_base_type"] = (
-                output["filter"].pop("product_type")
-            )
+            o_filter["product_base_type"] = o_filter.pop("product_type")
 
 
 def _convert_collect_instance_data_model_0_4_0(overrides: dict) -> None:
     """Convert collect instance data model to include product_base_type."""
-    if "publish" not in overrides:
-        return
-
-    collect_instance_data = overrides["publish"]["CollectInstanceData"]
+    collect_instance_data = (
+        overrides
+        .get("publish", {})
+        .get("CollectInstanceData", {})
+    )
     if not collect_instance_data:
         return
 
@@ -262,9 +264,7 @@ def _convert_collect_instance_data_model_0_4_0(overrides: dict) -> None:
         return
 
     collect_instance_data["sync_workfile_version_on_product_base_types"] = (
-        overrides["publish"]["CollectInstanceData"].pop(
-            "sync_workfile_version_on_product_types", []
-        )
+        collect_instance_data.pop("sync_workfile_version_on_product_types")
     )
 
 
