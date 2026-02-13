@@ -33,7 +33,7 @@ class ExtractReviewIntermediates(publish.Extractor):
         families = set(instance.data["families"])
 
         # Add product type to families
-        families.add(instance.data["productType"])
+        families.add(instance.data["productBaseType"])
 
         task_type = instance.context.data["taskType"]
         product_name = instance.data["productName"]
@@ -58,13 +58,13 @@ class ExtractReviewIntermediates(publish.Extractor):
                 o_name = o_data["name"]
                 self.log.debug(
                     "o_name: {}, o_data: {}".format(o_name, pformat(o_data)))
-                f_product_types = o_data["filter"]["product_types"]
+                f_product_base_types = o_data["filter"]["product_base_types"]
                 f_task_types = o_data["filter"]["task_types"]
                 product_names = o_data["filter"]["product_names"]
 
                 self.log.debug(
-                    "f_product_types `{}` > families: {}".format(
-                        f_product_types, families))
+                    "f_product_base_types `{}` > families: {}".format(
+                        f_product_base_types, families))
 
                 self.log.debug(
                     "f_task_types `{}` > task_type: {}".format(
@@ -78,8 +78,8 @@ class ExtractReviewIntermediates(publish.Extractor):
                 # using intersection to make sure all defined
                 # families are present in combination
                 if (
-                    f_product_types
-                    and not families.intersection(f_product_types)
+                    f_product_base_types
+                    and not families.intersection(f_product_base_types)
                 ):
                     continue
 

@@ -13,8 +13,8 @@ class CreateModel(NukeCreator):
 
     identifier = "create_model"
     label = "Model (3d)"
-    product_type = "model"
     product_base_type = "model"
+    product_type = product_base_type
     icon = "cube"
     default_variants = ["Main"]
 

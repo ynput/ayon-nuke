@@ -17,8 +17,8 @@ class CollectModel(pyblish.api.InstancePlugin):
 
         geo_node = instance.data["transientData"]["node"]
 
-        # add product type to families
-        instance.data["families"].insert(0, instance.data["productType"])
+        # add product base type to families
+        instance.data["families"].insert(0, instance.data["productBaseType"])
         # make label nicer
         instance.data["label"] = geo_node.name()
 
@@ -27,15 +27,16 @@ class CollectModel(pyblish.api.InstancePlugin):
         handle_end = instance.context.data["handleEnd"]
         first_frame = int(nuke.root()["first_frame"].getValue())
         last_frame = int(nuke.root()["last_frame"].getValue())
-        families = [instance.data["productType"]] + instance.data["families"]
         # Add version data to instance
+        # QUESTION why is 'productName' stored to version data and
+        #   'families' are explicitly set here?
         version_data = {
             "handleStart": handle_start,
             "handleEnd": handle_end,
             "frameStart": first_frame + handle_start,
             "frameEnd": last_frame - handle_end,
             "colorspace": nuke.root().knob('workingSpaceLUT').value(),
-            "families": families,
+            "families": list(instance.data["families"]),
             "productName": instance.data["productName"],
             "fps": instance.context.data["fps"]
         }

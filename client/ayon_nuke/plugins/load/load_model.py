@@ -21,7 +21,8 @@ class AlembicModelLoader(load.LoaderPlugin):
         compatibility, even though it can read more than just alembic files.
     """
 
-    product_types = {"model", "pointcache", "animation", "fbx", "usd"}
+    product_base_types = {"model", "pointcache", "animation", "fbx", "usd"}
+    product_types = product_base_types
     representations = {"*"}
     extensions = {"abc", "fbx", "obj", "usd", "usda"}
 

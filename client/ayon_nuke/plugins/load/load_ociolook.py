@@ -19,7 +19,8 @@ from ayon_nuke.api import (
 class LoadOcioLookNodes(load.LoaderPlugin):
     """Loading Ocio look to the nuke.Node graph"""
 
-    product_types = {"ociolook"}
+    product_base_types = {"ociolook"}
+    product_types = product_base_types
     representations = {"*"}
     extensions = {"json"}
 

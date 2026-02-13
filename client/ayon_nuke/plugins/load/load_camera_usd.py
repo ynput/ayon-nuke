@@ -26,7 +26,8 @@ class UsdCameraLoader(load.LoaderPlugin):
     # There are essentially no 'camera' product type USD publishers available
     # in the majority of integrations, so we allow loading any usd
     # file. This way also USD Shots with cameras can be loaded.
-    product_types = {"*"}
+    product_base_types = {"*"}
+    product_types = product_base_types
     representations = {"*"}
 
     node_color = "0x3469ffff"

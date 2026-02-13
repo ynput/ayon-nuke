@@ -9,8 +9,8 @@ class CreateWritePrerender(napi.NukeWriteCreator):
 
     identifier = "create_write_prerender"
     label = "Prerender (write)"
-    product_type = "prerender"
     product_base_type = "prerender"
+    product_type = product_base_type
     icon = "sign-out"
 
     instance_attributes = [

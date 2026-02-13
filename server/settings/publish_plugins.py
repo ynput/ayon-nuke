@@ -21,7 +21,7 @@ def nuke_render_publish_types_enum():
     ]
 
 
-def nuke_product_types_enum():
+def nuke_product_base_types_enum():
     """Return all nuke families available in creators."""
     return [
         {"value": "nukenodes", "label": "Nukenodes"},
@@ -74,9 +74,9 @@ class NodeModel(BaseSettingsModel):
 
 
 class CollectInstanceDataModel(BaseSettingsModel):
-    sync_workfile_version_on_product_types: list[str] = SettingsField(
+    sync_workfile_version_on_product_base_types: list[str] = SettingsField(
         default_factory=list,
-        enum_resolver=nuke_product_types_enum,
+        enum_resolver=nuke_product_base_types_enum,
         title="Product types"
     )
 
@@ -116,10 +116,10 @@ class BakingStreamFilterModel(BaseSettingsModel):
         title="Task types",
         enum_resolver=task_types_enum
     )
-    product_types: list[str] = SettingsField(
+    product_base_types: list[str] = SettingsField(
         default_factory=list,
         enum_resolver=nuke_render_publish_types_enum,
-        title="Sync workfile versions for familes"
+        title="Sync workfile versions for product base types."
     )
     product_names: list[str] = SettingsField(
         default_factory=list, title="Product names")
@@ -378,7 +378,7 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
                 "publish": False,
                 "filter": {
                     "task_types": [],
-                    "product_types": [],
+                    "product_base_types": [],
                     "product_names": []
                 },
                 "read_raw": False,
