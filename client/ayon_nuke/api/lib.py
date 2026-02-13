@@ -845,6 +845,17 @@ def get_view_process_node():
         return duplicate_node(ipn_node)
 
 
+def set_context_settings_if_new():
+    if script_name():
+        log.info("Not a new Script. Skipping setting context settings.")
+        return
+
+    log.info("New Script. Setting context settings ...")
+
+    # Set context settings.
+    WorkfileSettings().set_context_settings()
+
+
 def on_script_load():
     ''' Callback for ffmpeg support
     '''
