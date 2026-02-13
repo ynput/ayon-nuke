@@ -98,6 +98,7 @@ class ProductTypeItemModel(BaseSettingsModel):
         description="Product type name"
     )
     label: str = SettingsField(
+        "",
         title="Label",
         description="Label to show in UI for the product type"
     )
