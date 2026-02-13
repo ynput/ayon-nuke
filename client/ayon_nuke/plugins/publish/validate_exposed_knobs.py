@@ -48,7 +48,7 @@ class ValidateExposedKnobs(
 
     order = pyblish.api.ValidatorOrder
     optional = True
-    families = ["render", "prerender", "image"]
+    families = ["render", "prerender", "image", "plate"]
     label = "Validate Exposed Knobs"
     actions = [RepairExposedKnobs]
     hosts = ["nuke"]
@@ -58,7 +58,8 @@ class ValidateExposedKnobs(
     product_types_mapping = {
         "render": "CreateWriteRender",
         "prerender": "CreateWritePrerender",
-        "image": "CreateWriteImage"
+        "image": "CreateWriteImage",
+        "plate": "CreateWritePlate",
     }
 
     def process(self, instance):

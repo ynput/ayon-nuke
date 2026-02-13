@@ -23,7 +23,7 @@ class NukeRenderLocal(publish.Extractor,
     order = pyblish.api.ExtractorOrder
     label = "Render Local"
     hosts = ["nuke"]
-    families = ["render.local", "prerender.local", "image.local"]
+    families = ["render.local", "prerender.local", "image.local", "plate.local"]
 
     settings_category = "nuke"
 
@@ -160,6 +160,13 @@ class NukeRenderLocal(publish.Extractor,
             families.remove("image.local")
             anatomy_data["family"] = "image"
             anatomy_data["product"]["type"] = "image"
+        elif "plate.local" in families:
+            instance.data["family"] = "plate"
+            instance.data["productType"] = "plate"
+            families.remove("plate.local")
+            families.insert(0, "render2d")
+            anatomy_data["family"] = "plate"
+            anatomy_data["product"]["type"] = "plate"
         instance.data["families"] = families
 
         collections, remainder = clique.assemble(filenames)

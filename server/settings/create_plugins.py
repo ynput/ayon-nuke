@@ -93,7 +93,7 @@ class PrenodeModel(BaseSettingsModel):
         return value
 
 
-class CreateWriteRenderModel(BaseSettingsModel):
+class CreateWriteModel(BaseSettingsModel):
     enabled: bool = SettingsField(
         True,
         title="Enabled",
@@ -140,99 +140,6 @@ class CreateWriteRenderModel(BaseSettingsModel):
         return value
 
 
-class CreateWritePrerenderModel(BaseSettingsModel):
-    enabled: bool = SettingsField(
-        True,
-        title="Enabled",
-        description="Enable or disable the plugin"
-    )
-    order: int = SettingsField(
-        100,
-        title="Order",
-        description="Order of the plugin in the list"
-    )
-    temp_rendering_path_template: str = SettingsField(
-        title="Temporary rendering path template"
-    )
-    default_variants: list[str] = SettingsField(
-        title="Default variants",
-        default_factory=list
-    )
-    instance_attributes: list[str] = SettingsField(
-        default_factory=list,
-        enum_resolver=instance_attributes_enum,
-        title="Instance attributes",
-        description = INSTANCE_ATTRIBUTES_DESCRIPTION
-    )
-    render_target: str = SettingsField(
-        enum_resolver=render_target_enum,
-        conditional_enum=True,
-        title="Render target",
-        description=RENDER_TARGET_DESCRIPTION,
-    )
-    exposed_knobs: list[str] = SettingsField(
-        title="Write Node Exposed Knobs",
-        default_factory=list
-    )
-    prenodes: list[PrenodeModel] = SettingsField(
-        default_factory=list,
-        title="Preceding nodes",
-        description=PRENODES_LIST_DESCRIPTION,
-    )
-
-    @validator("prenodes")
-    def ensure_unique_names(cls, value):
-        """Ensure name fields within the lists have unique names."""
-        ensure_unique_names(value)
-        return value
-
-
-class CreateWriteImageModel(BaseSettingsModel):
-    enabled: bool = SettingsField(
-        True,
-        title="Enabled",
-        description="Enable or disable the plugin"
-    )
-    order: int = SettingsField(
-        100,
-        title="Order",
-        description="Order of the plugin in the list"
-    )
-    temp_rendering_path_template: str = SettingsField(
-        title="Temporary rendering path template"
-    )
-    default_variants: list[str] = SettingsField(
-        title="Default variants",
-        default_factory=list
-    )
-    instance_attributes: list[str] = SettingsField(
-        default_factory=list,
-        enum_resolver=instance_attributes_enum,
-        title="Instance attributes"
-    )
-    render_target: str = SettingsField(
-        enum_resolver=render_target_enum,
-        conditional_enum=True,
-        title="Render target",
-        description=RENDER_TARGET_DESCRIPTION,
-    )
-    exposed_knobs: list[str] = SettingsField(
-        title="Write Node Exposed Knobs",
-        default_factory=list
-    )
-    prenodes: list[PrenodeModel] = SettingsField(
-        default_factory=list,
-        title="Preceding nodes",
-        description=PRENODES_LIST_DESCRIPTION,
-    )
-
-    @validator("prenodes")
-    def ensure_unique_names(cls, value):
-        """Ensure name fields within the lists have unique names."""
-        ensure_unique_names(value)
-        return value
-
-
 class CreateWorkfileModel(BaseSettingsModel):
     is_mandatory: bool = SettingsField(
         default=False,
@@ -257,17 +164,21 @@ class DefaultPluginModel(BaseSettingsModel):
 
 
 class CreatorPluginsSettings(BaseSettingsModel):
-    CreateWriteRender: CreateWriteRenderModel = SettingsField(
-        default_factory=CreateWriteRenderModel,
+    CreateWriteRender: CreateWriteModel = SettingsField(
+        default_factory=CreateWriteModel,
         title="Render (write)"
     )
-    CreateWritePrerender: CreateWritePrerenderModel = SettingsField(
-        default_factory=CreateWritePrerenderModel,
+    CreateWritePrerender: CreateWriteModel = SettingsField(
+        default_factory=CreateWriteModel,
         title="Prerender (write)"
     )
-    CreateWriteImage: CreateWriteImageModel = SettingsField(
-        default_factory=CreateWriteImageModel,
+    CreateWriteImage: CreateWriteModel = SettingsField(
+        default_factory=CreateWriteModel,
         title="Image (write)"
+    )
+    CreateWritePlate: CreateWriteModel = SettingsField(
+        default_factory=CreateWriteModel,
+        title="Plate (write)"
     )
     CreateBackdrop: DefaultPluginModel = SettingsField(
         default_factory=DefaultPluginModel,
@@ -373,6 +284,40 @@ DEFAULT_CREATE_SETTINGS = {
                         "type": "expression",
                         "name": "first_frame",
                         "expression": "parent.first"
+                    }
+                ]
+            }
+        ]
+    },
+    "CreateWritePlate": {
+        "enabled": True,
+        "order": 100,
+        "temp_rendering_path_template": "{work}/plates/nuke/{product[name]}/{product[name]}.{frame}.{ext}",
+        "default_variants": [
+            "BG01",
+            "FG01"
+        ],
+        "instance_attributes": [
+            "reviewable",
+            "farm_rendering"
+        ],
+        "render_target": "local",
+        "exposed_knobs": [],
+        "prenodes": [
+            {
+                "name": "Reformat01",
+                "nodeclass": "Reformat",
+                "dependent": "",
+                "knobs": [
+                    {
+                        "type": "text",
+                        "name": "resize",
+                        "text": "none"
+                    },
+                    {
+                        "type": "boolean",
+                        "name": "black_outside",
+                        "boolean": True
                     }
                 ]
             }

@@ -1928,7 +1928,8 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             plugin_names_mapping = {
                 "create_write_image": "CreateWriteImage",
                 "create_write_prerender": "CreateWritePrerender",
-                "create_write_render": "CreateWriteRender"
+                "create_write_render": "CreateWriteRender",
+                "create_write_plate": "CreateWritePlate",
             }
             node_data = get_node_data(node, INSTANCE_DATA_KNOB)
             identifier = node_data["creator_identifier"]
@@ -2207,7 +2208,8 @@ def get_write_node_template_attr(node):
     plugin_names_mapping = {
         "create_write_image": "CreateWriteImage",
         "create_write_prerender": "CreateWritePrerender",
-        "create_write_render": "CreateWriteRender"
+        "create_write_render": "CreateWriteRender",
+        "create_write_plate": "CreateWritePlate",
     }
     # get AYON data from node
     node_data = get_node_data(node, INSTANCE_DATA_KNOB)

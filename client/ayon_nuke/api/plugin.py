@@ -1475,6 +1475,7 @@ def convert_to_valid_instaces():
             "render": "create_write_render",
             "prerender": "create_write_prerender",
             "still": "create_write_image",
+            "plate": "create_write_plate",
             "model": "create_model",
             "camera": "create_camera",
             "nukenodes": "create_backdrop",

@@ -22,7 +22,7 @@ class IncrementWriteNodePathPostSubmit(
     order = pyblish.api.IntegratorOrder + 10
     label = "Update path in Write node - Post Version-Up"
     hosts = ["nuke", "nukeassist"]
-    families = ["render", "prerender", "image"]
+    families = ["render", "prerender", "image", "plate"]
 
     settings_category = "nuke"
     optional = True
