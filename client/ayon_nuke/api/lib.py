@@ -1493,7 +1493,7 @@ class ConfirmSetContextSettingMessageBox(QtWidgets.QDialog):
         if not ASSIST:
             self._always_check_check_box = QtWidgets.QCheckBox(
                 "Always check this Script's context settings on load\n"
-                "(if switched off, can be switched back on in Project Settings AYON tab)"
+                "(if switched off, can be switched back on in Project Settings User tab)"
             )
             self._always_check_check_box.setChecked(True)
             layout.addWidget(
