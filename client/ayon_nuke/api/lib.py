@@ -2130,22 +2130,32 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         frame_range = '{0}-{1}'.format(frame_start, frame_end)
 
         knob_name_current_new_value_triplets_by_node = defaultdict(list)
-        for knob_name_new_value_pairs, nodes in (((
-            ("lock_range", False),
-            ("fps", fps),
-            ("first_frame", frame_start_handle),
-            ("last_frame", frame_end_handle),
-            ("lock_range", True),
-        ), (self._root_node,)),
-        ((
-            ("frame_range", frame_range),
-            ("frame_range_lock", True),
-        ), nuke.allNodes(filter="Viewer"))):
+        for knob_name_new_value_pairs, nodes in (
+            (
+                (
+                    ("lock_range", False),
+                    ("fps", fps),
+                    ("first_frame", frame_start_handle),
+                    ("last_frame", frame_end_handle),
+                    ("lock_range", True),
+                ),
+                (self._root_node,),
+            ),
+            (
+                (
+                    ("frame_range", frame_range),
+                    ("frame_range_lock", True),
+                ),
+                nuke.allNodes(filter="Viewer"),
+            )
+        ):
             for node in nodes:
                 for knob_name, new_value in knob_name_new_value_pairs:
                     current_value = node[knob_name].value()
                     if current_value != new_value:
-                        knob_name_current_new_value_triplets_by_node[node].append((knob_name, current_value, new_value))
+                        knob_name_current_new_value_triplets_by_node[node].append(
+                            (knob_name, current_value, new_value)
+                        )
 
         if knob_name_current_new_value_triplets_by_node:
             if not requires_confirmation or ConfirmSetContextSettingMessageBox.ask_for_confirmation(
