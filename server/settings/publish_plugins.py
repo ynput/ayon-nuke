@@ -17,7 +17,7 @@ def nuke_render_publish_types_enum():
     return [
         {"value": "render", "label": "Render"},
         {"value": "prerender", "label": "Prerender"},
-        {"value": "image", "label": "Image"}
+        {"value": "image", "label": "Image"},
         {"value": "plate", "label": "Plate"},
     ]
 
