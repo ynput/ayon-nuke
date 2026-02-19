@@ -1,0 +1,953 @@
+<!doctype html><html lang=en class=no-js> <head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><link rel=prev href=containers.html><link rel=next href=encoder.html><link rel=icon href=../../../../../../../img/favicon.ico><meta name=generator content="mkdocs-1.6.1, mkdocs-material-9.7.2"><title>decoder - ayon-nuke</title><link rel=stylesheet href=../../../../../../../assets/stylesheets/main.484c7ddc.min.css><link rel=stylesheet href=../../../../../../../assets/stylesheets/palette.ab4e12ef.min.css><script src=https://unpkg.com/iframe-worker/shim></script><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=stylesheet href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback"><style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style><link rel=stylesheet href=../../../../../../../assets/_mkdocstrings.css><link rel=stylesheet href=../../../../../../../css/custom.css><script>__md_scope=new URL("../../../../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script></head> <body dir=ltr data-md-color-scheme=slate data-md-color-primary=indigo data-md-color-accent=indigo> <input class=md-toggle data-md-toggle=drawer type=checkbox id=__drawer autocomplete=off> <input class=md-toggle data-md-toggle=search type=checkbox id=__search autocomplete=off> <label class=md-overlay for=__drawer></label> <div data-md-component=skip> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder class=md-skip> Skip to content </a> </div> <div data-md-component=announce> </div> <div data-md-color-scheme=default data-md-component=outdated hidden> </div> <header class="md-header md-header--shadow" data-md-component=header> <nav class="md-header__inner md-grid" aria-label=Header> <a href=../../../../../../../index.html title=ayon-nuke class="md-header__button md-logo" aria-label=ayon-nuke data-md-component=logo> <img src=../../../../../../../img/ay-symbol-blackw-full.png alt=logo> </a> <label class="md-header__button md-icon" for=__drawer> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg> </label> <div class=md-header__title data-md-component=header-title> <div class=md-header__ellipsis> <div class=md-header__topic> <span class=md-ellipsis> ayon-nuke </span> </div> <div class=md-header__topic data-md-component=header-topic> <span class=md-ellipsis> decoder </span> </div> </div> </div> <form class=md-header__option data-md-component=palette> <input class=md-option data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme=slate data-md-color-primary=indigo data-md-color-accent=indigo aria-label="Switch to light mode" type=radio name=__palette id=__palette_0> <label class="md-header__button md-icon" title="Switch to light mode" for=__palette_1 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg> </label> <input class=md-option data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme=default data-md-color-primary=indigo data-md-color-accent=indigo aria-label="Switch to dark mode" type=radio name=__palette id=__palette_1> <label class="md-header__button md-icon" title="Switch to dark mode" for=__palette_0 hidden> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg> </label> </form> <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script> <label class="md-header__button md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> </label> <div class=md-search data-md-component=search role=dialog> <label class=md-search__overlay for=__search></label> <div class=md-search__inner role=search> <form class=md-search__form name=search> <input type=text class=md-search__input name=query aria-label=Search placeholder=Search autocapitalize=off autocorrect=off autocomplete=off spellcheck=false data-md-component=search-query required> <label class="md-search__icon md-icon" for=__search> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg> </label> <nav class=md-search__options aria-label=Search> <button type=reset class="md-search__icon md-icon" title=Clear aria-label=Clear tabindex=-1> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg> </button> </nav> </form> <div class=md-search__output> <div class=md-search__scrollwrap tabindex=0 data-md-scrollfix> <div class=md-search-result data-md-component=search-result> <div class=md-search-result__meta> Initializing search </div> <ol class=md-search-result__list role=presentation></ol> </div> </div> </div> </div> </div> <div class=md-header__source> <a href=https://github.com/ynput/ayon-nuke title="Go to repository" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 448 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg> </div> <div class=md-source__repository> GitHub </div> </a> </div> </nav> </header> <div class=md-container data-md-component=container> <main class=md-main data-md-component=main> <div class="md-main__inner md-grid"> <div class="md-sidebar md-sidebar--primary" data-md-component=sidebar data-md-type=navigation> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--primary" aria-label=Navigation data-md-level=0> <label class=md-nav__title for=__drawer> <a href=../../../../../../../index.html title=ayon-nuke class="md-nav__button md-logo" aria-label=ayon-nuke data-md-component=logo> <img src=../../../../../../../img/ay-symbol-blackw-full.png alt=logo> </a> ayon-nuke </label> <div class=md-nav__source> <a href=https://github.com/ynput/ayon-nuke title="Go to repository" class=md-source data-md-component=source> <div class="md-source__icon md-icon"> <svg xmlns=http://www.w3.org/2000/svg viewbox="0 0 448 512"><!-- Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg> </div> <div class=md-source__repository> GitHub </div> </a> </div> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../../../../../index.html class=md-nav__link> <span class=md-ellipsis> Home </span> </a> </li> <li class=md-nav__item> <a href=../../../../../../../license.html class=md-nav__link> <span class=md-ellipsis> License </span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3 checked> <label class=md-nav__link for=__nav_3 id=__nav_3_label tabindex> <span class=md-ellipsis> Reference </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=1 aria-labelledby=__nav_3_label aria-expanded=true> <label class=md-nav__title for=__nav_3> <span class="md-nav__icon md-icon"></span> Reference </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3_1 checked> <label class=md-nav__link for=__nav_3_1 id=__nav_3_1_label tabindex=0> <span class=md-ellipsis> client </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=2 aria-labelledby=__nav_3_1_label aria-expanded=true> <label class=md-nav__title for=__nav_3_1> <span class="md-nav__icon md-icon"></span> client </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3_1_1 checked> <label class=md-nav__link for=__nav_3_1_1 id=__nav_3_1_1_label tabindex=0> <span class=md-ellipsis> ayon_nuke </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=3 aria-labelledby=__nav_3_1_1_label aria-expanded=true> <label class=md-nav__title for=__nav_3_1_1> <span class="md-nav__icon md-icon"></span> ayon_nuke </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../../../../addon.html class=md-nav__link> <span class=md-ellipsis> addon </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../api/actions.html class=md-nav__link> <span class=md-ellipsis> api </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../hooks/pre_nukeassist_setup.html class=md-nav__link> <span class=md-ellipsis> hooks </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../plugins/create/convert_legacy.html class=md-nav__link> <span class=md-ellipsis> plugins </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../startup/clear_rendered.html class=md-nav__link> <span class=md-ellipsis> startup </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3_1_1_6 checked> <label class=md-nav__link for=__nav_3_1_1_6 id=__nav_3_1_1_6_label tabindex=0> <span class=md-ellipsis> vendor </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=4 aria-labelledby=__nav_3_1_1_6_label aria-expanded=true> <label class=md-nav__title for=__nav_3_1_1_6> <span class="md-nav__icon md-icon"></span> vendor </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3_1_1_6_1 checked> <label class=md-nav__link for=__nav_3_1_1_6_1 id=__nav_3_1_1_6_1_label tabindex=0> <span class=md-ellipsis> google </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=5 aria-labelledby=__nav_3_1_1_6_1_label aria-expanded=true> <label class=md-nav__title for=__nav_3_1_1_6_1> <span class="md-nav__icon md-icon"></span> google </label> <ul class=md-nav__list data-md-scrollfix> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3_1_1_6_1_1 checked> <label class=md-nav__link for=__nav_3_1_1_6_1_1 id=__nav_3_1_1_6_1_1_label tabindex=0> <span class=md-ellipsis> protobuf </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=6 aria-labelledby=__nav_3_1_1_6_1_1_label aria-expanded=true> <label class=md-nav__title for=__nav_3_1_1_6_1_1> <span class="md-nav__icon md-icon"></span> protobuf </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=../any_pb2.html class=md-nav__link> <span class=md-ellipsis> any_pb2 </span> </a> </li> <li class=md-nav__item> <a href=../api_pb2.html class=md-nav__link> <span class=md-ellipsis> api_pb2 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../compiler/plugin_pb2.html class=md-nav__link> <span class=md-ellipsis> compiler </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../descriptor.html class=md-nav__link> <span class=md-ellipsis> descriptor </span> </a> </li> <li class=md-nav__item> <a href=../descriptor_database.html class=md-nav__link> <span class=md-ellipsis> descriptor_database </span> </a> </li> <li class=md-nav__item> <a href=../descriptor_pb2.html class=md-nav__link> <span class=md-ellipsis> descriptor_pb2 </span> </a> </li> <li class=md-nav__item> <a href=../descriptor_pool.html class=md-nav__link> <span class=md-ellipsis> descriptor_pool </span> </a> </li> <li class=md-nav__item> <a href=../duration_pb2.html class=md-nav__link> <span class=md-ellipsis> duration_pb2 </span> </a> </li> <li class=md-nav__item> <a href=../empty_pb2.html class=md-nav__link> <span class=md-ellipsis> empty_pb2 </span> </a> </li> <li class=md-nav__item> <a href=../field_mask_pb2.html class=md-nav__link> <span class=md-ellipsis> field_mask_pb2 </span> </a> </li> <li class="md-nav__item md-nav__item--active md-nav__item--nested"> <input class="md-nav__toggle md-toggle " type=checkbox id=__nav_3_1_1_6_1_1_11 checked> <label class=md-nav__link for=__nav_3_1_1_6_1_1_11 id=__nav_3_1_1_6_1_1_11_label tabindex=0> <span class=md-ellipsis> internal </span> <span class="md-nav__icon md-icon"></span> </label> <nav class=md-nav data-md-level=7 aria-labelledby=__nav_3_1_1_6_1_1_11_label aria-expanded=true> <label class=md-nav__title for=__nav_3_1_1_6_1_1_11> <span class="md-nav__icon md-icon"></span> internal </label> <ul class=md-nav__list data-md-scrollfix> <li class=md-nav__item> <a href=_parameterized.html class=md-nav__link> <span class=md-ellipsis> _parameterized </span> </a> </li> <li class=md-nav__item> <a href=api_implementation.html class=md-nav__link> <span class=md-ellipsis> api_implementation </span> </a> </li> <li class=md-nav__item> <a href=builder.html class=md-nav__link> <span class=md-ellipsis> builder </span> </a> </li> <li class=md-nav__item> <a href=containers.html class=md-nav__link> <span class=md-ellipsis> containers </span> </a> </li> <li class="md-nav__item md-nav__item--active"> <input class="md-nav__toggle md-toggle" type=checkbox id=__toc> <label class="md-nav__link md-nav__link--active" for=__toc> <span class=md-ellipsis> decoder </span> <span class="md-nav__icon md-icon"></span> </label> <a href=decoder.html class="md-nav__link md-nav__link--active"> <span class=md-ellipsis> decoder </span> </a> <nav class="md-nav md-nav--secondary" aria-label="Table of contents"> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> Table of contents </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder class=md-nav__link> <span class=md-ellipsis> decoder </span> </a> </li> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder.BytesDecoder class=md-nav__link> <span class=md-ellipsis> BytesDecoder </span> </a> </li> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder.EnumDecoder class=md-nav__link> <span class=md-ellipsis> EnumDecoder </span> </a> </li> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder.GroupDecoder class=md-nav__link> <span class=md-ellipsis> GroupDecoder </span> </a> </li> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder.MapDecoder class=md-nav__link> <span class=md-ellipsis> MapDecoder </span> </a> </li> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder.MessageDecoder class=md-nav__link> <span class=md-ellipsis> MessageDecoder </span> </a> </li> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder.MessageSetItemDecoder class=md-nav__link> <span class=md-ellipsis> MessageSetItemDecoder </span> </a> </li> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder.ReadTag class=md-nav__link> <span class=md-ellipsis> ReadTag </span> </a> </li> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder.StringDecoder class=md-nav__link> <span class=md-ellipsis> StringDecoder </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=encoder.html class=md-nav__link> <span class=md-ellipsis> encoder </span> </a> </li> <li class=md-nav__item> <a href=enum_type_wrapper.html class=md-nav__link> <span class=md-ellipsis> enum_type_wrapper </span> </a> </li> <li class=md-nav__item> <a href=extension_dict.html class=md-nav__link> <span class=md-ellipsis> extension_dict </span> </a> </li> <li class=md-nav__item> <a href=message_listener.html class=md-nav__link> <span class=md-ellipsis> message_listener </span> </a> </li> <li class=md-nav__item> <a href=message_set_extensions_pb2.html class=md-nav__link> <span class=md-ellipsis> message_set_extensions_pb2 </span> </a> </li> <li class=md-nav__item> <a href=missing_enum_values_pb2.html class=md-nav__link> <span class=md-ellipsis> missing_enum_values_pb2 </span> </a> </li> <li class=md-nav__item> <a href=more_extensions_dynamic_pb2.html class=md-nav__link> <span class=md-ellipsis> more_extensions_dynamic_pb2 </span> </a> </li> <li class=md-nav__item> <a href=more_extensions_pb2.html class=md-nav__link> <span class=md-ellipsis> more_extensions_pb2 </span> </a> </li> <li class=md-nav__item> <a href=more_messages_pb2.html class=md-nav__link> <span class=md-ellipsis> more_messages_pb2 </span> </a> </li> <li class=md-nav__item> <a href=no_package_pb2.html class=md-nav__link> <span class=md-ellipsis> no_package_pb2 </span> </a> </li> <li class=md-nav__item> <a href=python_message.html class=md-nav__link> <span class=md-ellipsis> python_message </span> </a> </li> <li class=md-nav__item> <a href=type_checkers.html class=md-nav__link> <span class=md-ellipsis> type_checkers </span> </a> </li> <li class=md-nav__item> <a href=well_known_types.html class=md-nav__link> <span class=md-ellipsis> well_known_types </span> </a> </li> <li class=md-nav__item> <a href=wire_format.html class=md-nav__link> <span class=md-ellipsis> wire_format </span> </a> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../json_format.html class=md-nav__link> <span class=md-ellipsis> json_format </span> </a> </li> <li class=md-nav__item> <a href=../message.html class=md-nav__link> <span class=md-ellipsis> message </span> </a> </li> <li class=md-nav__item> <a href=../message_factory.html class=md-nav__link> <span class=md-ellipsis> message_factory </span> </a> </li> <li class=md-nav__item> <a href=../proto_builder.html class=md-nav__link> <span class=md-ellipsis> proto_builder </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../pyext/cpp_message.html class=md-nav__link> <span class=md-ellipsis> pyext </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../reflection.html class=md-nav__link> <span class=md-ellipsis> reflection </span> </a> </li> <li class=md-nav__item> <a href=../service.html class=md-nav__link> <span class=md-ellipsis> service </span> </a> </li> <li class=md-nav__item> <a href=../service_reflection.html class=md-nav__link> <span class=md-ellipsis> service_reflection </span> </a> </li> <li class=md-nav__item> <a href=../source_context_pb2.html class=md-nav__link> <span class=md-ellipsis> source_context_pb2 </span> </a> </li> <li class=md-nav__item> <a href=../struct_pb2.html class=md-nav__link> <span class=md-ellipsis> struct_pb2 </span> </a> </li> <li class=md-nav__item> <a href=../symbol_database.html class=md-nav__link> <span class=md-ellipsis> symbol_database </span> </a> </li> <li class=md-nav__item> <a href=../text_encoding.html class=md-nav__link> <span class=md-ellipsis> text_encoding </span> </a> </li> <li class=md-nav__item> <a href=../text_format.html class=md-nav__link> <span class=md-ellipsis> text_format </span> </a> </li> <li class=md-nav__item> <a href=../timestamp_pb2.html class=md-nav__link> <span class=md-ellipsis> timestamp_pb2 </span> </a> </li> <li class=md-nav__item> <a href=../type_pb2.html class=md-nav__link> <span class=md-ellipsis> type_pb2 </span> </a> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../util/json_format_pb2.html class=md-nav__link> <span class=md-ellipsis> util </span> <span class="md-nav__icon md-icon"></span> </a> </li> <li class=md-nav__item> <a href=../wrappers_pb2.html class=md-nav__link> <span class=md-ellipsis> wrappers_pb2 </span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> </ul> </nav> </li> <li class=md-nav__item> <a href=../../../../version.html class=md-nav__link> <span class=md-ellipsis> version </span> </a> </li> </ul> </nav> </li> </ul> </nav> </li> <li class="md-nav__item md-nav__item--pruned md-nav__item--nested"> <a href=../../../../../../server/settings/common.html class=md-nav__link> <span class=md-ellipsis> server </span> <span class="md-nav__icon md-icon"></span> </a> </li> </ul> </nav> </li> </ul> </nav> </div> </div> </div> <div class="md-sidebar md-sidebar--secondary" data-md-component=sidebar data-md-type=toc> <div class=md-sidebar__scrollwrap> <div class=md-sidebar__inner> <nav class="md-nav md-nav--secondary" aria-label="Table of contents"> <label class=md-nav__title for=__toc> <span class="md-nav__icon md-icon"></span> Table of contents </label> <ul class=md-nav__list data-md-component=toc data-md-scrollfix> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder class=md-nav__link> <span class=md-ellipsis> decoder </span> </a> </li> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder.BytesDecoder class=md-nav__link> <span class=md-ellipsis> BytesDecoder </span> </a> </li> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder.EnumDecoder class=md-nav__link> <span class=md-ellipsis> EnumDecoder </span> </a> </li> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder.GroupDecoder class=md-nav__link> <span class=md-ellipsis> GroupDecoder </span> </a> </li> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder.MapDecoder class=md-nav__link> <span class=md-ellipsis> MapDecoder </span> </a> </li> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder.MessageDecoder class=md-nav__link> <span class=md-ellipsis> MessageDecoder </span> </a> </li> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder.MessageSetItemDecoder class=md-nav__link> <span class=md-ellipsis> MessageSetItemDecoder </span> </a> </li> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder.ReadTag class=md-nav__link> <span class=md-ellipsis> ReadTag </span> </a> </li> <li class=md-nav__item> <a href=#client.ayon_nuke.vendor.google.protobuf.internal.decoder.StringDecoder class=md-nav__link> <span class=md-ellipsis> StringDecoder </span> </a> </li> </ul> </nav> </div> </div> </div> <div class=md-content data-md-component=content> <nav class=md-path aria-label=Navigation> <ol class=md-path__list> <li class=md-path__item> <a href=../../../../../../../index.html class=md-path__link> <span class=md-ellipsis> Home </span> </a> </li> <li class=md-path__item> <a href=../../../../addon.html class=md-path__link> <span class=md-ellipsis> Reference </span> </a> </li> <li class=md-path__item> <a href=../../../../addon.html class=md-path__link> <span class=md-ellipsis> client </span> </a> </li> <li class=md-path__item> <a href=../../../../addon.html class=md-path__link> <span class=md-ellipsis> ayon_nuke </span> </a> </li> <li class=md-path__item> <a href=../any_pb2.html class=md-path__link> <span class=md-ellipsis> vendor </span> </a> </li> <li class=md-path__item> <a href=../any_pb2.html class=md-path__link> <span class=md-ellipsis> google </span> </a> </li> <li class=md-path__item> <a href=../any_pb2.html class=md-path__link> <span class=md-ellipsis> protobuf </span> </a> </li> <li class=md-path__item> <a href=_parameterized.html class=md-path__link> <span class=md-ellipsis> internal </span> </a> </li> </ol> </nav> <article class="md-content__inner md-typeset"> <h1>decoder</h1> <div class="doc doc-object doc-module"> <a id=client.ayon_nuke.vendor.google.protobuf.internal.decoder></a> <div class="doc doc-contents first"> <p>Code for decoding protocol buffer primitives.</p> <p>This code is very similar to encoder.py -- read the docs for that module first.</p> <p>A "decoder" is a function with the signature: Decode(buffer, pos, end, message, field_dict) The arguments are: buffer: The string containing the encoded message. pos: The current position in the string. end: The position in the string where the current message ends. May be less than len(buffer) if we're reading a sub-message. message: The message object into which we're parsing. field_dict: message._fields (avoids a hashtable lookup). The decoder reads the field and stores it into field_dict, returning the new buffer position. A decoder for a repeated field may proactively decode all of the elements of that field, if they appear consecutively.</p> <details class=note-that-decoders-may-throw-any-of-the-following open> <summary>Note that decoders may throw any of the following</summary> <p>IndexError: Indicates a truncated message. struct.error: Unpacking of a fixed-width field failed. message.DecodeError: Other errors.</p> </details> <p>Decoders are expected to raise an exception if they are called with pos &gt; end. This allows callers to be lax about bounds checking: it's fineto read past "end" as long as you are sure that someone else will notice and throw an exception later on.</p> <p>Something up the call stack is expected to catch IndexError and struct.error and convert them to message.DecodeError.</p> <details class=decoders-are-constructed-using-decoder-constructors-with-the-signature open> <summary>Decoders are constructed using decoder constructors with the signature</summary> <p>MakeDecoder(field_number, is_repeated, is_packed, key, new_default)</p> </details> <p>The arguments are: field_number: The field number of the field we want to decode. is_repeated: Is the field a repeated field? (bool) is_packed: Is the field a packed field? (bool) key: The key to use when looking up the field within field_dict. (This is actually the FieldDescriptor but nothing in this file should depend on that.) new_default: A function which takes a message object as a parameter and returns a new instance of the default value for this field. (This is called for repeated fields and sub-messages, when an instance does not already exist.)</p> <p>As with encoders, we define a decoder constructor for every type of field. Then, for every field of every message class we construct an actual decoder. That decoder goes into a dict indexed by tag, so when we decode a message we repeatedly read a tag, look up the corresponding decoder, and invoke it.</p> <div class="doc doc-children"> <div class="doc doc-object doc-function"> <h2 id=client.ayon_nuke.vendor.google.protobuf.internal.decoder.BytesDecoder class="doc doc-heading"> <code class="highlight language-python"><span class=n>BytesDecoder</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span> <span class=n>is_repeated</span><span class=p>,</span> <span class=n>is_packed</span><span class=p>,</span> <span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>,</span> <span class=n>clear_if_default</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Returns a decoder for a bytes field.</p> <details class=mkdocstrings-source> <summary>Source code in <code>client/ayon_nuke/vendor/google/protobuf/internal/decoder.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>596</span>
+<span class=normal>597</span>
+<span class=normal>598</span>
+<span class=normal>599</span>
+<span class=normal>600</span>
+<span class=normal>601</span>
+<span class=normal>602</span>
+<span class=normal>603</span>
+<span class=normal>604</span>
+<span class=normal>605</span>
+<span class=normal>606</span>
+<span class=normal>607</span>
+<span class=normal>608</span>
+<span class=normal>609</span>
+<span class=normal>610</span>
+<span class=normal>611</span>
+<span class=normal>612</span>
+<span class=normal>613</span>
+<span class=normal>614</span>
+<span class=normal>615</span>
+<span class=normal>616</span>
+<span class=normal>617</span>
+<span class=normal>618</span>
+<span class=normal>619</span>
+<span class=normal>620</span>
+<span class=normal>621</span>
+<span class=normal>622</span>
+<span class=normal>623</span>
+<span class=normal>624</span>
+<span class=normal>625</span>
+<span class=normal>626</span>
+<span class=normal>627</span>
+<span class=normal>628</span>
+<span class=normal>629</span>
+<span class=normal>630</span>
+<span class=normal>631</span>
+<span class=normal>632</span>
+<span class=normal>633</span>
+<span class=normal>634</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>BytesDecoder</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span> <span class=n>is_repeated</span><span class=p>,</span> <span class=n>is_packed</span><span class=p>,</span> <span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>,</span>
+                 <span class=n>clear_if_default</span><span class=o>=</span><span class=kc>False</span><span class=p>):</span>
+<span class=w>  </span><span class=sd>&quot;&quot;&quot;Returns a decoder for a bytes field.&quot;&quot;&quot;</span>
+
+  <span class=n>local_DecodeVarint</span> <span class=o>=</span> <span class=n>_DecodeVarint</span>
+
+  <span class=k>assert</span> <span class=ow>not</span> <span class=n>is_packed</span>
+  <span class=k>if</span> <span class=n>is_repeated</span><span class=p>:</span>
+    <span class=n>tag_bytes</span> <span class=o>=</span> <span class=n>encoder</span><span class=o>.</span><span class=n>TagBytes</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span>
+                                 <span class=n>wire_format</span><span class=o>.</span><span class=n>WIRETYPE_LENGTH_DELIMITED</span><span class=p>)</span>
+    <span class=n>tag_len</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>tag_bytes</span><span class=p>)</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>DecodeRepeatedField</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>message</span><span class=p>,</span> <span class=n>field_dict</span><span class=p>):</span>
+      <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>key</span><span class=p>)</span>
+      <span class=k>if</span> <span class=n>value</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>setdefault</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>(</span><span class=n>message</span><span class=p>))</span>
+      <span class=k>while</span> <span class=mi>1</span><span class=p>:</span>
+        <span class=p>(</span><span class=n>size</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span> <span class=o>=</span> <span class=n>local_DecodeVarint</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+        <span class=n>new_pos</span> <span class=o>=</span> <span class=n>pos</span> <span class=o>+</span> <span class=n>size</span>
+        <span class=k>if</span> <span class=n>new_pos</span> <span class=o>&gt;</span> <span class=n>end</span><span class=p>:</span>
+          <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Truncated string.&#39;</span><span class=p>)</span>
+        <span class=n>value</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>buffer</span><span class=p>[</span><span class=n>pos</span><span class=p>:</span><span class=n>new_pos</span><span class=p>]</span><span class=o>.</span><span class=n>tobytes</span><span class=p>())</span>
+        <span class=c1># Predict that the next tag is another copy of the same repeated field.</span>
+        <span class=n>pos</span> <span class=o>=</span> <span class=n>new_pos</span> <span class=o>+</span> <span class=n>tag_len</span>
+        <span class=k>if</span> <span class=n>buffer</span><span class=p>[</span><span class=n>new_pos</span><span class=p>:</span><span class=n>pos</span><span class=p>]</span> <span class=o>!=</span> <span class=n>tag_bytes</span> <span class=ow>or</span> <span class=n>new_pos</span> <span class=o>==</span> <span class=n>end</span><span class=p>:</span>
+          <span class=c1># Prediction failed.  Return.</span>
+          <span class=k>return</span> <span class=n>new_pos</span>
+    <span class=k>return</span> <span class=n>DecodeRepeatedField</span>
+  <span class=k>else</span><span class=p>:</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>DecodeField</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>message</span><span class=p>,</span> <span class=n>field_dict</span><span class=p>):</span>
+      <span class=p>(</span><span class=n>size</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span> <span class=o>=</span> <span class=n>local_DecodeVarint</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+      <span class=n>new_pos</span> <span class=o>=</span> <span class=n>pos</span> <span class=o>+</span> <span class=n>size</span>
+      <span class=k>if</span> <span class=n>new_pos</span> <span class=o>&gt;</span> <span class=n>end</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Truncated string.&#39;</span><span class=p>)</span>
+      <span class=k>if</span> <span class=n>clear_if_default</span> <span class=ow>and</span> <span class=ow>not</span> <span class=n>size</span><span class=p>:</span>
+        <span class=n>field_dict</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=kc>None</span><span class=p>)</span>
+      <span class=k>else</span><span class=p>:</span>
+        <span class=n>field_dict</span><span class=p>[</span><span class=n>key</span><span class=p>]</span> <span class=o>=</span> <span class=n>buffer</span><span class=p>[</span><span class=n>pos</span><span class=p>:</span><span class=n>new_pos</span><span class=p>]</span><span class=o>.</span><span class=n>tobytes</span><span class=p>()</span>
+      <span class=k>return</span> <span class=n>new_pos</span>
+    <span class=k>return</span> <span class=n>DecodeField</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=client.ayon_nuke.vendor.google.protobuf.internal.decoder.EnumDecoder class="doc doc-heading"> <code class="highlight language-python"><span class=n>EnumDecoder</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span> <span class=n>is_repeated</span><span class=p>,</span> <span class=n>is_packed</span><span class=p>,</span> <span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>,</span> <span class=n>clear_if_default</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Returns a decoder for enum field.</p> <details class=mkdocstrings-source> <summary>Source code in <code>client/ayon_nuke/vendor/google/protobuf/internal/decoder.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>372</span>
+<span class=normal>373</span>
+<span class=normal>374</span>
+<span class=normal>375</span>
+<span class=normal>376</span>
+<span class=normal>377</span>
+<span class=normal>378</span>
+<span class=normal>379</span>
+<span class=normal>380</span>
+<span class=normal>381</span>
+<span class=normal>382</span>
+<span class=normal>383</span>
+<span class=normal>384</span>
+<span class=normal>385</span>
+<span class=normal>386</span>
+<span class=normal>387</span>
+<span class=normal>388</span>
+<span class=normal>389</span>
+<span class=normal>390</span>
+<span class=normal>391</span>
+<span class=normal>392</span>
+<span class=normal>393</span>
+<span class=normal>394</span>
+<span class=normal>395</span>
+<span class=normal>396</span>
+<span class=normal>397</span>
+<span class=normal>398</span>
+<span class=normal>399</span>
+<span class=normal>400</span>
+<span class=normal>401</span>
+<span class=normal>402</span>
+<span class=normal>403</span>
+<span class=normal>404</span>
+<span class=normal>405</span>
+<span class=normal>406</span>
+<span class=normal>407</span>
+<span class=normal>408</span>
+<span class=normal>409</span>
+<span class=normal>410</span>
+<span class=normal>411</span>
+<span class=normal>412</span>
+<span class=normal>413</span>
+<span class=normal>414</span>
+<span class=normal>415</span>
+<span class=normal>416</span>
+<span class=normal>417</span>
+<span class=normal>418</span>
+<span class=normal>419</span>
+<span class=normal>420</span>
+<span class=normal>421</span>
+<span class=normal>422</span>
+<span class=normal>423</span>
+<span class=normal>424</span>
+<span class=normal>425</span>
+<span class=normal>426</span>
+<span class=normal>427</span>
+<span class=normal>428</span>
+<span class=normal>429</span>
+<span class=normal>430</span>
+<span class=normal>431</span>
+<span class=normal>432</span>
+<span class=normal>433</span>
+<span class=normal>434</span>
+<span class=normal>435</span>
+<span class=normal>436</span>
+<span class=normal>437</span>
+<span class=normal>438</span>
+<span class=normal>439</span>
+<span class=normal>440</span>
+<span class=normal>441</span>
+<span class=normal>442</span>
+<span class=normal>443</span>
+<span class=normal>444</span>
+<span class=normal>445</span>
+<span class=normal>446</span>
+<span class=normal>447</span>
+<span class=normal>448</span>
+<span class=normal>449</span>
+<span class=normal>450</span>
+<span class=normal>451</span>
+<span class=normal>452</span>
+<span class=normal>453</span>
+<span class=normal>454</span>
+<span class=normal>455</span>
+<span class=normal>456</span>
+<span class=normal>457</span>
+<span class=normal>458</span>
+<span class=normal>459</span>
+<span class=normal>460</span>
+<span class=normal>461</span>
+<span class=normal>462</span>
+<span class=normal>463</span>
+<span class=normal>464</span>
+<span class=normal>465</span>
+<span class=normal>466</span>
+<span class=normal>467</span>
+<span class=normal>468</span>
+<span class=normal>469</span>
+<span class=normal>470</span>
+<span class=normal>471</span>
+<span class=normal>472</span>
+<span class=normal>473</span>
+<span class=normal>474</span>
+<span class=normal>475</span>
+<span class=normal>476</span>
+<span class=normal>477</span>
+<span class=normal>478</span>
+<span class=normal>479</span>
+<span class=normal>480</span>
+<span class=normal>481</span>
+<span class=normal>482</span>
+<span class=normal>483</span>
+<span class=normal>484</span>
+<span class=normal>485</span>
+<span class=normal>486</span>
+<span class=normal>487</span>
+<span class=normal>488</span>
+<span class=normal>489</span>
+<span class=normal>490</span>
+<span class=normal>491</span>
+<span class=normal>492</span>
+<span class=normal>493</span>
+<span class=normal>494</span>
+<span class=normal>495</span>
+<span class=normal>496</span>
+<span class=normal>497</span>
+<span class=normal>498</span>
+<span class=normal>499</span>
+<span class=normal>500</span>
+<span class=normal>501</span>
+<span class=normal>502</span>
+<span class=normal>503</span>
+<span class=normal>504</span>
+<span class=normal>505</span>
+<span class=normal>506</span>
+<span class=normal>507</span>
+<span class=normal>508</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>EnumDecoder</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span> <span class=n>is_repeated</span><span class=p>,</span> <span class=n>is_packed</span><span class=p>,</span> <span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>,</span>
+                <span class=n>clear_if_default</span><span class=o>=</span><span class=kc>False</span><span class=p>):</span>
+<span class=w>  </span><span class=sd>&quot;&quot;&quot;Returns a decoder for enum field.&quot;&quot;&quot;</span>
+  <span class=n>enum_type</span> <span class=o>=</span> <span class=n>key</span><span class=o>.</span><span class=n>enum_type</span>
+  <span class=k>if</span> <span class=n>is_packed</span><span class=p>:</span>
+    <span class=n>local_DecodeVarint</span> <span class=o>=</span> <span class=n>_DecodeVarint</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>DecodePackedField</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>message</span><span class=p>,</span> <span class=n>field_dict</span><span class=p>):</span>
+<span class=w>      </span><span class=sd>&quot;&quot;&quot;Decode serialized packed enum to its value and a new position.</span>
+
+<span class=sd>      Args:</span>
+<span class=sd>        buffer: memoryview of the serialized bytes.</span>
+<span class=sd>        pos: int, position in the memory view to start at.</span>
+<span class=sd>        end: int, end position of serialized data</span>
+<span class=sd>        message: Message object to store unknown fields in</span>
+<span class=sd>        field_dict: Map[Descriptor, Any] to store decoded values in.</span>
+
+<span class=sd>      Returns:</span>
+<span class=sd>        int, new position in serialized data.</span>
+<span class=sd>      &quot;&quot;&quot;</span>
+      <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>key</span><span class=p>)</span>
+      <span class=k>if</span> <span class=n>value</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>setdefault</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>(</span><span class=n>message</span><span class=p>))</span>
+      <span class=p>(</span><span class=n>endpoint</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span> <span class=o>=</span> <span class=n>local_DecodeVarint</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+      <span class=n>endpoint</span> <span class=o>+=</span> <span class=n>pos</span>
+      <span class=k>if</span> <span class=n>endpoint</span> <span class=o>&gt;</span> <span class=n>end</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Truncated message.&#39;</span><span class=p>)</span>
+      <span class=k>while</span> <span class=n>pos</span> <span class=o>&lt;</span> <span class=n>endpoint</span><span class=p>:</span>
+        <span class=n>value_start_pos</span> <span class=o>=</span> <span class=n>pos</span>
+        <span class=p>(</span><span class=n>element</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span> <span class=o>=</span> <span class=n>_DecodeSignedVarint32</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+        <span class=c1># pylint: disable=protected-access</span>
+        <span class=k>if</span> <span class=n>element</span> <span class=ow>in</span> <span class=n>enum_type</span><span class=o>.</span><span class=n>values_by_number</span><span class=p>:</span>
+          <span class=n>value</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>element</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+          <span class=k>if</span> <span class=ow>not</span> <span class=n>message</span><span class=o>.</span><span class=n>_unknown_fields</span><span class=p>:</span>
+            <span class=n>message</span><span class=o>.</span><span class=n>_unknown_fields</span> <span class=o>=</span> <span class=p>[]</span>
+          <span class=n>tag_bytes</span> <span class=o>=</span> <span class=n>encoder</span><span class=o>.</span><span class=n>TagBytes</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span>
+                                       <span class=n>wire_format</span><span class=o>.</span><span class=n>WIRETYPE_VARINT</span><span class=p>)</span>
+
+          <span class=n>message</span><span class=o>.</span><span class=n>_unknown_fields</span><span class=o>.</span><span class=n>append</span><span class=p>(</span>
+              <span class=p>(</span><span class=n>tag_bytes</span><span class=p>,</span> <span class=n>buffer</span><span class=p>[</span><span class=n>value_start_pos</span><span class=p>:</span><span class=n>pos</span><span class=p>]</span><span class=o>.</span><span class=n>tobytes</span><span class=p>()))</span>
+          <span class=k>if</span> <span class=n>message</span><span class=o>.</span><span class=n>_unknown_field_set</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>message</span><span class=o>.</span><span class=n>_unknown_field_set</span> <span class=o>=</span> <span class=n>containers</span><span class=o>.</span><span class=n>UnknownFieldSet</span><span class=p>()</span>
+          <span class=n>message</span><span class=o>.</span><span class=n>_unknown_field_set</span><span class=o>.</span><span class=n>_add</span><span class=p>(</span>
+              <span class=n>field_number</span><span class=p>,</span> <span class=n>wire_format</span><span class=o>.</span><span class=n>WIRETYPE_VARINT</span><span class=p>,</span> <span class=n>element</span><span class=p>)</span>
+          <span class=c1># pylint: enable=protected-access</span>
+      <span class=k>if</span> <span class=n>pos</span> <span class=o>&gt;</span> <span class=n>endpoint</span><span class=p>:</span>
+        <span class=k>if</span> <span class=n>element</span> <span class=ow>in</span> <span class=n>enum_type</span><span class=o>.</span><span class=n>values_by_number</span><span class=p>:</span>
+          <span class=k>del</span> <span class=n>value</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>   <span class=c1># Discard corrupt value.</span>
+        <span class=k>else</span><span class=p>:</span>
+          <span class=k>del</span> <span class=n>message</span><span class=o>.</span><span class=n>_unknown_fields</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>
+          <span class=c1># pylint: disable=protected-access</span>
+          <span class=k>del</span> <span class=n>message</span><span class=o>.</span><span class=n>_unknown_field_set</span><span class=o>.</span><span class=n>_values</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>
+          <span class=c1># pylint: enable=protected-access</span>
+        <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Packed element was truncated.&#39;</span><span class=p>)</span>
+      <span class=k>return</span> <span class=n>pos</span>
+    <span class=k>return</span> <span class=n>DecodePackedField</span>
+  <span class=k>elif</span> <span class=n>is_repeated</span><span class=p>:</span>
+    <span class=n>tag_bytes</span> <span class=o>=</span> <span class=n>encoder</span><span class=o>.</span><span class=n>TagBytes</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span> <span class=n>wire_format</span><span class=o>.</span><span class=n>WIRETYPE_VARINT</span><span class=p>)</span>
+    <span class=n>tag_len</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>tag_bytes</span><span class=p>)</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>DecodeRepeatedField</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>message</span><span class=p>,</span> <span class=n>field_dict</span><span class=p>):</span>
+<span class=w>      </span><span class=sd>&quot;&quot;&quot;Decode serialized repeated enum to its value and a new position.</span>
+
+<span class=sd>      Args:</span>
+<span class=sd>        buffer: memoryview of the serialized bytes.</span>
+<span class=sd>        pos: int, position in the memory view to start at.</span>
+<span class=sd>        end: int, end position of serialized data</span>
+<span class=sd>        message: Message object to store unknown fields in</span>
+<span class=sd>        field_dict: Map[Descriptor, Any] to store decoded values in.</span>
+
+<span class=sd>      Returns:</span>
+<span class=sd>        int, new position in serialized data.</span>
+<span class=sd>      &quot;&quot;&quot;</span>
+      <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>key</span><span class=p>)</span>
+      <span class=k>if</span> <span class=n>value</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>setdefault</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>(</span><span class=n>message</span><span class=p>))</span>
+      <span class=k>while</span> <span class=mi>1</span><span class=p>:</span>
+        <span class=p>(</span><span class=n>element</span><span class=p>,</span> <span class=n>new_pos</span><span class=p>)</span> <span class=o>=</span> <span class=n>_DecodeSignedVarint32</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+        <span class=c1># pylint: disable=protected-access</span>
+        <span class=k>if</span> <span class=n>element</span> <span class=ow>in</span> <span class=n>enum_type</span><span class=o>.</span><span class=n>values_by_number</span><span class=p>:</span>
+          <span class=n>value</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>element</span><span class=p>)</span>
+        <span class=k>else</span><span class=p>:</span>
+          <span class=k>if</span> <span class=ow>not</span> <span class=n>message</span><span class=o>.</span><span class=n>_unknown_fields</span><span class=p>:</span>
+            <span class=n>message</span><span class=o>.</span><span class=n>_unknown_fields</span> <span class=o>=</span> <span class=p>[]</span>
+          <span class=n>message</span><span class=o>.</span><span class=n>_unknown_fields</span><span class=o>.</span><span class=n>append</span><span class=p>(</span>
+              <span class=p>(</span><span class=n>tag_bytes</span><span class=p>,</span> <span class=n>buffer</span><span class=p>[</span><span class=n>pos</span><span class=p>:</span><span class=n>new_pos</span><span class=p>]</span><span class=o>.</span><span class=n>tobytes</span><span class=p>()))</span>
+          <span class=k>if</span> <span class=n>message</span><span class=o>.</span><span class=n>_unknown_field_set</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+            <span class=n>message</span><span class=o>.</span><span class=n>_unknown_field_set</span> <span class=o>=</span> <span class=n>containers</span><span class=o>.</span><span class=n>UnknownFieldSet</span><span class=p>()</span>
+          <span class=n>message</span><span class=o>.</span><span class=n>_unknown_field_set</span><span class=o>.</span><span class=n>_add</span><span class=p>(</span>
+              <span class=n>field_number</span><span class=p>,</span> <span class=n>wire_format</span><span class=o>.</span><span class=n>WIRETYPE_VARINT</span><span class=p>,</span> <span class=n>element</span><span class=p>)</span>
+        <span class=c1># pylint: enable=protected-access</span>
+        <span class=c1># Predict that the next tag is another copy of the same repeated</span>
+        <span class=c1># field.</span>
+        <span class=n>pos</span> <span class=o>=</span> <span class=n>new_pos</span> <span class=o>+</span> <span class=n>tag_len</span>
+        <span class=k>if</span> <span class=n>buffer</span><span class=p>[</span><span class=n>new_pos</span><span class=p>:</span><span class=n>pos</span><span class=p>]</span> <span class=o>!=</span> <span class=n>tag_bytes</span> <span class=ow>or</span> <span class=n>new_pos</span> <span class=o>&gt;=</span> <span class=n>end</span><span class=p>:</span>
+          <span class=c1># Prediction failed.  Return.</span>
+          <span class=k>if</span> <span class=n>new_pos</span> <span class=o>&gt;</span> <span class=n>end</span><span class=p>:</span>
+            <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Truncated message.&#39;</span><span class=p>)</span>
+          <span class=k>return</span> <span class=n>new_pos</span>
+    <span class=k>return</span> <span class=n>DecodeRepeatedField</span>
+  <span class=k>else</span><span class=p>:</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>DecodeField</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>message</span><span class=p>,</span> <span class=n>field_dict</span><span class=p>):</span>
+<span class=w>      </span><span class=sd>&quot;&quot;&quot;Decode serialized repeated enum to its value and a new position.</span>
+
+<span class=sd>      Args:</span>
+<span class=sd>        buffer: memoryview of the serialized bytes.</span>
+<span class=sd>        pos: int, position in the memory view to start at.</span>
+<span class=sd>        end: int, end position of serialized data</span>
+<span class=sd>        message: Message object to store unknown fields in</span>
+<span class=sd>        field_dict: Map[Descriptor, Any] to store decoded values in.</span>
+
+<span class=sd>      Returns:</span>
+<span class=sd>        int, new position in serialized data.</span>
+<span class=sd>      &quot;&quot;&quot;</span>
+      <span class=n>value_start_pos</span> <span class=o>=</span> <span class=n>pos</span>
+      <span class=p>(</span><span class=n>enum_value</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span> <span class=o>=</span> <span class=n>_DecodeSignedVarint32</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+      <span class=k>if</span> <span class=n>pos</span> <span class=o>&gt;</span> <span class=n>end</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Truncated message.&#39;</span><span class=p>)</span>
+      <span class=k>if</span> <span class=n>clear_if_default</span> <span class=ow>and</span> <span class=ow>not</span> <span class=n>enum_value</span><span class=p>:</span>
+        <span class=n>field_dict</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=kc>None</span><span class=p>)</span>
+        <span class=k>return</span> <span class=n>pos</span>
+      <span class=c1># pylint: disable=protected-access</span>
+      <span class=k>if</span> <span class=n>enum_value</span> <span class=ow>in</span> <span class=n>enum_type</span><span class=o>.</span><span class=n>values_by_number</span><span class=p>:</span>
+        <span class=n>field_dict</span><span class=p>[</span><span class=n>key</span><span class=p>]</span> <span class=o>=</span> <span class=n>enum_value</span>
+      <span class=k>else</span><span class=p>:</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=n>message</span><span class=o>.</span><span class=n>_unknown_fields</span><span class=p>:</span>
+          <span class=n>message</span><span class=o>.</span><span class=n>_unknown_fields</span> <span class=o>=</span> <span class=p>[]</span>
+        <span class=n>tag_bytes</span> <span class=o>=</span> <span class=n>encoder</span><span class=o>.</span><span class=n>TagBytes</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span>
+                                     <span class=n>wire_format</span><span class=o>.</span><span class=n>WIRETYPE_VARINT</span><span class=p>)</span>
+        <span class=n>message</span><span class=o>.</span><span class=n>_unknown_fields</span><span class=o>.</span><span class=n>append</span><span class=p>(</span>
+            <span class=p>(</span><span class=n>tag_bytes</span><span class=p>,</span> <span class=n>buffer</span><span class=p>[</span><span class=n>value_start_pos</span><span class=p>:</span><span class=n>pos</span><span class=p>]</span><span class=o>.</span><span class=n>tobytes</span><span class=p>()))</span>
+        <span class=k>if</span> <span class=n>message</span><span class=o>.</span><span class=n>_unknown_field_set</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+          <span class=n>message</span><span class=o>.</span><span class=n>_unknown_field_set</span> <span class=o>=</span> <span class=n>containers</span><span class=o>.</span><span class=n>UnknownFieldSet</span><span class=p>()</span>
+        <span class=n>message</span><span class=o>.</span><span class=n>_unknown_field_set</span><span class=o>.</span><span class=n>_add</span><span class=p>(</span>
+            <span class=n>field_number</span><span class=p>,</span> <span class=n>wire_format</span><span class=o>.</span><span class=n>WIRETYPE_VARINT</span><span class=p>,</span> <span class=n>enum_value</span><span class=p>)</span>
+        <span class=c1># pylint: enable=protected-access</span>
+      <span class=k>return</span> <span class=n>pos</span>
+    <span class=k>return</span> <span class=n>DecodeField</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=client.ayon_nuke.vendor.google.protobuf.internal.decoder.GroupDecoder class="doc doc-heading"> <code class="highlight language-python"><span class=n>GroupDecoder</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span> <span class=n>is_repeated</span><span class=p>,</span> <span class=n>is_packed</span><span class=p>,</span> <span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Returns a decoder for a group field.</p> <details class=mkdocstrings-source> <summary>Source code in <code>client/ayon_nuke/vendor/google/protobuf/internal/decoder.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>637</span>
+<span class=normal>638</span>
+<span class=normal>639</span>
+<span class=normal>640</span>
+<span class=normal>641</span>
+<span class=normal>642</span>
+<span class=normal>643</span>
+<span class=normal>644</span>
+<span class=normal>645</span>
+<span class=normal>646</span>
+<span class=normal>647</span>
+<span class=normal>648</span>
+<span class=normal>649</span>
+<span class=normal>650</span>
+<span class=normal>651</span>
+<span class=normal>652</span>
+<span class=normal>653</span>
+<span class=normal>654</span>
+<span class=normal>655</span>
+<span class=normal>656</span>
+<span class=normal>657</span>
+<span class=normal>658</span>
+<span class=normal>659</span>
+<span class=normal>660</span>
+<span class=normal>661</span>
+<span class=normal>662</span>
+<span class=normal>663</span>
+<span class=normal>664</span>
+<span class=normal>665</span>
+<span class=normal>666</span>
+<span class=normal>667</span>
+<span class=normal>668</span>
+<span class=normal>669</span>
+<span class=normal>670</span>
+<span class=normal>671</span>
+<span class=normal>672</span>
+<span class=normal>673</span>
+<span class=normal>674</span>
+<span class=normal>675</span>
+<span class=normal>676</span>
+<span class=normal>677</span>
+<span class=normal>678</span>
+<span class=normal>679</span>
+<span class=normal>680</span>
+<span class=normal>681</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>GroupDecoder</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span> <span class=n>is_repeated</span><span class=p>,</span> <span class=n>is_packed</span><span class=p>,</span> <span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>):</span>
+<span class=w>  </span><span class=sd>&quot;&quot;&quot;Returns a decoder for a group field.&quot;&quot;&quot;</span>
+
+  <span class=n>end_tag_bytes</span> <span class=o>=</span> <span class=n>encoder</span><span class=o>.</span><span class=n>TagBytes</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span>
+                                   <span class=n>wire_format</span><span class=o>.</span><span class=n>WIRETYPE_END_GROUP</span><span class=p>)</span>
+  <span class=n>end_tag_len</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>end_tag_bytes</span><span class=p>)</span>
+
+  <span class=k>assert</span> <span class=ow>not</span> <span class=n>is_packed</span>
+  <span class=k>if</span> <span class=n>is_repeated</span><span class=p>:</span>
+    <span class=n>tag_bytes</span> <span class=o>=</span> <span class=n>encoder</span><span class=o>.</span><span class=n>TagBytes</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span>
+                                 <span class=n>wire_format</span><span class=o>.</span><span class=n>WIRETYPE_START_GROUP</span><span class=p>)</span>
+    <span class=n>tag_len</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>tag_bytes</span><span class=p>)</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>DecodeRepeatedField</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>message</span><span class=p>,</span> <span class=n>field_dict</span><span class=p>):</span>
+      <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>key</span><span class=p>)</span>
+      <span class=k>if</span> <span class=n>value</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>setdefault</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>(</span><span class=n>message</span><span class=p>))</span>
+      <span class=k>while</span> <span class=mi>1</span><span class=p>:</span>
+        <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>key</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>value</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+          <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>setdefault</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>(</span><span class=n>message</span><span class=p>))</span>
+        <span class=c1># Read sub-message.</span>
+        <span class=n>pos</span> <span class=o>=</span> <span class=n>value</span><span class=o>.</span><span class=n>add</span><span class=p>()</span><span class=o>.</span><span class=n>_InternalParse</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>end</span><span class=p>)</span>
+        <span class=c1># Read end tag.</span>
+        <span class=n>new_pos</span> <span class=o>=</span> <span class=n>pos</span><span class=o>+</span><span class=n>end_tag_len</span>
+        <span class=k>if</span> <span class=n>buffer</span><span class=p>[</span><span class=n>pos</span><span class=p>:</span><span class=n>new_pos</span><span class=p>]</span> <span class=o>!=</span> <span class=n>end_tag_bytes</span> <span class=ow>or</span> <span class=n>new_pos</span> <span class=o>&gt;</span> <span class=n>end</span><span class=p>:</span>
+          <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Missing group end tag.&#39;</span><span class=p>)</span>
+        <span class=c1># Predict that the next tag is another copy of the same repeated field.</span>
+        <span class=n>pos</span> <span class=o>=</span> <span class=n>new_pos</span> <span class=o>+</span> <span class=n>tag_len</span>
+        <span class=k>if</span> <span class=n>buffer</span><span class=p>[</span><span class=n>new_pos</span><span class=p>:</span><span class=n>pos</span><span class=p>]</span> <span class=o>!=</span> <span class=n>tag_bytes</span> <span class=ow>or</span> <span class=n>new_pos</span> <span class=o>==</span> <span class=n>end</span><span class=p>:</span>
+          <span class=c1># Prediction failed.  Return.</span>
+          <span class=k>return</span> <span class=n>new_pos</span>
+    <span class=k>return</span> <span class=n>DecodeRepeatedField</span>
+  <span class=k>else</span><span class=p>:</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>DecodeField</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>message</span><span class=p>,</span> <span class=n>field_dict</span><span class=p>):</span>
+      <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>key</span><span class=p>)</span>
+      <span class=k>if</span> <span class=n>value</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>setdefault</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>(</span><span class=n>message</span><span class=p>))</span>
+      <span class=c1># Read sub-message.</span>
+      <span class=n>pos</span> <span class=o>=</span> <span class=n>value</span><span class=o>.</span><span class=n>_InternalParse</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>end</span><span class=p>)</span>
+      <span class=c1># Read end tag.</span>
+      <span class=n>new_pos</span> <span class=o>=</span> <span class=n>pos</span><span class=o>+</span><span class=n>end_tag_len</span>
+      <span class=k>if</span> <span class=n>buffer</span><span class=p>[</span><span class=n>pos</span><span class=p>:</span><span class=n>new_pos</span><span class=p>]</span> <span class=o>!=</span> <span class=n>end_tag_bytes</span> <span class=ow>or</span> <span class=n>new_pos</span> <span class=o>&gt;</span> <span class=n>end</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Missing group end tag.&#39;</span><span class=p>)</span>
+      <span class=k>return</span> <span class=n>new_pos</span>
+    <span class=k>return</span> <span class=n>DecodeField</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=client.ayon_nuke.vendor.google.protobuf.internal.decoder.MapDecoder class="doc doc-heading"> <code class="highlight language-python"><span class=n>MapDecoder</span><span class=p>(</span><span class=n>field_descriptor</span><span class=p>,</span> <span class=n>new_default</span><span class=p>,</span> <span class=n>is_message_map</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Returns a decoder for a map field.</p> <details class=mkdocstrings-source> <summary>Source code in <code>client/ayon_nuke/vendor/google/protobuf/internal/decoder.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>836</span>
+<span class=normal>837</span>
+<span class=normal>838</span>
+<span class=normal>839</span>
+<span class=normal>840</span>
+<span class=normal>841</span>
+<span class=normal>842</span>
+<span class=normal>843</span>
+<span class=normal>844</span>
+<span class=normal>845</span>
+<span class=normal>846</span>
+<span class=normal>847</span>
+<span class=normal>848</span>
+<span class=normal>849</span>
+<span class=normal>850</span>
+<span class=normal>851</span>
+<span class=normal>852</span>
+<span class=normal>853</span>
+<span class=normal>854</span>
+<span class=normal>855</span>
+<span class=normal>856</span>
+<span class=normal>857</span>
+<span class=normal>858</span>
+<span class=normal>859</span>
+<span class=normal>860</span>
+<span class=normal>861</span>
+<span class=normal>862</span>
+<span class=normal>863</span>
+<span class=normal>864</span>
+<span class=normal>865</span>
+<span class=normal>866</span>
+<span class=normal>867</span>
+<span class=normal>868</span>
+<span class=normal>869</span>
+<span class=normal>870</span>
+<span class=normal>871</span>
+<span class=normal>872</span>
+<span class=normal>873</span>
+<span class=normal>874</span>
+<span class=normal>875</span>
+<span class=normal>876</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>MapDecoder</span><span class=p>(</span><span class=n>field_descriptor</span><span class=p>,</span> <span class=n>new_default</span><span class=p>,</span> <span class=n>is_message_map</span><span class=p>):</span>
+<span class=w>  </span><span class=sd>&quot;&quot;&quot;Returns a decoder for a map field.&quot;&quot;&quot;</span>
+
+  <span class=n>key</span> <span class=o>=</span> <span class=n>field_descriptor</span>
+  <span class=n>tag_bytes</span> <span class=o>=</span> <span class=n>encoder</span><span class=o>.</span><span class=n>TagBytes</span><span class=p>(</span><span class=n>field_descriptor</span><span class=o>.</span><span class=n>number</span><span class=p>,</span>
+                               <span class=n>wire_format</span><span class=o>.</span><span class=n>WIRETYPE_LENGTH_DELIMITED</span><span class=p>)</span>
+  <span class=n>tag_len</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>tag_bytes</span><span class=p>)</span>
+  <span class=n>local_DecodeVarint</span> <span class=o>=</span> <span class=n>_DecodeVarint</span>
+  <span class=c1># Can&#39;t read _concrete_class yet; might not be initialized.</span>
+  <span class=n>message_type</span> <span class=o>=</span> <span class=n>field_descriptor</span><span class=o>.</span><span class=n>message_type</span>
+
+  <span class=k>def</span><span class=w> </span><span class=nf>DecodeMap</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>message</span><span class=p>,</span> <span class=n>field_dict</span><span class=p>):</span>
+    <span class=n>submsg</span> <span class=o>=</span> <span class=n>message_type</span><span class=o>.</span><span class=n>_concrete_class</span><span class=p>()</span>
+    <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>key</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>value</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+      <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>setdefault</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>(</span><span class=n>message</span><span class=p>))</span>
+    <span class=k>while</span> <span class=mi>1</span><span class=p>:</span>
+      <span class=c1># Read length.</span>
+      <span class=p>(</span><span class=n>size</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span> <span class=o>=</span> <span class=n>local_DecodeVarint</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+      <span class=n>new_pos</span> <span class=o>=</span> <span class=n>pos</span> <span class=o>+</span> <span class=n>size</span>
+      <span class=k>if</span> <span class=n>new_pos</span> <span class=o>&gt;</span> <span class=n>end</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Truncated message.&#39;</span><span class=p>)</span>
+      <span class=c1># Read sub-message.</span>
+      <span class=n>submsg</span><span class=o>.</span><span class=n>Clear</span><span class=p>()</span>
+      <span class=k>if</span> <span class=n>submsg</span><span class=o>.</span><span class=n>_InternalParse</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>new_pos</span><span class=p>)</span> <span class=o>!=</span> <span class=n>new_pos</span><span class=p>:</span>
+        <span class=c1># The only reason _InternalParse would return early is if it</span>
+        <span class=c1># encountered an end-group tag.</span>
+        <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Unexpected end-group tag.&#39;</span><span class=p>)</span>
+
+      <span class=k>if</span> <span class=n>is_message_map</span><span class=p>:</span>
+        <span class=n>value</span><span class=p>[</span><span class=n>submsg</span><span class=o>.</span><span class=n>key</span><span class=p>]</span><span class=o>.</span><span class=n>CopyFrom</span><span class=p>(</span><span class=n>submsg</span><span class=o>.</span><span class=n>value</span><span class=p>)</span>
+      <span class=k>else</span><span class=p>:</span>
+        <span class=n>value</span><span class=p>[</span><span class=n>submsg</span><span class=o>.</span><span class=n>key</span><span class=p>]</span> <span class=o>=</span> <span class=n>submsg</span><span class=o>.</span><span class=n>value</span>
+
+      <span class=c1># Predict that the next tag is another copy of the same repeated field.</span>
+      <span class=n>pos</span> <span class=o>=</span> <span class=n>new_pos</span> <span class=o>+</span> <span class=n>tag_len</span>
+      <span class=k>if</span> <span class=n>buffer</span><span class=p>[</span><span class=n>new_pos</span><span class=p>:</span><span class=n>pos</span><span class=p>]</span> <span class=o>!=</span> <span class=n>tag_bytes</span> <span class=ow>or</span> <span class=n>new_pos</span> <span class=o>==</span> <span class=n>end</span><span class=p>:</span>
+        <span class=c1># Prediction failed.  Return.</span>
+        <span class=k>return</span> <span class=n>new_pos</span>
+
+  <span class=k>return</span> <span class=n>DecodeMap</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=client.ayon_nuke.vendor.google.protobuf.internal.decoder.MessageDecoder class="doc doc-heading"> <code class="highlight language-python"><span class=n>MessageDecoder</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span> <span class=n>is_repeated</span><span class=p>,</span> <span class=n>is_packed</span><span class=p>,</span> <span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Returns a decoder for a message field.</p> <details class=mkdocstrings-source> <summary>Source code in <code>client/ayon_nuke/vendor/google/protobuf/internal/decoder.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>684</span>
+<span class=normal>685</span>
+<span class=normal>686</span>
+<span class=normal>687</span>
+<span class=normal>688</span>
+<span class=normal>689</span>
+<span class=normal>690</span>
+<span class=normal>691</span>
+<span class=normal>692</span>
+<span class=normal>693</span>
+<span class=normal>694</span>
+<span class=normal>695</span>
+<span class=normal>696</span>
+<span class=normal>697</span>
+<span class=normal>698</span>
+<span class=normal>699</span>
+<span class=normal>700</span>
+<span class=normal>701</span>
+<span class=normal>702</span>
+<span class=normal>703</span>
+<span class=normal>704</span>
+<span class=normal>705</span>
+<span class=normal>706</span>
+<span class=normal>707</span>
+<span class=normal>708</span>
+<span class=normal>709</span>
+<span class=normal>710</span>
+<span class=normal>711</span>
+<span class=normal>712</span>
+<span class=normal>713</span>
+<span class=normal>714</span>
+<span class=normal>715</span>
+<span class=normal>716</span>
+<span class=normal>717</span>
+<span class=normal>718</span>
+<span class=normal>719</span>
+<span class=normal>720</span>
+<span class=normal>721</span>
+<span class=normal>722</span>
+<span class=normal>723</span>
+<span class=normal>724</span>
+<span class=normal>725</span>
+<span class=normal>726</span>
+<span class=normal>727</span>
+<span class=normal>728</span>
+<span class=normal>729</span>
+<span class=normal>730</span>
+<span class=normal>731</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>MessageDecoder</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span> <span class=n>is_repeated</span><span class=p>,</span> <span class=n>is_packed</span><span class=p>,</span> <span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>):</span>
+<span class=w>  </span><span class=sd>&quot;&quot;&quot;Returns a decoder for a message field.&quot;&quot;&quot;</span>
+
+  <span class=n>local_DecodeVarint</span> <span class=o>=</span> <span class=n>_DecodeVarint</span>
+
+  <span class=k>assert</span> <span class=ow>not</span> <span class=n>is_packed</span>
+  <span class=k>if</span> <span class=n>is_repeated</span><span class=p>:</span>
+    <span class=n>tag_bytes</span> <span class=o>=</span> <span class=n>encoder</span><span class=o>.</span><span class=n>TagBytes</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span>
+                                 <span class=n>wire_format</span><span class=o>.</span><span class=n>WIRETYPE_LENGTH_DELIMITED</span><span class=p>)</span>
+    <span class=n>tag_len</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>tag_bytes</span><span class=p>)</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>DecodeRepeatedField</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>message</span><span class=p>,</span> <span class=n>field_dict</span><span class=p>):</span>
+      <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>key</span><span class=p>)</span>
+      <span class=k>if</span> <span class=n>value</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>setdefault</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>(</span><span class=n>message</span><span class=p>))</span>
+      <span class=k>while</span> <span class=mi>1</span><span class=p>:</span>
+        <span class=c1># Read length.</span>
+        <span class=p>(</span><span class=n>size</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span> <span class=o>=</span> <span class=n>local_DecodeVarint</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+        <span class=n>new_pos</span> <span class=o>=</span> <span class=n>pos</span> <span class=o>+</span> <span class=n>size</span>
+        <span class=k>if</span> <span class=n>new_pos</span> <span class=o>&gt;</span> <span class=n>end</span><span class=p>:</span>
+          <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Truncated message.&#39;</span><span class=p>)</span>
+        <span class=c1># Read sub-message.</span>
+        <span class=k>if</span> <span class=n>value</span><span class=o>.</span><span class=n>add</span><span class=p>()</span><span class=o>.</span><span class=n>_InternalParse</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>new_pos</span><span class=p>)</span> <span class=o>!=</span> <span class=n>new_pos</span><span class=p>:</span>
+          <span class=c1># The only reason _InternalParse would return early is if it</span>
+          <span class=c1># encountered an end-group tag.</span>
+          <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Unexpected end-group tag.&#39;</span><span class=p>)</span>
+        <span class=c1># Predict that the next tag is another copy of the same repeated field.</span>
+        <span class=n>pos</span> <span class=o>=</span> <span class=n>new_pos</span> <span class=o>+</span> <span class=n>tag_len</span>
+        <span class=k>if</span> <span class=n>buffer</span><span class=p>[</span><span class=n>new_pos</span><span class=p>:</span><span class=n>pos</span><span class=p>]</span> <span class=o>!=</span> <span class=n>tag_bytes</span> <span class=ow>or</span> <span class=n>new_pos</span> <span class=o>==</span> <span class=n>end</span><span class=p>:</span>
+          <span class=c1># Prediction failed.  Return.</span>
+          <span class=k>return</span> <span class=n>new_pos</span>
+    <span class=k>return</span> <span class=n>DecodeRepeatedField</span>
+  <span class=k>else</span><span class=p>:</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>DecodeField</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>message</span><span class=p>,</span> <span class=n>field_dict</span><span class=p>):</span>
+      <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>key</span><span class=p>)</span>
+      <span class=k>if</span> <span class=n>value</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>setdefault</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>(</span><span class=n>message</span><span class=p>))</span>
+      <span class=c1># Read length.</span>
+      <span class=p>(</span><span class=n>size</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span> <span class=o>=</span> <span class=n>local_DecodeVarint</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+      <span class=n>new_pos</span> <span class=o>=</span> <span class=n>pos</span> <span class=o>+</span> <span class=n>size</span>
+      <span class=k>if</span> <span class=n>new_pos</span> <span class=o>&gt;</span> <span class=n>end</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Truncated message.&#39;</span><span class=p>)</span>
+      <span class=c1># Read sub-message.</span>
+      <span class=k>if</span> <span class=n>value</span><span class=o>.</span><span class=n>_InternalParse</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>new_pos</span><span class=p>)</span> <span class=o>!=</span> <span class=n>new_pos</span><span class=p>:</span>
+        <span class=c1># The only reason _InternalParse would return early is if it encountered</span>
+        <span class=c1># an end-group tag.</span>
+        <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Unexpected end-group tag.&#39;</span><span class=p>)</span>
+      <span class=k>return</span> <span class=n>new_pos</span>
+    <span class=k>return</span> <span class=n>DecodeField</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=client.ayon_nuke.vendor.google.protobuf.internal.decoder.MessageSetItemDecoder class="doc doc-heading"> <code class="highlight language-python"><span class=n>MessageSetItemDecoder</span><span class=p>(</span><span class=n>descriptor</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Returns a decoder for a MessageSet item.</p> <p>The parameter is the message Descriptor.</p> <details class=the-message-set-message-looks-like-this open> <summary>The message set message looks like this</summary> <p>message MessageSet { repeated group Item = 1 { required int32 type_id = 2; required string message = 3; } }</p> </details> <details class=mkdocstrings-source> <summary>Source code in <code>client/ayon_nuke/vendor/google/protobuf/internal/decoder.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>738</span>
+<span class=normal>739</span>
+<span class=normal>740</span>
+<span class=normal>741</span>
+<span class=normal>742</span>
+<span class=normal>743</span>
+<span class=normal>744</span>
+<span class=normal>745</span>
+<span class=normal>746</span>
+<span class=normal>747</span>
+<span class=normal>748</span>
+<span class=normal>749</span>
+<span class=normal>750</span>
+<span class=normal>751</span>
+<span class=normal>752</span>
+<span class=normal>753</span>
+<span class=normal>754</span>
+<span class=normal>755</span>
+<span class=normal>756</span>
+<span class=normal>757</span>
+<span class=normal>758</span>
+<span class=normal>759</span>
+<span class=normal>760</span>
+<span class=normal>761</span>
+<span class=normal>762</span>
+<span class=normal>763</span>
+<span class=normal>764</span>
+<span class=normal>765</span>
+<span class=normal>766</span>
+<span class=normal>767</span>
+<span class=normal>768</span>
+<span class=normal>769</span>
+<span class=normal>770</span>
+<span class=normal>771</span>
+<span class=normal>772</span>
+<span class=normal>773</span>
+<span class=normal>774</span>
+<span class=normal>775</span>
+<span class=normal>776</span>
+<span class=normal>777</span>
+<span class=normal>778</span>
+<span class=normal>779</span>
+<span class=normal>780</span>
+<span class=normal>781</span>
+<span class=normal>782</span>
+<span class=normal>783</span>
+<span class=normal>784</span>
+<span class=normal>785</span>
+<span class=normal>786</span>
+<span class=normal>787</span>
+<span class=normal>788</span>
+<span class=normal>789</span>
+<span class=normal>790</span>
+<span class=normal>791</span>
+<span class=normal>792</span>
+<span class=normal>793</span>
+<span class=normal>794</span>
+<span class=normal>795</span>
+<span class=normal>796</span>
+<span class=normal>797</span>
+<span class=normal>798</span>
+<span class=normal>799</span>
+<span class=normal>800</span>
+<span class=normal>801</span>
+<span class=normal>802</span>
+<span class=normal>803</span>
+<span class=normal>804</span>
+<span class=normal>805</span>
+<span class=normal>806</span>
+<span class=normal>807</span>
+<span class=normal>808</span>
+<span class=normal>809</span>
+<span class=normal>810</span>
+<span class=normal>811</span>
+<span class=normal>812</span>
+<span class=normal>813</span>
+<span class=normal>814</span>
+<span class=normal>815</span>
+<span class=normal>816</span>
+<span class=normal>817</span>
+<span class=normal>818</span>
+<span class=normal>819</span>
+<span class=normal>820</span>
+<span class=normal>821</span>
+<span class=normal>822</span>
+<span class=normal>823</span>
+<span class=normal>824</span>
+<span class=normal>825</span>
+<span class=normal>826</span>
+<span class=normal>827</span>
+<span class=normal>828</span>
+<span class=normal>829</span>
+<span class=normal>830</span>
+<span class=normal>831</span>
+<span class=normal>832</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>MessageSetItemDecoder</span><span class=p>(</span><span class=n>descriptor</span><span class=p>):</span>
+<span class=w>  </span><span class=sd>&quot;&quot;&quot;Returns a decoder for a MessageSet item.</span>
+
+<span class=sd>  The parameter is the message Descriptor.</span>
+
+<span class=sd>  The message set message looks like this:</span>
+<span class=sd>    message MessageSet {</span>
+<span class=sd>      repeated group Item = 1 {</span>
+<span class=sd>        required int32 type_id = 2;</span>
+<span class=sd>        required string message = 3;</span>
+<span class=sd>      }</span>
+<span class=sd>    }</span>
+<span class=sd>  &quot;&quot;&quot;</span>
+
+  <span class=n>type_id_tag_bytes</span> <span class=o>=</span> <span class=n>encoder</span><span class=o>.</span><span class=n>TagBytes</span><span class=p>(</span><span class=mi>2</span><span class=p>,</span> <span class=n>wire_format</span><span class=o>.</span><span class=n>WIRETYPE_VARINT</span><span class=p>)</span>
+  <span class=n>message_tag_bytes</span> <span class=o>=</span> <span class=n>encoder</span><span class=o>.</span><span class=n>TagBytes</span><span class=p>(</span><span class=mi>3</span><span class=p>,</span> <span class=n>wire_format</span><span class=o>.</span><span class=n>WIRETYPE_LENGTH_DELIMITED</span><span class=p>)</span>
+  <span class=n>item_end_tag_bytes</span> <span class=o>=</span> <span class=n>encoder</span><span class=o>.</span><span class=n>TagBytes</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>wire_format</span><span class=o>.</span><span class=n>WIRETYPE_END_GROUP</span><span class=p>)</span>
+
+  <span class=n>local_ReadTag</span> <span class=o>=</span> <span class=n>ReadTag</span>
+  <span class=n>local_DecodeVarint</span> <span class=o>=</span> <span class=n>_DecodeVarint</span>
+  <span class=n>local_SkipField</span> <span class=o>=</span> <span class=n>SkipField</span>
+
+  <span class=k>def</span><span class=w> </span><span class=nf>DecodeItem</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>message</span><span class=p>,</span> <span class=n>field_dict</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;Decode serialized message set to its value and new position.</span>
+
+<span class=sd>    Args:</span>
+<span class=sd>      buffer: memoryview of the serialized bytes.</span>
+<span class=sd>      pos: int, position in the memory view to start at.</span>
+<span class=sd>      end: int, end position of serialized data</span>
+<span class=sd>      message: Message object to store unknown fields in</span>
+<span class=sd>      field_dict: Map[Descriptor, Any] to store decoded values in.</span>
+
+<span class=sd>    Returns:</span>
+<span class=sd>      int, new position in serialized data.</span>
+<span class=sd>    &quot;&quot;&quot;</span>
+    <span class=n>message_set_item_start</span> <span class=o>=</span> <span class=n>pos</span>
+    <span class=n>type_id</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+    <span class=n>message_start</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+    <span class=n>message_end</span> <span class=o>=</span> <span class=o>-</span><span class=mi>1</span>
+
+    <span class=c1># Technically, type_id and message can appear in any order, so we need</span>
+    <span class=c1># a little loop here.</span>
+    <span class=k>while</span> <span class=mi>1</span><span class=p>:</span>
+      <span class=p>(</span><span class=n>tag_bytes</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span> <span class=o>=</span> <span class=n>local_ReadTag</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+      <span class=k>if</span> <span class=n>tag_bytes</span> <span class=o>==</span> <span class=n>type_id_tag_bytes</span><span class=p>:</span>
+        <span class=p>(</span><span class=n>type_id</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span> <span class=o>=</span> <span class=n>local_DecodeVarint</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+      <span class=k>elif</span> <span class=n>tag_bytes</span> <span class=o>==</span> <span class=n>message_tag_bytes</span><span class=p>:</span>
+        <span class=p>(</span><span class=n>size</span><span class=p>,</span> <span class=n>message_start</span><span class=p>)</span> <span class=o>=</span> <span class=n>local_DecodeVarint</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+        <span class=n>pos</span> <span class=o>=</span> <span class=n>message_end</span> <span class=o>=</span> <span class=n>message_start</span> <span class=o>+</span> <span class=n>size</span>
+      <span class=k>elif</span> <span class=n>tag_bytes</span> <span class=o>==</span> <span class=n>item_end_tag_bytes</span><span class=p>:</span>
+        <span class=k>break</span>
+      <span class=k>else</span><span class=p>:</span>
+        <span class=n>pos</span> <span class=o>=</span> <span class=n>SkipField</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>tag_bytes</span><span class=p>)</span>
+        <span class=k>if</span> <span class=n>pos</span> <span class=o>==</span> <span class=o>-</span><span class=mi>1</span><span class=p>:</span>
+          <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Missing group end tag.&#39;</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>pos</span> <span class=o>&gt;</span> <span class=n>end</span><span class=p>:</span>
+      <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Truncated message.&#39;</span><span class=p>)</span>
+
+    <span class=k>if</span> <span class=n>type_id</span> <span class=o>==</span> <span class=o>-</span><span class=mi>1</span><span class=p>:</span>
+      <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;MessageSet item missing type_id.&#39;</span><span class=p>)</span>
+    <span class=k>if</span> <span class=n>message_start</span> <span class=o>==</span> <span class=o>-</span><span class=mi>1</span><span class=p>:</span>
+      <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;MessageSet item missing message.&#39;</span><span class=p>)</span>
+
+    <span class=n>extension</span> <span class=o>=</span> <span class=n>message</span><span class=o>.</span><span class=n>Extensions</span><span class=o>.</span><span class=n>_FindExtensionByNumber</span><span class=p>(</span><span class=n>type_id</span><span class=p>)</span>
+    <span class=c1># pylint: disable=protected-access</span>
+    <span class=k>if</span> <span class=n>extension</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
+      <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>extension</span><span class=p>)</span>
+      <span class=k>if</span> <span class=n>value</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>message_type</span> <span class=o>=</span> <span class=n>extension</span><span class=o>.</span><span class=n>message_type</span>
+        <span class=k>if</span> <span class=ow>not</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>message_type</span><span class=p>,</span> <span class=s1>&#39;_concrete_class&#39;</span><span class=p>):</span>
+          <span class=c1># pylint: disable=protected-access</span>
+          <span class=n>message</span><span class=o>.</span><span class=n>_FACTORY</span><span class=o>.</span><span class=n>GetPrototype</span><span class=p>(</span><span class=n>message_type</span><span class=p>)</span>
+        <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>setdefault</span><span class=p>(</span>
+            <span class=n>extension</span><span class=p>,</span> <span class=n>message_type</span><span class=o>.</span><span class=n>_concrete_class</span><span class=p>())</span>
+      <span class=k>if</span> <span class=n>value</span><span class=o>.</span><span class=n>_InternalParse</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>message_start</span><span class=p>,</span><span class=n>message_end</span><span class=p>)</span> <span class=o>!=</span> <span class=n>message_end</span><span class=p>:</span>
+        <span class=c1># The only reason _InternalParse would return early is if it encountered</span>
+        <span class=c1># an end-group tag.</span>
+        <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Unexpected end-group tag.&#39;</span><span class=p>)</span>
+    <span class=k>else</span><span class=p>:</span>
+      <span class=k>if</span> <span class=ow>not</span> <span class=n>message</span><span class=o>.</span><span class=n>_unknown_fields</span><span class=p>:</span>
+        <span class=n>message</span><span class=o>.</span><span class=n>_unknown_fields</span> <span class=o>=</span> <span class=p>[]</span>
+      <span class=n>message</span><span class=o>.</span><span class=n>_unknown_fields</span><span class=o>.</span><span class=n>append</span><span class=p>(</span>
+          <span class=p>(</span><span class=n>MESSAGE_SET_ITEM_TAG</span><span class=p>,</span> <span class=n>buffer</span><span class=p>[</span><span class=n>message_set_item_start</span><span class=p>:</span><span class=n>pos</span><span class=p>]</span><span class=o>.</span><span class=n>tobytes</span><span class=p>()))</span>
+      <span class=k>if</span> <span class=n>message</span><span class=o>.</span><span class=n>_unknown_field_set</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>message</span><span class=o>.</span><span class=n>_unknown_field_set</span> <span class=o>=</span> <span class=n>containers</span><span class=o>.</span><span class=n>UnknownFieldSet</span><span class=p>()</span>
+      <span class=n>message</span><span class=o>.</span><span class=n>_unknown_field_set</span><span class=o>.</span><span class=n>_add</span><span class=p>(</span>
+          <span class=n>type_id</span><span class=p>,</span>
+          <span class=n>wire_format</span><span class=o>.</span><span class=n>WIRETYPE_LENGTH_DELIMITED</span><span class=p>,</span>
+          <span class=n>buffer</span><span class=p>[</span><span class=n>message_start</span><span class=p>:</span><span class=n>message_end</span><span class=p>]</span><span class=o>.</span><span class=n>tobytes</span><span class=p>())</span>
+      <span class=c1># pylint: enable=protected-access</span>
+
+    <span class=k>return</span> <span class=n>pos</span>
+
+  <span class=k>return</span> <span class=n>DecodeItem</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=client.ayon_nuke.vendor.google.protobuf.internal.decoder.ReadTag class="doc doc-heading"> <code class="highlight language-python"><span class=n>ReadTag</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Read a tag from the memoryview, and return a (tag_bytes, new_pos) tuple.</p> <p>We return the raw bytes of the tag rather than decoding them. The raw bytes can then be used to look up the proper decoder. This effectively allows us to trade some work that would be done in pure-python (decoding a varint) for work that is done in C (searching for a byte string in a hash table). In a low-level language it would be much cheaper to decode the varint and use that, but not in Python.</p> <p><span class=doc-section-title>Parameters:</span></p> <table> <thead> <tr> <th>Name</th> <th>Type</th> <th>Description</th> <th>Default</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> <code>buffer</code> </td> <td> </td> <td> <div class=doc-md-description> <p>memoryview object of the encoded bytes</p> </div> </td> <td> <em>required</em> </td> </tr> <tr class=doc-section-item> <td> <code>pos</code> </td> <td> </td> <td> <div class=doc-md-description> <p>int of the current position to start from</p> </div> </td> <td> <em>required</em> </td> </tr> </tbody> </table> <p><span class=doc-section-title>Returns:</span></p> <table> <thead> <tr> <th>Type</th> <th>Description</th> </tr> </thead> <tbody> <tr class=doc-section-item> <td> </td> <td> <div class=doc-md-description> <p>Tuple[bytes, int] of the tag data and new position.</p> </div> </td> </tr> </tbody> </table> <details class=mkdocstrings-source> <summary>Source code in <code>client/ayon_nuke/vendor/google/protobuf/internal/decoder.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>156</span>
+<span class=normal>157</span>
+<span class=normal>158</span>
+<span class=normal>159</span>
+<span class=normal>160</span>
+<span class=normal>161</span>
+<span class=normal>162</span>
+<span class=normal>163</span>
+<span class=normal>164</span>
+<span class=normal>165</span>
+<span class=normal>166</span>
+<span class=normal>167</span>
+<span class=normal>168</span>
+<span class=normal>169</span>
+<span class=normal>170</span>
+<span class=normal>171</span>
+<span class=normal>172</span>
+<span class=normal>173</span>
+<span class=normal>174</span>
+<span class=normal>175</span>
+<span class=normal>176</span>
+<span class=normal>177</span>
+<span class=normal>178</span>
+<span class=normal>179</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>ReadTag</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>):</span>
+<span class=w>  </span><span class=sd>&quot;&quot;&quot;Read a tag from the memoryview, and return a (tag_bytes, new_pos) tuple.</span>
+
+<span class=sd>  We return the raw bytes of the tag rather than decoding them.  The raw</span>
+<span class=sd>  bytes can then be used to look up the proper decoder.  This effectively allows</span>
+<span class=sd>  us to trade some work that would be done in pure-python (decoding a varint)</span>
+<span class=sd>  for work that is done in C (searching for a byte string in a hash table).</span>
+<span class=sd>  In a low-level language it would be much cheaper to decode the varint and</span>
+<span class=sd>  use that, but not in Python.</span>
+
+<span class=sd>  Args:</span>
+<span class=sd>    buffer: memoryview object of the encoded bytes</span>
+<span class=sd>    pos: int of the current position to start from</span>
+
+<span class=sd>  Returns:</span>
+<span class=sd>    Tuple[bytes, int] of the tag data and new position.</span>
+<span class=sd>  &quot;&quot;&quot;</span>
+  <span class=n>start</span> <span class=o>=</span> <span class=n>pos</span>
+  <span class=k>while</span> <span class=n>buffer</span><span class=p>[</span><span class=n>pos</span><span class=p>]</span> <span class=o>&amp;</span> <span class=mh>0x80</span><span class=p>:</span>
+    <span class=n>pos</span> <span class=o>+=</span> <span class=mi>1</span>
+  <span class=n>pos</span> <span class=o>+=</span> <span class=mi>1</span>
+
+  <span class=n>tag_bytes</span> <span class=o>=</span> <span class=n>buffer</span><span class=p>[</span><span class=n>start</span><span class=p>:</span><span class=n>pos</span><span class=p>]</span><span class=o>.</span><span class=n>tobytes</span><span class=p>()</span>
+  <span class=k>return</span> <span class=n>tag_bytes</span><span class=p>,</span> <span class=n>pos</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=client.ayon_nuke.vendor.google.protobuf.internal.decoder.StringDecoder class="doc doc-heading"> <code class="highlight language-python"><span class=n>StringDecoder</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span> <span class=n>is_repeated</span><span class=p>,</span> <span class=n>is_packed</span><span class=p>,</span> <span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>,</span> <span class=n>clear_if_default</span><span class=o>=</span><span class=kc>False</span><span class=p>)</span></code> </h2> <div class="doc doc-contents "> <p>Returns a decoder for a string field.</p> <details class=mkdocstrings-source> <summary>Source code in <code>client/ayon_nuke/vendor/google/protobuf/internal/decoder.py</code></summary> <div class=highlight><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>543</span>
+<span class=normal>544</span>
+<span class=normal>545</span>
+<span class=normal>546</span>
+<span class=normal>547</span>
+<span class=normal>548</span>
+<span class=normal>549</span>
+<span class=normal>550</span>
+<span class=normal>551</span>
+<span class=normal>552</span>
+<span class=normal>553</span>
+<span class=normal>554</span>
+<span class=normal>555</span>
+<span class=normal>556</span>
+<span class=normal>557</span>
+<span class=normal>558</span>
+<span class=normal>559</span>
+<span class=normal>560</span>
+<span class=normal>561</span>
+<span class=normal>562</span>
+<span class=normal>563</span>
+<span class=normal>564</span>
+<span class=normal>565</span>
+<span class=normal>566</span>
+<span class=normal>567</span>
+<span class=normal>568</span>
+<span class=normal>569</span>
+<span class=normal>570</span>
+<span class=normal>571</span>
+<span class=normal>572</span>
+<span class=normal>573</span>
+<span class=normal>574</span>
+<span class=normal>575</span>
+<span class=normal>576</span>
+<span class=normal>577</span>
+<span class=normal>578</span>
+<span class=normal>579</span>
+<span class=normal>580</span>
+<span class=normal>581</span>
+<span class=normal>582</span>
+<span class=normal>583</span>
+<span class=normal>584</span>
+<span class=normal>585</span>
+<span class=normal>586</span>
+<span class=normal>587</span>
+<span class=normal>588</span>
+<span class=normal>589</span>
+<span class=normal>590</span>
+<span class=normal>591</span>
+<span class=normal>592</span>
+<span class=normal>593</span></pre></div></td><td class=code><div><pre><span></span><code><span class=k>def</span><span class=w> </span><span class=nf>StringDecoder</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span> <span class=n>is_repeated</span><span class=p>,</span> <span class=n>is_packed</span><span class=p>,</span> <span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>,</span>
+                  <span class=n>clear_if_default</span><span class=o>=</span><span class=kc>False</span><span class=p>):</span>
+<span class=w>  </span><span class=sd>&quot;&quot;&quot;Returns a decoder for a string field.&quot;&quot;&quot;</span>
+
+  <span class=n>local_DecodeVarint</span> <span class=o>=</span> <span class=n>_DecodeVarint</span>
+
+  <span class=k>def</span><span class=w> </span><span class=nf>_ConvertToUnicode</span><span class=p>(</span><span class=n>memview</span><span class=p>):</span>
+<span class=w>    </span><span class=sd>&quot;&quot;&quot;Convert byte to unicode.&quot;&quot;&quot;</span>
+    <span class=n>byte_str</span> <span class=o>=</span> <span class=n>memview</span><span class=o>.</span><span class=n>tobytes</span><span class=p>()</span>
+    <span class=k>try</span><span class=p>:</span>
+      <span class=n>value</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>byte_str</span><span class=p>,</span> <span class=s1>&#39;utf-8&#39;</span><span class=p>)</span>
+    <span class=k>except</span> <span class=ne>UnicodeDecodeError</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
+      <span class=c1># add more information to the error message and re-raise it.</span>
+      <span class=n>e</span><span class=o>.</span><span class=n>reason</span> <span class=o>=</span> <span class=s1>&#39;</span><span class=si>%s</span><span class=s1> in field: </span><span class=si>%s</span><span class=s1>&#39;</span> <span class=o>%</span> <span class=p>(</span><span class=n>e</span><span class=p>,</span> <span class=n>key</span><span class=o>.</span><span class=n>full_name</span><span class=p>)</span>
+      <span class=k>raise</span>
+
+    <span class=k>return</span> <span class=n>value</span>
+
+  <span class=k>assert</span> <span class=ow>not</span> <span class=n>is_packed</span>
+  <span class=k>if</span> <span class=n>is_repeated</span><span class=p>:</span>
+    <span class=n>tag_bytes</span> <span class=o>=</span> <span class=n>encoder</span><span class=o>.</span><span class=n>TagBytes</span><span class=p>(</span><span class=n>field_number</span><span class=p>,</span>
+                                 <span class=n>wire_format</span><span class=o>.</span><span class=n>WIRETYPE_LENGTH_DELIMITED</span><span class=p>)</span>
+    <span class=n>tag_len</span> <span class=o>=</span> <span class=nb>len</span><span class=p>(</span><span class=n>tag_bytes</span><span class=p>)</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>DecodeRepeatedField</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>message</span><span class=p>,</span> <span class=n>field_dict</span><span class=p>):</span>
+      <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>key</span><span class=p>)</span>
+      <span class=k>if</span> <span class=n>value</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+        <span class=n>value</span> <span class=o>=</span> <span class=n>field_dict</span><span class=o>.</span><span class=n>setdefault</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=n>new_default</span><span class=p>(</span><span class=n>message</span><span class=p>))</span>
+      <span class=k>while</span> <span class=mi>1</span><span class=p>:</span>
+        <span class=p>(</span><span class=n>size</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span> <span class=o>=</span> <span class=n>local_DecodeVarint</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+        <span class=n>new_pos</span> <span class=o>=</span> <span class=n>pos</span> <span class=o>+</span> <span class=n>size</span>
+        <span class=k>if</span> <span class=n>new_pos</span> <span class=o>&gt;</span> <span class=n>end</span><span class=p>:</span>
+          <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Truncated string.&#39;</span><span class=p>)</span>
+        <span class=n>value</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>_ConvertToUnicode</span><span class=p>(</span><span class=n>buffer</span><span class=p>[</span><span class=n>pos</span><span class=p>:</span><span class=n>new_pos</span><span class=p>]))</span>
+        <span class=c1># Predict that the next tag is another copy of the same repeated field.</span>
+        <span class=n>pos</span> <span class=o>=</span> <span class=n>new_pos</span> <span class=o>+</span> <span class=n>tag_len</span>
+        <span class=k>if</span> <span class=n>buffer</span><span class=p>[</span><span class=n>new_pos</span><span class=p>:</span><span class=n>pos</span><span class=p>]</span> <span class=o>!=</span> <span class=n>tag_bytes</span> <span class=ow>or</span> <span class=n>new_pos</span> <span class=o>==</span> <span class=n>end</span><span class=p>:</span>
+          <span class=c1># Prediction failed.  Return.</span>
+          <span class=k>return</span> <span class=n>new_pos</span>
+    <span class=k>return</span> <span class=n>DecodeRepeatedField</span>
+  <span class=k>else</span><span class=p>:</span>
+    <span class=k>def</span><span class=w> </span><span class=nf>DecodeField</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>,</span> <span class=n>end</span><span class=p>,</span> <span class=n>message</span><span class=p>,</span> <span class=n>field_dict</span><span class=p>):</span>
+      <span class=p>(</span><span class=n>size</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span> <span class=o>=</span> <span class=n>local_DecodeVarint</span><span class=p>(</span><span class=n>buffer</span><span class=p>,</span> <span class=n>pos</span><span class=p>)</span>
+      <span class=n>new_pos</span> <span class=o>=</span> <span class=n>pos</span> <span class=o>+</span> <span class=n>size</span>
+      <span class=k>if</span> <span class=n>new_pos</span> <span class=o>&gt;</span> <span class=n>end</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=n>_DecodeError</span><span class=p>(</span><span class=s1>&#39;Truncated string.&#39;</span><span class=p>)</span>
+      <span class=k>if</span> <span class=n>clear_if_default</span> <span class=ow>and</span> <span class=ow>not</span> <span class=n>size</span><span class=p>:</span>
+        <span class=n>field_dict</span><span class=o>.</span><span class=n>pop</span><span class=p>(</span><span class=n>key</span><span class=p>,</span> <span class=kc>None</span><span class=p>)</span>
+      <span class=k>else</span><span class=p>:</span>
+        <span class=n>field_dict</span><span class=p>[</span><span class=n>key</span><span class=p>]</span> <span class=o>=</span> <span class=n>_ConvertToUnicode</span><span class=p>(</span><span class=n>buffer</span><span class=p>[</span><span class=n>pos</span><span class=p>:</span><span class=n>new_pos</span><span class=p>])</span>
+      <span class=k>return</span> <span class=n>new_pos</span>
+    <span class=k>return</span> <span class=n>DecodeField</span>
+</code></pre></div></td></tr></table></div> </details> </div> </div> </div> </div> </div> </article> </div> <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script> </div> </main> <footer class=md-footer> <div class="md-footer-meta md-typeset"> <div class="md-footer-meta__inner md-grid"> <div class=md-copyright> Made with <a href=https://squidfunk.github.io/mkdocs-material/ target=_blank rel=noopener> Material for MkDocs </a> </div> </div> </div> </footer> </div> <div class=md-dialog data-md-component=dialog> <div class="md-dialog__inner md-typeset"></div> </div> <script id=__config type=application/json>{"annotate": null, "base": "../../../../../../..", "features": ["navigation.sections", "navigation.path", "navigation.prune"], "search": "../../../../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script> <script src=../../../../../../../assets/javascripts/bundle.79ae519e.min.js></script> </body> </html>
