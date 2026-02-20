@@ -64,15 +64,19 @@ class AlembicCameraLoader(load.LoaderPlugin):
                     "Camera3",
                     "name {} file {} read_from_file True".format(
                         object_name, file),
-                    inpanel=False
+                    inpanel=False,
                 )
             except RuntimeError: # older nuke version
                 camera_node = nuke.createNode(
                     "Camera2",
                     "name {} file {} read_from_file True".format(
                         object_name, file),
-                    inpanel=False
-                )                
+                    inpanel=False,
+                )
+
+            # get the actual name of the camera node
+            # might be different if a the desired name is already in use
+            object_name = camera_node.name()
 
             camera_node.forceValidate()
             camera_node["frame_rate"].setValue(float(fps))
