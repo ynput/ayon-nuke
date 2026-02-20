@@ -2601,7 +2601,7 @@ def add_scripts_menu():
         return
 
     # run the launcher for Maya menu
-    studio_menu = launchfornuke.main(title=_menu.title())
+    studio_menu = launchfornuke.main(title=_menu)
 
     # apply configuration
     studio_menu.build_from_configuration(studio_menu, config)
