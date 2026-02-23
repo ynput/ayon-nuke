@@ -1031,18 +1031,22 @@ def add_button_render_on_farm(node):
 def add_button_write_to_read(node):
     name = "createReadNode"
     label = "Read From Rendered"
-    value = "import write_to_read;\
-        write_to_read.write_to_read(nuke.thisNode(), allow_relative=False)"
+    value = (
+        "import write_to_read;"
+        "write_to_read.write_to_read(nuke.thisNode(), allow_relative=False)"
+    )
     knob = nuke.PyScript_Knob(name, label, value)
     knob.clearFlag(nuke.STARTLINE)
     node.addKnob(knob)
 
 
-def add_button_clear_rendered(node, path):
+def add_button_clear_rendered(node):
     name = "clearRendered"
     label = "Clear Rendered"
-    value = "import clear_rendered;\
-        clear_rendered.clear_rendered('{}')".format(path)
+    value = (
+        "import clear_rendered;"
+        "clear_rendered.clear_rendered_from_node(nuke.thisNode())"
+    )
     knob = nuke.PyScript_Knob(name, label, value)
     node.addKnob(knob)
 
@@ -1311,8 +1315,8 @@ def create_write_node(
     # adding write to read button
     add_button_write_to_read(GN)
 
-    # adding write to read button
-    add_button_clear_rendered(GN, os.path.dirname(fpath))
+    # adding clear rendered button
+    add_button_clear_rendered(GN)
 
     # set tile color
     tile_color = next(
