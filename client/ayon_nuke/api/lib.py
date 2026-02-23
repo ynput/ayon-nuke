@@ -1204,7 +1204,7 @@ def create_write_node(
     # build file path to workfiles
     data["work"] = get_work_default_directory(data)
     fpath = StringTemplate(data["fpath_template"]).format_strict(data)
-
+    fpath = nuke.tcl(f"subst {fpath}")   # evaluate TCL expressions
     # Override output directory is provided staging directory.
     if data.get("staging_dir"):
         basename = os.path.basename(fpath)
