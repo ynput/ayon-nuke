@@ -1,7 +1,10 @@
 """
+
+## notes:
+
 Removed Features:
 - handle "frames to fix" logic
-    imho this should be handled in a separate step, which would pass on a 
+    imho this should be handled in a separate step, which would pass on a
     "frames_to_render" list[int] that can then be used here.
 
 - _copy_last_published function
@@ -10,7 +13,14 @@ Removed Features:
 - adding the representation data to the instance data
     Should be done during collection (?)
 
+- this step was setting the "productType" to the "family" after removing
+  the ".local" suffix.
+  I dont think this should be done here in this step.
+  The purpose of this step is to render frames, It should not change the productType.
+
+
 """
+
 import logging
 import typing
 
@@ -48,8 +58,8 @@ class NukeRenderLocal(
         # Note: this step used to be used handle the "frames to fix"-logic.
         # That should be moved to its own step and pass on a "frames_to_render" list.
         # for now... we just render the entire sequence here
-        first_frame = instance.data["frameStartHandle"]
-        last_frame = instance.data["frameEndHandle"]
+        first_frame = int(instance.data["frameStartHandle"])
+        last_frame = int(instance.data["frameEndHandle"])
         frames_to_render = [(first_frame, last_frame)]
 
         for render_first_frame, render_last_frame in frames_to_render:
@@ -58,11 +68,7 @@ class NukeRenderLocal(
             self.log.info("End frame: {}".format(render_last_frame))
             # Render frames
             try:
-                nuke.execute(
-                    node,
-                    int(render_first_frame),
-                    int(render_last_frame)
-                )
+                nuke.execute(node, render_first_frame, render_last_frame)
             except RuntimeError as exc:
                 raise publish.PublishError(
                     title="Render Failed",
@@ -73,11 +79,6 @@ class NukeRenderLocal(
 
         # convert ".local" families back to their original versions
         families = instance.data["families"]
-        for family in families:
-
-            if family.endswith(".local"):
-                families.remove(family)
-                family = family.removesuffix(".local")
-                instance.data["family"] =  family
-                instance.data["productType"] = family  # not sure about this
+        families = [family.removesuffix(".local") for family in families]
+        families = list(set(families))  # there might be duplicates after removing the suffix
         instance.data["families"] = families

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import logging
 import os
+import typing
+
 import nuke
 import pyblish.api
-
 from ayon_core.pipeline import publish
 
 from ayon_nuke import api as napi
@@ -35,6 +37,9 @@ class CollectNukeWrites(
     # write node classes to collect
     write_node_classes = ["Write"]
 
+    if typing.TYPE_CHECKING:
+        log: logging.Logger
+
     def process(self, instance) -> None:
 
         # compatibility. This is mainly focused on `renders`folders which
@@ -63,10 +68,11 @@ class CollectNukeWrites(
         instance.data["transientData"]["writeNode"] = write_node
 
         self._collect_frame_range_data(instance)
-        self._collect_expected_files(instance)
-        if instance.data["render_target"] in ["frames", "frames_farm"]:
-            self._add_farm_instance_data(instance)
+        self._collect_colorspace_data(instance)
         self._set_additional_instance_data(instance)
+        self._collect_expected_files(instance)
+        if instance.data["render_target"] in ["farm", "frames_farm"]:
+            self._add_farm_instance_data(instance)
 
     def _collect_frame_range_data(self, instance: pyblish.api.Instance) -> None:
         """Collect frame range data.
@@ -75,13 +81,17 @@ class CollectNukeWrites(
             instance (pyblish.api.Instance): pyblish instance
 
         """
-        write_node = instance.data["transientData"]["writeNode"]
+        write_node: nuke.Node = instance.data["transientData"]["writeNode"]
 
         # Check in order of priority:
         # - override set in the publish settings (TODO)
         # - local override on the node
         # - previously collected frame range (TODO)
         # - frame range from the workfile
+        # TODO:
+        # - check for existence of the knobs first
+        # - if "use_limit" does not exist: consider it as enabled
+        #   (eg.: node that has frame controls but no "use_limit" knob)
         if write_node["use_limit"].getValue():
             first_frame = int(write_node["first"].getValue())
             last_frame = int(write_node["last"].getValue())
@@ -115,18 +125,19 @@ class CollectNukeWrites(
             instance (pyblish.api.Instance): pyblish instance
 
         """
-        node = instance.data["transientData"]["writeNode"]
-        start = instance.data["frameStart"]  # range includes handles
-        end = instance.data["frameEnd"]
+        node: nuke.Node = instance.data["transientData"]["writeNode"]
+        start: int = instance.data["frameStartHandle"]
+        end: int = instance.data["frameEndHandle"]
 
         # based on the docs  `nuke.filename` accepts a frame number as an argument
         # but this did not work for me (vincent-u, 24.02.2026, Nuke 15.2)
         filename = nuke.filename(node)
         if not filename:
-            instance.data["expectedFiles"] = []
-            # note: not sure if this is the best way to handle this
-            # if introduces inconsistencies with the "path" and "outputDir" data
-            return
+            raise publish.PublishError(
+                title="Collect Writes Failed",
+                message=f"Unable to collect expected files from node: '{node.fullName()}'",
+                description="Set a valid file path on the write node before publishing."
+            )
 
         if "%" in filename:
             instance.data["expectedFiles"] = [filename % frame for frame in range(start, end + 1)]
@@ -148,17 +159,28 @@ class CollectNukeWrites(
 
         """
         write_node = instance.data["transientData"]["writeNode"]
-        colorspace = napi.get_colorspace_from_node(write_node)
-        instance.data["colorspace"] = colorspace
-        instance.data["color_channels"] = write_node["channels"].value()
-        instance.data["versionData"] = {"colorspace": colorspace}
+        if "colorspace" in write_node.knobs():
+            colorspace = napi.get_colorspace_from_node(write_node)
+            instance.data["colorspace"] = colorspace
+            instance.data["versionData"] = {"colorspace": colorspace}
+        else:
+            # TODO: check if colorspace is already set
+            # TODO: add fallback colorspace data?
+            pass
+
+        if "channels" in write_node.knobs():
+            instance.data["color_channels"] = write_node["channels"].value()
+        else:
+            # TODO: "nuke.Node.channels()" might work here, but it returns
+            # a list of strings: `['rgba.red', 'rgba.green', 'rgba.blue', 'rgba.alpha']`
+            # while the channels knob returns a single string: `rgba`
+            pass
 
     def _set_additional_instance_data(self, instance: pyblish.api.Instance):
         """Set additional instance data.
 
         Args:
             instance (pyblish.api.Instance): pyblish instance
-            render_target (str): render target
 
         """
         product_base_type = instance.data["productBaseType"]

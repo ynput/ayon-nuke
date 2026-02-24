@@ -28,8 +28,6 @@ class ValidateOutputResolution(
     actions = [RepairAction]
 
     settings_category = "nuke"
-
-    missing_msg = "Missing Reformat node in render group node"
     resolution_msg = "Reformat is set to wrong format"
 
     def process(self, instance):
@@ -60,12 +58,13 @@ class ValidateOutputResolution(
 
         # add a new reformat node under the group node
         # TODO: test this
-        with napi.maintained_selection():
-            node['selected'].setValue(True)
-            reformat_node = nuke.createNode("Reformat", "name Reformat01")
-            reformat_node["resize"].setValue(0)
-            reformat_node["black_outside"].setValue(1)
-            return reformat_node
+        with node:
+            with napi.maintained_selection():
+                node['selected'].setValue(True)  # todo: why is this needed? I guess we're implicitly connecting the nodes here... might be better to to that explicit
+                reformat_node = nuke.createNode("Reformat", "name Reformat01")
+                reformat_node["resize"].setValue(0)
+                reformat_node["black_outside"].setValue(1)
+                return reformat_node
 
     @classmethod
     def get_invalid(cls, instance) -> str | None:
