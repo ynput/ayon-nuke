@@ -62,17 +62,11 @@ class CollectNukeWrites(
         write_node = write_nodes[0]
         instance.data["transientData"]["writeNode"] = write_node
 
-        # get colorspace and add to version data
-        colorspace = napi.get_colorspace_from_node(write_node)
-
         self._collect_frame_range_data(instance)
         self._collect_expected_files(instance)
-
         if instance.data["render_target"] in ["frames", "frames_farm"]:
             self._add_farm_instance_data(instance)
-
-        # set additional instance data
-        self._set_additional_instance_data(instance, render_target, colorspace)
+        self._set_additional_instance_data(instance)
 
     def _collect_frame_range_data(self, instance: pyblish.api.Instance) -> None:
         """Collect frame range data.
@@ -159,27 +153,24 @@ class CollectNukeWrites(
         instance.data["color_channels"] = write_node["channels"].value()
         instance.data["versionData"] = {"colorspace": colorspace}
 
-    def _set_additional_instance_data(
-        self, instance, render_target, colorspace
-    ):
+    def _set_additional_instance_data(self, instance: pyblish.api.Instance):
         """Set additional instance data.
 
         Args:
             instance (pyblish.api.Instance): pyblish instance
             render_target (str): render target
-            colorspace (str): colorspace
+
         """
         product_base_type = instance.data["productBaseType"]
 
         # add targeted family to families
-        instance.data["families"].append(
-            f"{product_base_type}.{render_target}"
-        )
-        self.log.debug("Appending render target to families: {}.{}".format(
-            product_base_type, render_target)
-        )
+        render_target = instance.data["render_target"]
+        targeted_family = f"{product_base_type}.{render_target}"
+        instance.data["families"].append(targeted_family)
+        self.log.debug(f"Appending render target to families: {targeted_family}")
 
-        write_node = self._write_node_helper(instance)
+        write_node = instance.data["transientData"]["writeNode"]
+        # TODO: is this part of collection?
         if instance.data.get("stagingDir_is_custom", False):
             self.log.info(
                 "Custom staging dir detected. Syncing write nodes output path."

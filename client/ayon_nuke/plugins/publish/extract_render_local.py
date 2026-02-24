@@ -1,16 +1,28 @@
-import os
-import shutil
+"""
+Removed Features:
+- handle "frames to fix" logic
+    imho this should be handled in a separate step, which would pass on a 
+    "frames_to_render" list[int] that can then be used here.
+
+- _copy_last_published function
+    also: own step / combined with "frames to fix" logic
+
+- adding the representation data to the instance data
+    Should be done during collection (?)
+
+"""
+import logging
+import typing
 
 import pyblish.api
-import clique
 import nuke
-from ayon_nuke import api as napi
 from ayon_core.pipeline import publish
-from ayon_core.lib import collect_frames
 
 
-class NukeRenderLocal(publish.Extractor,
-                      publish.ColormanagedPyblishPluginMixin):
+class NukeRenderLocal(
+    publish.Extractor,
+    publish.ColormanagedPyblishPluginMixin,
+):
     """Render the current Nuke composition locally.
 
     Extract the result of savers by starting a comp render
@@ -27,48 +39,23 @@ class NukeRenderLocal(publish.Extractor,
 
     settings_category = "nuke"
 
+    if typing.TYPE_CHECKING:
+        log: logging.Logger
+
     def process(self, instance) -> None:
-        self.log.debug(f"instance collected: {instance.data}")
         node: nuke.Node = instance.data["transientData"]["node"]
 
-        first_frame = instance.data.get("frameStartHandle", None)
-        last_frame = instance.data.get("frameEndHandle", None)
-
-        filenames = []
-        node_file = node["file"]
-        # Collect expected filepaths for each frame
-        # - for cases that output is still image is first created set of
-        #   paths which is then sorted and converted to list
-        expected_paths = list(sorted({
-            node_file.evaluate(frame)
-            for frame in range(first_frame, last_frame + 1)
-        }))
-        # Extract only filenames for representation
-        filenames.extend([
-            os.path.basename(filepath)
-            for filepath in expected_paths
-        ])
-
-        # Ensure output directory exists.
-        out_dir = os.path.dirname(expected_paths[0])
-        if not os.path.exists(out_dir):
-            os.makedirs(out_dir)
-
+        # Note: this step used to be used handle the "frames to fix"-logic.
+        # That should be moved to its own step and pass on a "frames_to_render" list.
+        # for now... we just render the entire sequence here
+        first_frame = instance.data["frameStartHandle"]
+        last_frame = instance.data["frameEndHandle"]
         frames_to_render = [(first_frame, last_frame)]
 
-        frames_to_fix = instance.data.get("frames_to_fix")
-        if instance.data.get("last_version_published_files") and frames_to_fix:
-            frames_to_render = self._get_frames_to_render(frames_to_fix)
-            anatomy = instance.context.data["anatomy"]
-            self._copy_last_published(anatomy, instance, out_dir,
-                                      filenames)
-
         for render_first_frame, render_last_frame in frames_to_render:
-
             self.log.info("Starting render")
             self.log.info("Start frame: {}".format(render_first_frame))
             self.log.info("End frame: {}".format(render_last_frame))
-
             # Render frames
             try:
                 nuke.execute(
@@ -84,122 +71,13 @@ class NukeRenderLocal(publish.Extractor,
                     detail=str(exc),
                 ) from exc
 
-        # Determine defined file type
-        path = node["file"].value()
-        ext = os.path.splitext(path)[1].lstrip(".")
-
-        colorspace = napi.get_colorspace_from_node(node)
-
-        if "representations" not in instance.data:
-            instance.data["representations"] = []
-
-        if len(filenames) == 1:
-            repre = {
-                'name': ext,
-                'ext': ext,
-                'files': filenames[0],
-                "stagingDir": out_dir
-            }
-        else:
-            repre = {
-                'name': ext,
-                'ext': ext,
-                'frameStart': (
-                    "{{:0>{}}}"
-                    .format(len(str(last_frame)))
-                    .format(first_frame)
-                ),
-                'files': filenames,
-                "stagingDir": out_dir
-            }
-
-        # inject colorspace data
-        self.set_representation_colorspace(
-            repre, instance.context,
-            colorspace=colorspace
-        )
-
-        instance.data["representations"].append(repre)
-
-        self.log.debug("Extracted instance '{0}' to: {1}".format(
-            instance.name,
-            out_dir
-        ))
-
+        # convert ".local" families back to their original versions
         families = instance.data["families"]
-        # redefinition of families
-        if "render.local" in families:
-            families.remove("render.local")
-            families.insert(0, "render2d")
-        elif "prerender.local" in families:
-            families.remove("prerender.local")
-            families.insert(0, "prerender")
-        elif "image.local" in families:
-            families.remove("image.local")
+        for family in families:
+
+            if family.endswith(".local"):
+                families.remove(family)
+                family = family.removesuffix(".local")
+                instance.data["family"] =  family
+                instance.data["productType"] = family  # not sure about this
         instance.data["families"] = families
-
-        collections, remainder = clique.assemble(filenames)
-        self.log.debug('collections: {}'.format(str(collections)))
-
-        if collections:
-            collection = collections[0]
-            instance.data['collection'] = collection
-
-        self.log.info('Finished render')
-
-        self.log.debug("_ instance.data: {}".format(instance.data))
-
-    def _copy_last_published(self, anatomy, instance, out_dir,
-                             expected_filenames):
-        """Copies last published files to temporary out_dir.
-
-        These are base of files which will be extended/fixed for specific
-        frames.
-        Renames published file to expected file name based on frame, eg.
-        test_project_test_asset_product_v005.1001.exr > new_render.1001.exr
-        """
-        last_published = instance.data["last_version_published_files"]
-        last_published_and_frames = collect_frames(last_published)
-
-        expected_and_frames = collect_frames(expected_filenames)
-        frames_and_expected = {v: k for k, v in expected_and_frames.items()}
-        for file_path, frame in last_published_and_frames.items():
-            file_path = anatomy.fill_root(file_path)
-            if not os.path.exists(file_path):
-                continue
-            target_file_name = frames_and_expected.get(frame)
-            if not target_file_name:
-                continue
-
-            out_path = os.path.join(out_dir, target_file_name)
-            self.log.debug("Copying '{}' -> '{}'".format(file_path, out_path))
-            shutil.copy(file_path, out_path)
-
-            # TODO shouldn't this be uncommented
-            # instance.context.data["cleanupFullPaths"].append(out_path)
-
-    def _get_frames_to_render(self, frames_to_fix):
-        """Return list of frame range tuples to render
-
-        Args:
-            frames_to_fix (str): specific or range of frames to be rerendered
-             (1005, 1009-1010)
-        Returns:
-            (list): [(1005, 1005), (1009-1010)]
-        """
-        frames_to_render = []
-
-        for frame_range in frames_to_fix.split(","):
-            if frame_range.isdigit():
-                render_first_frame = frame_range
-                render_last_frame = frame_range
-            elif '-' in frame_range:
-                frames = frame_range.split('-')
-                render_first_frame = int(frames[0])
-                render_last_frame = int(frames[1])
-            else:
-                raise ValueError("Wrong format of frames to fix {}"
-                                 .format(frames_to_fix))
-            frames_to_render.append((render_first_frame,
-                                     render_last_frame))
-        return frames_to_render
