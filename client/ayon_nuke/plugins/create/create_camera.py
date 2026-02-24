@@ -15,8 +15,8 @@ class CreateCamera(NukeCreator):
 
     identifier = "create_camera"
     label = "Camera (3d)"
-    product_type = "camera"
     product_base_type = "camera"
+    product_type = product_base_type
     icon = "camera"
 
     # plugin attributes

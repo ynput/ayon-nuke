@@ -138,28 +138,15 @@ class NukeRenderLocal(publish.Extractor,
         ))
 
         families = instance.data["families"]
-        anatomy_data = instance.data["anatomyData"]
         # redefinition of families
         if "render.local" in families:
-            instance.data["family"] = "render"
-            instance.data["productType"] = "render"
             families.remove("render.local")
             families.insert(0, "render2d")
-            anatomy_data["family"] = "render"
-            anatomy_data["product"]["type"] = "render"
         elif "prerender.local" in families:
-            instance.data["family"] = "prerender"
-            instance.data["productType"] = "prerender"
             families.remove("prerender.local")
             families.insert(0, "prerender")
-            anatomy_data["family"] = "prerender"
-            anatomy_data["product"]["type"] = "prerender"
         elif "image.local" in families:
-            instance.data["family"] = "image"
-            instance.data["productType"] = "image"
             families.remove("image.local")
-            anatomy_data["family"] = "image"
-            anatomy_data["product"]["type"] = "image"
         instance.data["families"] = families
 
         collections, remainder = clique.assemble(filenames)

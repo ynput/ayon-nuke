@@ -198,6 +198,76 @@ def _convert_publish_plugins(overrides):
     _convert_extract_intermediate_files_0_2_3(overrides["publish"])
 
 
+def _convert_workfile_builder_0_4_0(overrides: dict) -> None:
+    """Convert product_type to product_base_type.
+
+    If a profile has product_type, but not product_base_type, copy
+    product_type to product_base_type.
+
+    """
+    profiles = overrides.get("workfile_builder", {}).get("profiles")
+    if not profiles:
+        return
+
+    opts = []
+    for profile in profiles:
+        if "tasks" in profile:
+            profile["task_names"] = profile.pop("tasks")
+
+        if "linked_assets" in profile:
+            profile["linked_folders"] = profile.pop("linked_assets")
+        if "linked_folders" in profile:
+            opts.append(profile["linked_folders"])
+        if "current_context" in profile:
+            opts.append(profile["current_context"])
+
+    for opt in opts:
+        if "product_base_types" not in opt and "product_types" in opt:
+            opt["product_base_types"] = opt.pop("product_types")
+            
+
+def _convert_baking_stream_filter_product_base_type_0_4_0(
+        overrides: dict) -> None:
+    """Convert product_type to product_base_type."""
+    extract_review_outputs = (
+        overrides
+        .get("publish", {})
+        .get("ExtractReviewIntermediates", {})
+        .get("outputs")
+    )
+    if not extract_review_outputs:
+        return
+
+    for output in extract_review_outputs:
+        o_filter = output.get("filter")
+        if o_filter is None:
+            break
+
+        if (
+            "product_base_type" not in o_filter
+            and "product_type" in o_filter
+        ):
+            o_filter["product_base_type"] = o_filter.pop("product_type")
+
+
+def _convert_collect_instance_data_model_0_4_0(overrides: dict) -> None:
+    """Convert collect instance data model to include product_base_type."""
+    collect_instance_data = (
+        overrides
+        .get("publish", {})
+        .get("CollectInstanceData")
+    )
+    if not collect_instance_data:
+        return
+
+    if "sync_workfile_version_on_product_types" not in collect_instance_data:
+        return
+
+    collect_instance_data["sync_workfile_version_on_product_base_types"] = (
+        collect_instance_data.pop("sync_workfile_version_on_product_types")
+    )
+
+
 def convert_settings_overrides(
     source_version: str,
     overrides: dict[str, Any],
@@ -206,4 +276,7 @@ def convert_settings_overrides(
     _convert_imageio_configs_0_2_3(overrides)
     _convert_publish_plugins(overrides)
     _convert_imageio_subsets_0_3_2(overrides)
+    _convert_workfile_builder_0_4_0(overrides)
+    _convert_baking_stream_filter_product_base_type_0_4_0(overrides)
+    _convert_collect_instance_data_model_0_4_0(overrides)
     return overrides
