@@ -550,28 +550,26 @@ class NukeWriteCreator(NukeCreator):
         self.temp_rendering_path_template = temp_rendering_path_template
 
 
-def get_instance_group_node_childs(instance):
-    """Return list of instance group node children
+def get_instance_group_node_children(instance):
+    """Return list of instance group node children.
 
     Args:
         instance (pyblish.Instance): pyblish instance
 
     Returns:
-        list: [nuke.Node]
+        list[nuke.Node]: list of children nodes
+
     """
     node = instance.data["transientData"]["node"]
 
-    if node.Class() != "Group":
-        return
+    if not isinstance(node, nuke.Group):
+        return []
 
-    # collect child nodes
-    child_nodes = []
-    # iterate all nodes
-    for node in nuke.allNodes(group=node):
-        # add contained nodes to instance's node list
-        child_nodes.append(node)
+    return node.nodes()
 
-    return child_nodes
+
+# alias for backwards compatibility
+get_instance_group_node_childs = get_instance_group_node_children
 
 
 def get_colorspace_from_node(node):
