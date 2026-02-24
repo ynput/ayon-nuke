@@ -27,20 +27,9 @@ class NukeRenderLocal(publish.Extractor,
 
     settings_category = "nuke"
 
-    def process(self, instance):
-        child_nodes = (
-            instance.data.get("transientData", {}).get("childNodes")
-            or instance
-        )
-
-        node = None
-        for x in child_nodes:
-            if x.Class() == "Write":
-                node = x
-
-        self.log.debug("instance collected: {}".format(instance.data))
-
-        node_product_name = instance.data.get("name", None)
+    def process(self, instance) -> None:
+        self.log.debug(f"instance collected: {instance.data}")
+        node: nuke.Node = instance.data["transientData"]["node"]
 
         first_frame = instance.data.get("frameStartHandle", None)
         last_frame = instance.data.get("frameEndHandle", None)
@@ -83,14 +72,14 @@ class NukeRenderLocal(publish.Extractor,
             # Render frames
             try:
                 nuke.execute(
-                    str(node_product_name),
+                    node,
                     int(render_first_frame),
                     int(render_last_frame)
                 )
             except RuntimeError as exc:
                 raise publish.PublishError(
                     title="Render Failed",
-                    message=f"Failed to render {node_product_name}",
+                    message=f"Failed to render {node.fullName()}",
                     description="Check Nuke console for more information.",
                     detail=str(exc),
                 ) from exc
