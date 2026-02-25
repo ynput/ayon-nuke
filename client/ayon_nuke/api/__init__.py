@@ -13,9 +13,10 @@ from .plugin import (
     NukeCreator,
     NukeWriteCreator,
     NukeCreatorError,
+    find_knob_on_node,
+    find_node_with_knob,
     get_instance_group_node_childs,
     get_instance_group_node_children,
-    get_colorspace_from_node,
     get_publish_config,
 )
 from .pipeline import (
@@ -71,9 +72,11 @@ __all__ = (
     "NukeWriteCreator",
     "NukeCreatorError",
     "NukeHost",
+    "find_knob_on_node",
+    "find_node_with_knob",
     "get_instance_group_node_childs",
     "get_instance_group_node_children",
-    "get_colorspace_from_node",
+
     "get_publish_config",
 
     "ls",

@@ -589,15 +589,60 @@ def get_instance_group_node_childs(instance):
     return get_instance_group_node_children(instance)
 
 
-def get_colorspace_from_node(node):
-    # Add version data to instance
-    colorspace = node["colorspace"].value()
+# should this be in lib.py?
+def find_knob_on_node(
+    node: nuke.Node,
+    knob_names: list[str],
+    *,
+    check_children: bool = True,
+) -> nuke.Knob | None:
+    """Find a knob by name in a node.
 
-    # remove default part of the string
-    if "default (" in colorspace:
-        colorspace = re.sub(r"default.\(|\)", "", colorspace)
+    Args:
+        node (nuke.Node): nuke node
+        knob_names (list[str]): list of knob names to check for
 
-    return colorspace
+    Returns:
+        nuke.Knob | None: found knob
+    """
+    for knob_name in knob_names:
+        if knob := node.knob(knob_name):
+            return knob
+
+    if check_children:
+        if not isinstance(node, nuke.Group):
+            # shall we raise a error or warning here?
+            return None
+
+        for child in node.nodes():
+            if found_knob := find_knob_on_node(
+                child,
+                knob_names,
+                check_children=check_children,
+            ):
+                return found_knob
+
+    return None
+
+
+def find_node_with_knob(
+    nodes: list[nuke.Node],
+    knob_names: list[str],
+) -> tuple[nuke.Node | None, nuke.Knob | None]:
+    """Find a node with a knob by name in a list of nodes.
+
+    Args:
+        nodes (list[nuke.Node]): list of nodes to check
+        knob_names (list[str]): list of knob names to check for
+
+    Returns:
+        tuple[nuke.Node | None, nuke.Knob | None]: found node and knob
+
+    """
+    for node in nodes:
+        if knob := find_knob_on_node(node, knob_names):
+            return node, knob
+    return None, None
 
 
 def get_review_presets_config():
