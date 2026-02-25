@@ -38,8 +38,12 @@ class NukeRenderLocal(
     Extract the result of savers by starting a comp render
     This will run the local render of Nuke.
 
-    Allows to use last published frames and overwrite only specific ones
-    (set in instance.data.get("frames_to_fix"))
+    Uses the following instance data:
+    - "frames_to_render": list[int] optional
+    - "frameStartHandle" or "frameStart"
+    - "frameEndHandle" or "frameEnd"
+    - "writeNode" or "node": the node to render
+
     """
 
     order = pyblish.api.ExtractorOrder
@@ -52,33 +56,56 @@ class NukeRenderLocal(
     if typing.TYPE_CHECKING:
         log: logging.Logger
 
+    def _get_framerange_from_instance(self, instance) -> nuke.FrameRanges:
+        """Get frame range from instance data.
+
+        Args:
+            instance (pyblish.api.Instance): pyblish instance
+
+        Returns:
+            list[nuke.FrameRange] | nuke.FrameRanges: frame range
+        """
+        # Check for a custom list of frames
+        # this could be the result of an expression ("1001-1050x5")
+        # and/or as a result of a previous step (eg.: "frames to fix")
+        # Note:
+        # `nuke.FrameRanges` supports list[int] as well as some expressions
+        # (eg.: "1001-1050x5") see: https://learn.foundry.com/nuke/content/getting_started/managing_scripts/defining_frame_ranges.html
+        # We should however change this to an ayon standardized format,
+        # thats familiar across DCC's (or maybe support both: nuke and ayon)
+        if "frames_to_render" in instance.data:
+            frames_to_render = instance.data["frames_to_render"]
+            return nuke.FrameRanges(frames_to_render)
+
+        # If no custom list of frames is found, use the frame range from the instance data
+        start = instance.data.get("frameStartHandle") or instance.data.get("frameStart")
+        end = instance.data.get("frameEndHandle") or instance.data.get("frameEnd")
+        step = 1
+
+        frame_ranges = nuke.FrameRanges()
+        frame_ranges.add(nuke.FrameRange(start, end, step))
+        return frame_ranges
+
     def process(self, instance) -> None:
-        node: nuke.Node = instance.data["transientData"]["node"]
 
-        # Note: this step used to be used handle the "frames to fix"-logic.
-        # That should be moved to its own step and pass on a "frames_to_render" list.
-        # for now... we just render the entire sequence here
-        first_frame = int(instance.data["frameStartHandle"])
-        last_frame = int(instance.data["frameEndHandle"])
-        frames_to_render = [(first_frame, last_frame)]
+        node: nuke.Node = instance.data["transientData"].get("writeNode")
+        node = node or instance.data["transientData"].get("node")
 
-        for render_first_frame, render_last_frame in frames_to_render:
-            self.log.info("Starting render")
-            self.log.info("Start frame: {}".format(render_first_frame))
-            self.log.info("End frame: {}".format(render_last_frame))
-            # Render frames
-            try:
-                nuke.execute(node, render_first_frame, render_last_frame)
-            except RuntimeError as exc:
-                raise publish.PublishError(
-                    title="Render Failed",
-                    message=f"Failed to render {node.fullName()}",
-                    description="Check Nuke console for more information.",
-                    detail=str(exc),
-                ) from exc
+        frame_ranges = self._get_framerange_from_instance(instance)
+
+        try:
+            nuke.execute(node, frame_ranges)
+        except RuntimeError as exc:
+            raise publish.PublishError(
+                title="Render Failed",
+                message=f"Failed to render {node.fullName()}",
+                description="Check Nuke console for more information.",
+                detail=str(exc),
+            ) from exc
 
         # convert ".local" families back to their original versions
         families = instance.data["families"]
         families = [family.removesuffix(".local") for family in families]
-        families = list(set(families))  # there might be duplicates after removing the suffix
+        # there might be duplicates after removing the suffix
+        families = list(set(families))
         instance.data["families"] = families
