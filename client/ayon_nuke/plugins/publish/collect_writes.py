@@ -222,7 +222,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             instance (pyblish.api.Instance): pyblish instance
 
         Returns:
-            nuke.Node: write node
+            nuke.Node | None: write node
         """
         instance_name = instance.data["name"]
 
@@ -231,7 +231,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             return self._write_nodes[instance_name]
 
         # get all child nodes from group node
-        child_nodes = napi.get_instance_group_node_childs(instance)
+        child_nodes = napi.get_instance_group_node_children(instance)
 
         # set child nodes to instance transient data
         instance.data["transientData"]["childNodes"] = child_nodes
