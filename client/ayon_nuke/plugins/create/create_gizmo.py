@@ -13,8 +13,8 @@ class CreateGizmo(NukeCreator):
 
     identifier = "create_gizmo"
     label = "Gizmo (group)"
-    product_type = "gizmo"
     product_base_type = "gizmo"
+    product_type = product_base_type
     icon = "file-archive-o"
     default_variants = ["ViewerInput", "Lut", "Effect"]
 

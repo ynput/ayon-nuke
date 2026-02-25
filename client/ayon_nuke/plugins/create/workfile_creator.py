@@ -16,8 +16,8 @@ class WorkfileCreator(AutoCreator):
     is_mandatory = False
 
     identifier = "workfile"
-    product_type = "workfile"
     product_base_type = "workfile"
+    product_type = product_base_type
 
     default_variant = "Main"
 
@@ -61,8 +61,16 @@ class WorkfileCreator(AutoCreator):
             instance_data
         ))
 
+        product_type = instance_data.get("productType")
+        if not product_type:
+            product_type = self.product_base_type
+
         instance = CreatedInstance(
-            self.product_type, product_name, instance_data, self
+            product_base_type=self.product_base_type,
+            product_type=product_type,
+            product_name=product_name,
+            data=instance_data,
+            creator=self,
         )
         if hasattr(instance, "set_mandatory"):
             instance.set_mandatory(self.is_mandatory)

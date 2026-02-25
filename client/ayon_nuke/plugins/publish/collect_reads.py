@@ -95,13 +95,15 @@ class CollectNukeReads(pyblish.api.InstancePlugin):
         instance.data['transfer'] = transfer
 
         # Add version data to instance
+        # QUESTION why is 'productName' stored to version data and
+        #   'families' are explicitly set here?
         version_data = {
             "handleStart": handle_start,
             "handleEnd": handle_end,
             "frameStart": first_frame + handle_start,
             "frameEnd": last_frame - handle_end,
             "colorspace": colorspace,
-            "families": [instance.data["productType"]],
+            "families": [instance.data["productBaseType"]],
             "productName": instance.data["productName"],
             "fps": instance.context.data["fps"]
         }

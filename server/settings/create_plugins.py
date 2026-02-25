@@ -66,7 +66,6 @@ class PrenodeModel(BaseSettingsModel):
             " preceding nodes if a connection is needed."
         )
     )
-
     nodeclass: str = SettingsField(
         "",
         title="Node class",
@@ -80,7 +79,6 @@ class PrenodeModel(BaseSettingsModel):
             "come before this node."
         ),
     )
-
     knobs: list[KnobModel] = SettingsField(
         default_factory=list,
         title="Knobs",
@@ -93,17 +91,36 @@ class PrenodeModel(BaseSettingsModel):
         return value
 
 
-class CreateWriteRenderModel(BaseSettingsModel):
+class ProductTypeItemModel(BaseSettingsModel):
+    _layout = "compact"
+    product_type: str = SettingsField(
+        title="Product type",
+        description="Product type name"
+    )
+    label: str = SettingsField(
+        "",
+        title="Label",
+        description="Label to show in UI for the product type"
+    )
+
+
+class DefaultPluginModel(BaseSettingsModel):
     enabled: bool = SettingsField(
-        True,
-        title="Enabled",
-        description="Enable or disable the plugin"
+        True, title="Enabled", description="Enable or disable the plugin"
     )
     order: int = SettingsField(
-        100,
-        title="Order",
-        description="Order of the plugin in the list"
+        100, title="Order", description="Order of the plugin in the list"
     )
+    product_type_items: list[ProductTypeItemModel] = SettingsField(
+        default_factory=list,
+        title="Product type items",
+        description=(
+            "Optional list of product types this plugin can create. "
+        ),
+    )
+
+
+class CreateWriteRenderModel(DefaultPluginModel):
     temp_rendering_path_template: str = SettingsField(
         title="Temporary rendering path template"
     )
@@ -140,17 +157,7 @@ class CreateWriteRenderModel(BaseSettingsModel):
         return value
 
 
-class CreateWritePrerenderModel(BaseSettingsModel):
-    enabled: bool = SettingsField(
-        True,
-        title="Enabled",
-        description="Enable or disable the plugin"
-    )
-    order: int = SettingsField(
-        100,
-        title="Order",
-        description="Order of the plugin in the list"
-    )
+class CreateWritePrerenderModel(DefaultPluginModel):
     temp_rendering_path_template: str = SettingsField(
         title="Temporary rendering path template"
     )
@@ -171,8 +178,7 @@ class CreateWritePrerenderModel(BaseSettingsModel):
         description=RENDER_TARGET_DESCRIPTION,
     )
     exposed_knobs: list[str] = SettingsField(
-        title="Write Node Exposed Knobs",
-        default_factory=list
+        title="Write Node Exposed Knobs", default_factory=list
     )
     prenodes: list[PrenodeModel] = SettingsField(
         default_factory=list,
@@ -187,17 +193,7 @@ class CreateWritePrerenderModel(BaseSettingsModel):
         return value
 
 
-class CreateWriteImageModel(BaseSettingsModel):
-    enabled: bool = SettingsField(
-        True,
-        title="Enabled",
-        description="Enable or disable the plugin"
-    )
-    order: int = SettingsField(
-        100,
-        title="Order",
-        description="Order of the plugin in the list"
-    )
+class CreateWriteImageModel(DefaultPluginModel):
     temp_rendering_path_template: str = SettingsField(
         title="Temporary rendering path template"
     )
@@ -241,18 +237,6 @@ class CreateWorkfileModel(BaseSettingsModel):
             "Workfile cannot be disabled by user in UI."
             " Requires core addon 1.4.1 or newer."
         )
-    )
-
-class DefaultPluginModel(BaseSettingsModel):
-    enabled: bool = SettingsField(
-        True,
-        title="Enabled",
-        description="Enable or disable the plugin"
-    )
-    order: int = SettingsField(
-        100,
-        title="Order",
-        description="Order of the plugin in the list"
     )
 
 
