@@ -149,14 +149,14 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             render_target (str): render target
             colorspace (str): colorspace
         """
-        product_type = instance.data["productType"]
+        product_base_type = instance.data["productBaseType"]
 
         # add targeted family to families
         instance.data["families"].append(
-            "{}.{}".format(product_type, render_target)
+            f"{product_base_type}.{render_target}"
         )
         self.log.debug("Appending render target to families: {}.{}".format(
-            product_type, render_target)
+            product_base_type, render_target)
         )
 
         write_node = self._write_node_helper(instance)
@@ -194,7 +194,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "color_channels": color_channels
         })
 
-        if product_type == "render":
+        if product_base_type == "render":
             instance.data.update({
                 "handleStart": handle_start,
                 "handleEnd": handle_end,
@@ -222,7 +222,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             instance (pyblish.api.Instance): pyblish instance
 
         Returns:
-            nuke.Node: write node
+            nuke.Node | None: write node
         """
         instance_name = instance.data["name"]
 
@@ -231,7 +231,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             return self._write_nodes[instance_name]
 
         # get all child nodes from group node
-        child_nodes = napi.get_instance_group_node_childs(instance)
+        child_nodes = napi.get_instance_group_node_children(instance)
 
         # set child nodes to instance transient data
         instance.data["transientData"]["childNodes"] = child_nodes
