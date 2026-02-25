@@ -4,25 +4,27 @@ from ayon_nuke import api as napi
 
 
 class CreateWritePlate(napi.NukeWriteCreator):
-
     settings_category = "nuke"
 
     identifier = "create_write_plate"
     label = "Plate (write)"
-    product_type = "plate"
     product_base_type = "plate"
+    product_type = product_base_type
     icon = "sign-out"
 
-    instance_attributes = [
-        "reviewable"
-    ]
+    instance_attributes = ["reviewable"]
     default_variants = [
         "BG01",
         "FG01",
     ]
 
     def create_instance_node(
-            self, product_name, instance_data, staging_dir=None, node_selection=None):
+        self,
+        product_name,
+        instance_data,
+        staging_dir=None,
+        node_selection=None,
+    ):
         settings = self.project_settings["nuke"]["create"]["CreateWritePlate"]
 
         # add fpath_template
@@ -33,7 +35,7 @@ class CreateWritePlate(napi.NukeWriteCreator):
             "staging_dir": staging_dir,
             "render_on_farm": (
                 "render_on_farm" in settings["instance_attributes"]
-            )
+            ),
         }
 
         write_data.update(instance_data)
@@ -41,10 +43,9 @@ class CreateWritePlate(napi.NukeWriteCreator):
         # get width and height
         if node_selection:  # contains 1 Write node or nothing
             selected_node = node_selection[0]
-            width, height = (
-                selected_node.width(), selected_node.height())
+            width, height = (selected_node.width(), selected_node.height())
         else:
-            actual_format = nuke.root().knob('format').value()
+            actual_format = nuke.root().knob("format").value()
             width, height = (actual_format.width(), actual_format.height())
             selected_node = None
 
@@ -57,10 +58,7 @@ class CreateWritePlate(napi.NukeWriteCreator):
             input=selected_node,
             prenodes=self.prenodes,
             linked_knobs=self.get_linked_knobs(),
-            **{
-                "width": width,
-                "height": height
-            }
+            **{"width": width, "height": height},
         )
 
         self.integrate_links(node_selection, created_node, outputs=False)
