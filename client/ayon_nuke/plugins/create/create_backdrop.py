@@ -14,8 +14,8 @@ class CreateBackdrop(NukeCreator):
 
     identifier = "create_backdrop"
     label = "Nukenodes (backdrop)"
-    product_type = "nukenodes"
     product_base_type = "nukenodes"
+    product_type = product_base_type
     icon = "file-archive-o"
 
     # plugin attributes
