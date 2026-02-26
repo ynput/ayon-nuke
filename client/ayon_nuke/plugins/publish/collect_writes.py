@@ -151,6 +151,7 @@ class CollectNukeWrites(
             colorspace (str): colorspace
         """
         product_base_type = instance.data["productBaseType"]
+        product_type = instance.data["productType"]
 
         # add targeted family to families
         instance.data["families"].append(
@@ -188,7 +189,7 @@ class CollectNukeWrites(
         # TODO: remove this when we have proper colorspace support
         version_data = {"colorspace": colorspace}
 
-        if product_base_type == "plate":
+        if product_type == "plate":
             time_warp_node = _find_downstream_time_warp_node(
                 instance.data["transientData"]["node"]
             )
