@@ -61,7 +61,7 @@ class ValidateNukeWriteNode(
 
     settings_category = "nuke"
 
-    product_types_mapping = {
+    product_base_types_mapping = {
         "render": "CreateWriteRender",
         "prerender": "CreateWritePrerender",
         "image": "CreateWriteImage"
@@ -89,8 +89,8 @@ class ValidateNukeWriteNode(
 
         # gather exposed knobs to remove them from knobs check.
         nuke_settings = instance.context.data["project_settings"]["nuke"]
-        product_type = instance.data["productType"]
-        plugin = self.product_types_mapping[product_type]
+        product_base_type: str = instance.data["productBaseType"]
+        plugin = self.product_base_types_mapping[product_base_type]
         create_settings = nuke_settings["create"][plugin]
         exposed_knobs = set(create_settings.get("exposed_knobs", []))
 
