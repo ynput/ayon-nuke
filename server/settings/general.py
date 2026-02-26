@@ -27,6 +27,8 @@ class MenuShortcut(BaseSettingsModel):
 class GeneralSettings(BaseSettingsModel):
     """Nuke general project settings."""
 
+    check_context_settings_on_script_open: bool = SettingsField(True, title="Check Context Settings on Script Open")
+
     menu: MenuShortcut = SettingsField(
         default_factory=MenuShortcut,
         title="Menu Shortcuts",
@@ -34,6 +36,7 @@ class GeneralSettings(BaseSettingsModel):
 
 
 DEFAULT_GENERAL_SETTINGS = {
+    "check_context_settings_on_script_open": True,
     "menu": {
         "create": "ctrl+alt+c",
         "publish": "ctrl+alt+p",

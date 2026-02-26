@@ -55,6 +55,7 @@ from .lib import (
     check_inventory_versions,
     set_avalon_knob_data,
     read_avalon_data,
+    on_create_root_node,
     on_script_load,
     dirmap_file_name_filter,
     add_scripts_menu,
@@ -162,14 +163,14 @@ def add_nuke_callbacks(project_settings: dict = None):
         project_settings = get_current_project_settings()
 
     nuke_settings = project_settings["nuke"]
-    workfile_settings = WorkfileSettings()
 
-    # Set context settings.
-    nuke.addOnCreate(
-        workfile_settings.set_context_settings, nodeClass="Root")
+    nuke.addOnCreate(on_create_root_node, nodeClass="Root")
 
     # adding favorites to file browser
-    nuke.addOnCreate(workfile_settings.set_favorites, nodeClass="Root")
+    nuke.addOnCreate(
+        lambda: WorkfileSettings().set_favorites(),
+        nodeClass="Root",
+    )
 
     # template builder callbacks
     nuke.addOnCreate(start_workfile_template_builder, nodeClass="Root")
@@ -181,8 +182,10 @@ def add_nuke_callbacks(project_settings: dict = None):
     nuke.addOnScriptLoad(check_inventory_versions)
     nuke.addOnScriptSave(check_inventory_versions)
 
-    # set apply all workfile settings on script load and save
-    nuke.addOnScriptLoad(WorkfileSettings().set_context_settings)
+    # set apply all workfile settings on script load
+    nuke.addOnScriptLoad(
+        lambda: WorkfileSettings().set_context_settings(requires_confirmation=True)
+    )
 
     if nuke_settings["dirmap"]["enabled"]:
         log.info("Added Nuke's dir-mapping callback ...")
