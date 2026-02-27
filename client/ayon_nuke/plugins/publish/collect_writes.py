@@ -150,6 +150,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             colorspace (str): colorspace
         """
         product_base_type = instance.data["productBaseType"]
+        product_type = instance.data["productType"]
 
         # add targeted family to families
         instance.data["families"].append(
@@ -184,6 +185,32 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         version_data = {
             "colorspace": colorspace
         }
+
+        if product_type == "plate":
+            time_warp_node = _find_downstream_time_warp_node(
+                instance.data["transientData"]["node"]
+            )
+            if time_warp_node:
+                time_warp_dict = {
+                    "Class": time_warp_node.Class(),
+                    "name": time_warp_node["name"].value(),
+                    "lookup": [],
+                }
+                lookup_knob = time_warp_node["lookup"]
+                for frame_number in range(
+                    int(nuke.root()["first_frame"].getValue()),
+                    int(nuke.root()["last_frame"].getValue()) + 1,
+                ):
+                    # The format for this lookup list is
+                    # the frame offset per frame
+                    # - rather than the absolute input frame number.
+                    time_warp_dict["lookup"].append(
+                        lookup_knob.valueAt(frame_number) - frame_number
+                    )
+                version_data.update({
+                    "retime": True,
+                    "timewarps": (time_warp_dict,),
+                })
 
         instance.data.update({
             "versionData": version_data,
@@ -398,3 +425,12 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         ]
 
         return collected_frames
+
+
+def _find_downstream_time_warp_node(start_node):
+    # HACK: no idea why calling `dependentNodes` the first time
+    # seems to always return nothing.
+    nuke.dependentNodes(nuke.INPUTS, [start_node])
+    for node in nuke.dependentNodes(nuke.INPUTS, [start_node]):
+        if node.Class() == "TimeWarp":
+            return node
