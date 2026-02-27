@@ -951,6 +951,17 @@ def get_version_from_path(file):
         )
 
 
+def has_tcl_expressions(text: str) -> bool:
+    """Check if text contains TCL expressions.
+
+    Note:
+        This does not check if the expressions are valid!
+        Only if common TCL expression characters are present.
+
+    """
+    return "[" in text or "$" in text
+
+
 def check_product_name_exists(nodes, product_name):
     """
     Checking if node is not already created to secure there is no duplicity
@@ -1214,7 +1225,9 @@ def create_write_node(
     # build file path to workfiles
     data["work"] = get_work_default_directory(data)
     fpath = StringTemplate(data["fpath_template"]).format_strict(data)
-    fpath = nuke.tcl(f'subst "{fpath}"')  # evaluate TCL expressions
+    if has_tcl_expressions(fpath):
+        fpath = nuke.tcl("subst", fpath)
+
     # Override output directory is provided staging directory.
     if data.get("staging_dir"):
         basename = os.path.basename(fpath)
