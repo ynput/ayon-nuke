@@ -7,7 +7,6 @@ from ayon_core.settings import get_project_settings
 from ayon_core.pipeline import Anatomy, registered_host
 from ayon_core.pipeline.template_data import get_template_data
 from ayon_core.pipeline.workfile import get_workdir_with_workdir_data
-from ayon_core.tools import context_dialog
 
 from .utils import bake_gizmos_recursively
 from .lib import MENU_LABEL
@@ -46,6 +45,10 @@ def bake_container(container):
 
 
 def main():
+    if not nuke.GUI:
+        raise RuntimeError("Invalid in none-GUI mode.")
+
+    from ayon_core.tools import context_dialog
     context = context_dialog.ask_for_context()
 
     if context is None:

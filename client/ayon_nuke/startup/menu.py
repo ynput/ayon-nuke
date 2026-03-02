@@ -1,5 +1,4 @@
-from ayon_core.pipeline import install_host
-from ayon_nuke.api import NukeHost
+from ayon_core.pipeline import registered_host
 
-host = NukeHost()
-install_host(host)
+nuke_host = registered_host()
+nuke_host.setup_menu()
