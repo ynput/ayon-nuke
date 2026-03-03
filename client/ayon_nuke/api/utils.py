@@ -121,7 +121,7 @@ def _submit_render_on_farm(node) -> bool:
         node (Node): The node for which the farm submission is being made.
 
     Returns:
-        bool. Has the submission succeed?
+        bool: Did the submission succeed?
     """
 
     host = registered_host()
