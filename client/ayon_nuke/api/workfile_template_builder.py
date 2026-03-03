@@ -121,7 +121,7 @@ def update_workfile_template(*args):
 
 def create_placeholder(*args):
     if not nuke.GUI:
-        raise RuntimeError("Invalid in non-GUI mode.")
+        raise RuntimeError("Invalid in none-GUI mode.")
 
     from ayon_core.tools.workfile_template_build import (
         WorkfileBuildPlaceholderDialog,
@@ -136,7 +136,7 @@ def create_placeholder(*args):
 
 def update_placeholder(*args):
     if not nuke.GUI:
-        raise RuntimeError("Invalid in non-GUI mode.")
+        raise RuntimeError("Invalid in none-GUI mode.")
 
     from ayon_core.tools.workfile_template_build import (
         WorkfileBuildPlaceholderDialog,

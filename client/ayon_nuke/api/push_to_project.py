@@ -46,7 +46,7 @@ def bake_container(container):
 
 def main():
     if not nuke.GUI:
-        raise RuntimeError("Invalid in non-GUI mode.")
+        raise RuntimeError("Invalid in none-GUI mode.")
 
     from ayon_core.tools import context_dialog
     context = context_dialog.ask_for_context()
