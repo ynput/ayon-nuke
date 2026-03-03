@@ -133,21 +133,21 @@ class NukeHost(
         # Register AYON event for workfiles loading.
         register_event_callback("workio.open_file", check_inventory_versions)
         register_event_callback("taskChanged", change_context_label)
-        project_settings = get_current_project_settings()
 
-        add_nuke_callbacks(project_settings)
+        add_nuke_callbacks()
 
-        launch_workfiles_app()
-
-    def setup_menu(self):
+    def setup_ui_callbacks_and_menu(self):
         """Setup AYON menus."""
         if not nuke.GUI:
-            raise RuntimeError("Cannot set up menus in none-GUI mode.")
+            raise RuntimeError("Cannot set up in none-GUI mode.")
 
         project_settings = get_current_project_settings()
         _install_menu(project_settings)
         add_scripts_menu()
         add_scripts_gizmo()
+
+        add_nuke_ui_callbacks()
+        launch_workfiles_app()
 
     def get_context_data(self):
         root_node = nuke.root()
@@ -166,32 +166,38 @@ def add_nuke_callbacks(project_settings: dict = None):
     nuke_settings = project_settings["nuke"]
     workfile_settings = WorkfileSettings()
 
-    # Set context settings.
+    # Set context settings on create and script load.
     nuke.addOnCreate(
-        workfile_settings.set_context_settings, nodeClass="Root")
+        workfile_settings.set_context_settings,
+        nodeClass="Root"
+    )
+    nuke.addOnScriptLoad(workfile_settings.set_context_settings)
 
+    # fix ffmpeg settings on script
+    nuke.addOnScriptLoad(on_script_load)
+
+    # Add dirmap for file paths.
+    if nuke_settings["dirmap"]["enabled"]:
+        log.info("Added Nuke's dir-mapping callback ...")
+        nuke.addFilenameFilter(dirmap_file_name_filter)
+
+    log.info("Added Nuke callbacks ...")
+
+
+def add_nuke_ui_callbacks():
+    """Adding all available UI nuke callbacks"""
     # adding favorites to file browser
+    workfile_settings = WorkfileSettings()
     nuke.addOnCreate(workfile_settings.set_favorites, nodeClass="Root")
 
     # template builder callbacks
     nuke.addOnCreate(start_workfile_template_builder, nodeClass="Root")
 
-    # fix ffmpeg settings on script
-    nuke.addOnScriptLoad(on_script_load)
-
     # set checker for last versions on loaded containers
     nuke.addOnScriptLoad(check_inventory_versions)
     nuke.addOnScriptSave(check_inventory_versions)
 
-    # set apply all workfile settings on script load and save
-    nuke.addOnScriptLoad(WorkfileSettings().set_context_settings)
-
-    if nuke_settings["dirmap"]["enabled"]:
-        log.info("Added Nuke's dir-mapping callback ...")
-        # Add dirmap for file paths.
-        nuke.addFilenameFilter(dirmap_file_name_filter)
-
-    log.info("Added Nuke callbacks ...")
+    log.info("Added Nuke UI callbacks ...")
 
 
 def reload_config():
