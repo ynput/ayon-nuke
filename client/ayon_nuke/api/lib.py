@@ -1587,7 +1587,7 @@ class WorkfileSettings(object):
 
         if erased_viewers:
             log.warning(
-                "Attention! Viewer nodes {} were erased."
+                "Attention! Viewer nodes {} were erased. "
                 "It had wrong color profile".format(erased_viewers))
 
     # TODO: move into ./colorspace.py
