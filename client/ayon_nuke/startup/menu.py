@@ -2,7 +2,7 @@ from ayon_core.pipeline import registered_host
 
 
 # This code gets only called from GUI mode.
-# Unlike the none-GUI mode (e.g. farm),
+# Unlike the non-GUI mode (e.g. farm),
 # we do expect a valid host at this time.
 nuke_host = registered_host()
 if nuke_host is None:

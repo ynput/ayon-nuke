@@ -139,7 +139,7 @@ class NukeHost(
     def setup_ui_callbacks_and_menu(self):
         """Setup AYON menus."""
         if not nuke.GUI:
-            raise RuntimeError("Cannot set up in none-GUI mode.")
+            raise RuntimeError("Cannot set up in non-GUI mode.")
 
         project_settings = get_current_project_settings()
         _install_menu(project_settings)
@@ -234,7 +234,7 @@ def get_context_label():
 
 def _install_menu(project_settings: dict):
     """Install AYON menu into Nuke's main menu bar."""
-    # local imports, modules not available in none-GUI mode
+    # local imports, modules not available in non-GUI mode
     from ayon_core.tools.utils import host_tools
     from ayon_core.tools.workfile_template_build import open_template_ui
 
