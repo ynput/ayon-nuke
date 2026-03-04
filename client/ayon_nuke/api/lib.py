@@ -2498,7 +2498,7 @@ def _launch_workfile_app():
     # Safeguard to not show window when application is still starting up
     #   or is already closing down.
     if not nuke.GUI:
-        raise RuntimeError("Invalid in none-GUI mode.")
+        raise RuntimeError("Invalid in non-GUI mode.")
 
     closing_down = QtWidgets.QApplication.closingDown()
     starting_up = QtWidgets.QApplication.startingUp()
