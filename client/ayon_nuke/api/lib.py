@@ -7,7 +7,7 @@ import pathlib
 import platform
 import tempfile
 import contextlib
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 
 import nuke
 from qtpy import QtCore, QtWidgets
@@ -845,6 +845,17 @@ def get_view_process_node():
         return duplicate_node(ipn_node)
 
 
+def on_create_root_node():
+    if script_name():
+        log.info("Not a new Script. Skipping setting context settings.")
+        return
+
+    log.info("New Script. Setting context settings ...")
+
+    # Set context settings.
+    WorkfileSettings().set_context_settings()
+
+
 def on_script_load():
     ''' Callback for ffmpeg support
     '''
@@ -1475,6 +1486,60 @@ def create_backdrop(label="", color=None, layer=0,
     bdn["note_font_size"].setValue(20)
     return bdn
 
+class ConfirmSetContextSettingMessageBox(QtWidgets.QDialog):
+    def __init__(self, change_description):
+        super().__init__()
+        layout = QtWidgets.QVBoxLayout()
+        self.setLayout(layout)
+        layout.addWidget(QtWidgets.QLabel(
+            "Would you like this script to have the following change:\n\n"
+            f"{change_description}\n\n"
+            "This is to match the correct settings for this context."
+        ))
+        if not ASSIST:
+            self._always_check_check_box = QtWidgets.QCheckBox(
+                "Always check this Script's context settings on load\n"
+                "(if switched off, can be switched back on in Project Settings User tab)"
+            )
+            self._always_check_check_box.setChecked(True)
+            layout.addWidget(
+                self._always_check_check_box
+            )
+            self._always_check_check_box.toggled.connect(self._always_check_check_box_toggled)
+        button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.StandardButtons.Yes|
+            QtWidgets.QDialogButtonBox.StandardButtons.No,
+        )
+        layout.addWidget(button_box)
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+
+    def _always_check_check_box_toggled(self, is_checked):
+        root_node = nuke.root()
+        if "check_context_settings_on_load" not in root_node.knobs():
+            root_node.addKnob(nuke.Boolean_Knob(
+                "check_context_settings_on_load",
+                "Check Context Settings on Load",
+                True,
+            ))
+        root_node["check_context_settings_on_load"].setValue(is_checked)
+
+    @classmethod
+    def ask_for_confirmation(cls, message):
+        project_settings = get_current_project_settings()
+        if not project_settings["nuke"]["general"]["check_context_settings_on_script_open"]:
+            return False
+
+        root_node = nuke.root()
+        # a specific script can be set to never check
+        if (
+            "check_context_settings_on_load" in root_node.knobs()
+            and not root_node["check_context_settings_on_load"].value()
+        ):
+            return False
+
+        return cls(message).exec() == QtWidgets.QDialog.Accepted
+
 
 class WorkfileSettings(object):
     """
@@ -2035,7 +2100,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         if read_clrs_inputs:
             self.set_reads_colorspace(read_clrs_inputs)
 
-    def reset_frame_range_handles(self):
+    def reset_frame_range_handles(self, requires_confirmation=False):
         """Set frame range to current folder."""
 
         if "attrib" not in self._task_entity:
@@ -2074,22 +2139,64 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         frame_start_handle = frame_start - handle_start
         frame_end_handle = frame_end + handle_end
 
-        self._root_node["lock_range"].setValue(False)
-        self._root_node["fps"].setValue(fps)
-        self._root_node["first_frame"].setValue(frame_start_handle)
-        self._root_node["last_frame"].setValue(frame_end_handle)
-        self._root_node["lock_range"].setValue(True)
-
-        # update node graph so knobs are updated
-        update_node_graph()
-
         frame_range = '{0}-{1}'.format(frame_start, frame_end)
 
-        for node in nuke.allNodes(filter="Viewer"):
-            node['frame_range'].setValue(frame_range)
-            node['frame_range_lock'].setValue(True)
-            node['frame_range'].setValue(frame_range)
-            node['frame_range_lock'].setValue(True)
+        knob_name_current_new_value_triplets_by_node = defaultdict(list)
+        for knob_name_new_value_pairs, nodes in (
+            (
+                (
+                    ("lock_range", False),
+                    ("fps", fps),
+                    ("first_frame", frame_start_handle),
+                    ("last_frame", frame_end_handle),
+                    ("lock_range", True),
+                ),
+                (self._root_node,),
+            ),
+            (
+                (
+                    ("frame_range", frame_range),
+                    ("frame_range_lock", True),
+                ),
+                nuke.allNodes(filter="Viewer"),
+            )
+        ):
+            for node in nodes:
+                for knob_name, new_value in knob_name_new_value_pairs:
+                    current_value = node[knob_name].value()
+                    if current_value != new_value:
+                        knob_name_current_new_value_triplets_by_node[node].append(
+                            (knob_name, current_value, new_value)
+                        )
+
+        if knob_name_current_new_value_triplets_by_node:
+            if not requires_confirmation or ConfirmSetContextSettingMessageBox.ask_for_confirmation(
+                "\n\n".join(
+                    "{}:\n{}".format(
+                        node.name(),
+                        "\n".join(
+                            f"{knob_name}: {current_value} -> {new_value}" for knob_name, current_value, new_value in knob_name_current_new_value_triplets
+                        )
+                    ) for node, knob_name_current_new_value_triplets in knob_name_current_new_value_triplets_by_node.items()
+                )
+            ):
+                was_node_graph_updated = False
+                for node, knob_name_current_new_value_triplets in knob_name_current_new_value_triplets_by_node.items():
+                    # Root node will be first.
+                    # Based on how the code was when I found it,
+                    # `update_node_graph` needs calling between
+                    # root node and viewers - splidje
+                    if not was_node_graph_updated and node != self._root_node:
+                        # update node graph so knobs are updated
+                        update_node_graph()
+                        was_node_graph_updated = True
+                    for knob_name, _, new_value in knob_name_current_new_value_triplets:
+                        node[knob_name].setValue(new_value)
+
+                # in case no Viewers needed knob changes
+                if not was_node_graph_updated:
+                    # update node graph so knobs are updated
+                    update_node_graph()
 
         if not ASSIST:
             set_node_data(
@@ -2106,7 +2213,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                 "updating custom knobs..."
             )
 
-    def reset_resolution(self):
+    def reset_resolution(self, requires_confirmation=False):
         """Set resolution to project resolution."""
         log.info("Resetting resolution")
         project_name = get_current_project_name()
@@ -2127,6 +2234,20 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                    "\nPixel Aspect: `{pixel_aspect}`").format(**format_data)
             log.error(msg)
             nuke.message(msg)
+
+        current_format = nuke.root()["format"].value()
+        if requires_confirmation and any((
+            current_format.width() != format_data["width"],
+            current_format.height() != format_data["height"],
+            current_format.pixelAspect() != format_data["pixel_aspect"],
+        )):
+            if not ConfirmSetContextSettingMessageBox.ask_for_confirmation(
+                "Format:\n"
+                f"{current_format.width()}x{current_format.height()} {current_format.pixelAspect()}"
+                " -> "
+                f'{format_data["width"]}x{format_data["height"]} {format_data["pixel_aspect"]}'
+            ):
+                return
 
         existing_format = None
         for format in nuke.formats():
@@ -2170,10 +2291,10 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                 "{name}".format(**kwargs)
             )
 
-    def set_context_settings(self):
-        self.reset_resolution()
-        self.reset_frame_range_handles()
-        # add colorspace menu item
+    def set_context_settings(self, requires_confirmation=False):
+        self.reset_resolution(requires_confirmation)
+        self.reset_frame_range_handles(requires_confirmation)
+        # todo: No need to check confirmation for color?
         self.set_colorspace()
 
     def set_favorites(self):

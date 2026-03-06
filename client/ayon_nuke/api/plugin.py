@@ -1480,7 +1480,7 @@ class ExporterReviewMov(ExporterReview):
         self._shift_to_previous_node_and_temp(product_name, node, message)
 
 
-def convert_to_valid_instaces():
+def convert_to_valid_instances():
     """ Check and convert to latest publisher instances
 
     Also save as new minor version of workfile.
