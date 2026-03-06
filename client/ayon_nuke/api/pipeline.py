@@ -26,9 +26,7 @@ from ayon_core.pipeline import (
     registered_host,
 )
 from ayon_core.pipeline.workfile import BuildWorkfile
-from ayon_core.tools.utils import host_tools
 from ayon_nuke import NUKE_ROOT_DIR
-from ayon_core.tools.workfile_template_build import open_template_ui
 
 # Function 'get_current_project_settings' was moved in ayon-core 1.5.1
 try:
@@ -135,16 +133,20 @@ class NukeHost(
         # Register AYON event for workfiles loading.
         register_event_callback("workio.open_file", check_inventory_versions)
         register_event_callback("taskChanged", change_context_label)
+
+        add_nuke_callbacks()
+
+    def setup_ui_callbacks_and_menu(self):
+        """Setup AYON menus."""
+        if not nuke.GUI:
+            raise RuntimeError("Cannot set up in non-GUI mode.")
+
         project_settings = get_current_project_settings()
-        if nuke.GUI:
-            _install_menu(project_settings)
+        _install_menu(project_settings)
+        add_scripts_menu()
+        add_scripts_gizmo()
 
-            # add script menu
-            add_scripts_menu()
-            add_scripts_gizmo()
-
-        add_nuke_callbacks(project_settings)
-
+        add_nuke_ui_callbacks()
         launch_workfiles_app()
 
     def get_context_data(self):
@@ -164,32 +166,38 @@ def add_nuke_callbacks(project_settings: dict = None):
     nuke_settings = project_settings["nuke"]
     workfile_settings = WorkfileSettings()
 
-    # Set context settings.
+    # Set context settings on create and script load.
     nuke.addOnCreate(
-        workfile_settings.set_context_settings, nodeClass="Root")
+        workfile_settings.set_context_settings,
+        nodeClass="Root"
+    )
+    nuke.addOnScriptLoad(workfile_settings.set_context_settings)
 
+    # fix ffmpeg settings on script
+    nuke.addOnScriptLoad(on_script_load)
+
+    # Add dirmap for file paths.
+    if nuke_settings["dirmap"]["enabled"]:
+        log.info("Added Nuke's dir-mapping callback ...")
+        nuke.addFilenameFilter(dirmap_file_name_filter)
+
+    log.info("Added Nuke callbacks ...")
+
+
+def add_nuke_ui_callbacks():
+    """Adding all available UI nuke callbacks"""
     # adding favorites to file browser
+    workfile_settings = WorkfileSettings()
     nuke.addOnCreate(workfile_settings.set_favorites, nodeClass="Root")
 
     # template builder callbacks
     nuke.addOnCreate(start_workfile_template_builder, nodeClass="Root")
 
-    # fix ffmpeg settings on script
-    nuke.addOnScriptLoad(on_script_load)
-
     # set checker for last versions on loaded containers
     nuke.addOnScriptLoad(check_inventory_versions)
     nuke.addOnScriptSave(check_inventory_versions)
 
-    # set apply all workfile settings on script load and save
-    nuke.addOnScriptLoad(WorkfileSettings().set_context_settings)
-
-    if nuke_settings["dirmap"]["enabled"]:
-        log.info("Added Nuke's dir-mapping callback ...")
-        # Add dirmap for file paths.
-        nuke.addFilenameFilter(dirmap_file_name_filter)
-
-    log.info("Added Nuke callbacks ...")
+    log.info("Added Nuke UI callbacks ...")
 
 
 def reload_config():
@@ -217,14 +225,6 @@ def reload_config():
             reload(module)
 
 
-def _show_workfiles():
-    # Make sure parent is not set
-    # - this makes Workfiles tool as separated window which
-    #   avoid issues with reopening
-    # - it is possible to explicitly change on top flag of the tool
-    host_tools.show_workfiles(parent=None, on_top=False)
-
-
 def get_context_label():
     return "{0}, {1}".format(
         get_current_folder_path(),
@@ -234,6 +234,9 @@ def get_context_label():
 
 def _install_menu(project_settings: dict):
     """Install AYON menu into Nuke's main menu bar."""
+    # local imports, modules not available in non-GUI mode
+    from ayon_core.tools.utils import host_tools
+    from ayon_core.tools.workfile_template_build import open_template_ui
 
     # uninstall original AYON menu
     main_window = get_main_window()
@@ -266,6 +269,13 @@ def _install_menu(project_settings: dict):
             lambda: save_next_version(),
             shortcut_str
         )
+
+    def _show_workfiles():
+        # Make sure parent is not set
+        # - this makes Workfiles tool as separated window which
+        #   avoid issues with reopening
+        # - it is possible to explicitly change on top flag of the tool
+        host_tools.show_workfiles(parent=None, on_top=False)
 
     menu.addCommand(
         "Work Files...",
