@@ -540,7 +540,7 @@ def ls():
     need to implement a for-loop that then *yields* one Container at
     a time.
     """
-    all_nodes = nuke.allNodes(recurseGroups=False)
+    all_nodes = nuke.allNodes(recurseGroups=True)
 
     nodes = [n for n in all_nodes]
 
