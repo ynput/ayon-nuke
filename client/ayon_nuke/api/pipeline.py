@@ -134,19 +134,17 @@ class NukeHost(
         register_event_callback("workio.open_file", check_inventory_versions)
         register_event_callback("taskChanged", change_context_label)
 
-        add_nuke_callbacks()
-
     def setup_ui_callbacks_and_menu(self):
         """Setup AYON menus."""
         if not nuke.GUI:
             raise RuntimeError("Cannot set up in non-GUI mode.")
 
         project_settings = get_current_project_settings()
+        add_nuke_callbacks(project_settings)
         _install_menu(project_settings)
+
         add_scripts_menu()
         add_scripts_gizmo()
-
-        add_nuke_ui_callbacks()
         launch_workfiles_app()
 
     def get_context_data(self):
@@ -166,7 +164,7 @@ def add_nuke_callbacks(project_settings: dict = None):
     nuke_settings = project_settings["nuke"]
     workfile_settings = WorkfileSettings()
 
-    # Set context settings on create and script load.
+    # Set context settings.
     nuke.addOnCreate(
         workfile_settings.set_context_settings,
         nodeClass="Root"
@@ -181,12 +179,6 @@ def add_nuke_callbacks(project_settings: dict = None):
         log.info("Added Nuke's dir-mapping callback ...")
         nuke.addFilenameFilter(dirmap_file_name_filter)
 
-    log.info("Added Nuke callbacks ...")
-
-
-def add_nuke_ui_callbacks():
-    """Adding all available UI nuke callbacks"""
-    # adding favorites to file browser
     workfile_settings = WorkfileSettings()
     nuke.addOnCreate(workfile_settings.set_favorites, nodeClass="Root")
 
@@ -197,7 +189,7 @@ def add_nuke_ui_callbacks():
     nuke.addOnScriptLoad(check_inventory_versions)
     nuke.addOnScriptSave(check_inventory_versions)
 
-    log.info("Added Nuke UI callbacks ...")
+    log.info("Added Nuke callbacks ...")
 
 
 def reload_config():
