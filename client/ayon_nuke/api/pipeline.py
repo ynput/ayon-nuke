@@ -166,28 +166,28 @@ def add_nuke_callbacks(project_settings: dict = None):
 
     # Set context settings.
     nuke.addOnCreate(
-        workfile_settings.set_context_settings,
-        nodeClass="Root"
-    )
-    nuke.addOnScriptLoad(workfile_settings.set_context_settings)
+        workfile_settings.set_context_settings, nodeClass="Root")
 
-    # fix ffmpeg settings on script
-    nuke.addOnScriptLoad(on_script_load)
-
-    # Add dirmap for file paths.
-    if nuke_settings["dirmap"]["enabled"]:
-        log.info("Added Nuke's dir-mapping callback ...")
-        nuke.addFilenameFilter(dirmap_file_name_filter)
-
-    workfile_settings = WorkfileSettings()
+    # adding favorites to file browser
     nuke.addOnCreate(workfile_settings.set_favorites, nodeClass="Root")
 
     # template builder callbacks
     nuke.addOnCreate(start_workfile_template_builder, nodeClass="Root")
 
+    # fix ffmpeg settings on script
+    nuke.addOnScriptLoad(on_script_load)
+
     # set checker for last versions on loaded containers
     nuke.addOnScriptLoad(check_inventory_versions)
     nuke.addOnScriptSave(check_inventory_versions)
+
+    # set apply all workfile settings on script load and save
+    nuke.addOnScriptLoad(WorkfileSettings().set_context_settings)
+
+    if nuke_settings["dirmap"]["enabled"]:
+        log.info("Added Nuke's dir-mapping callback ...")
+        # Add dirmap for file paths.
+        nuke.addFilenameFilter(dirmap_file_name_filter)
 
     log.info("Added Nuke callbacks ...")
 
