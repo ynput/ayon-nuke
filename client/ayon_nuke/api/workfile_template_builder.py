@@ -1,4 +1,5 @@
 import collections
+from typing import Any
 import nuke
 
 from ayon_core.pipeline import registered_host
@@ -17,6 +18,13 @@ from .lib import (
 )
 
 PLACEHOLDER_SET = "PLACEHOLDERS_SET"
+
+# this value is taken from `pythonextensions/site-packages/hiero/core/FnNukeHelpers.py` line 266
+# based on the official documentation: https://docs.nuke.com/nuke/knobs/knob-flags
+# this knob is supposed to be used for internal use only, and not exposed in the
+# regular api. We shold probably find a better way to do this.
+NODE_KNOB = 0x200000
+"""FLag for knobs that are used to control a nodes dag appearance."""
 
 
 class NukeTemplateBuilder(AbstractTemplateBuilder):
@@ -92,14 +100,21 @@ class NukePlaceholderPlugin(PlaceholderPlugin):
         node = nuke.toNode(placeholder_item.scene_identifier)
         imprint(node, placeholder_data)
 
-    def _parse_placeholder_node_data(self, node):
-        placeholder_data = {}
+    def _parse_placeholder_node_data(self, node: nuke.Node):
+        placeholder_data: dict[str, Any] = {}
+
+        # make sure all expected keys are present
         for key in self.get_placeholder_keys():
-            knob = node.knob(key)
-            value = None
-            if knob is not None:
-                value = knob.getValue()
-            placeholder_data[key] = value
+            placeholder_data[key] = None
+
+        # read all user knobs
+        for knob in node.knobs().values():
+            # skip internal knobs
+            if knob.getFlag(NODE_KNOB):
+                continue
+
+            placeholder_data[knob.name()] = knob.getValue()
+
         return placeholder_data
 
     def delete_placeholder(self, placeholder):
