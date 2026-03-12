@@ -118,8 +118,8 @@ class NukePlaceholderPlugin(PlaceholderPlugin):
 
             if knob := node.knob(key):
                 self.log.warning(
-                    f"Legacy placeholder key '{key}' on node '{node.fullName()}'"
-                    "is deprecated and will be removed in the future."
+                    f"Legacy placeholder key '{key}' on '{node.fullName()}'"
+                    " is deprecated and will be removed in the future."
                     "\nPlease recreate the placeholder to fix this."
                 )
                 placeholder_data[key] = knob.getValue()
