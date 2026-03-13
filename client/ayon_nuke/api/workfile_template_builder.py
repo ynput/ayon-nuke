@@ -22,6 +22,7 @@ PLACEHOLDER_SET = "PLACEHOLDERS_SET"
 
 LEGACY_PLACEHOLDER_KEYS = {
     "product_type",   # replaced by "product_base_type" in ayon-core 1.8.0
+    "family",
 }
 """Legacy placeholder keys that are deprecated but still supported for
 backward compatibility.
