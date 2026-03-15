@@ -13,7 +13,7 @@ from ayon_core.pipeline.create import CreateContext
 
 
 def set_context_favorites(favorites=None):
-    """ Adding favorite folders to nuke's browser
+    """Adding favorite folders to nuke's browser
 
     Arguments:
         favorites (dict): couples of {name:path}
@@ -29,9 +29,9 @@ def set_context_favorites(favorites=None):
 
 
 def get_node_outputs(node):
-    '''
+    """
     Return a dictionary of the nodes and pipes that are connected to node
-    '''
+    """
     dep_dict = {}
     dependencies = node.dependent(nuke.INPUTS | nuke.HIDDEN_INPUTS)
     for d in dependencies:
@@ -42,15 +42,15 @@ def get_node_outputs(node):
     return dep_dict
 
 
-def is_node_gizmo(node):
-    '''
+def is_node_gizmo(node) -> bool:
+    """
     return True if node is gizmo
-    '''
+    """
     return 'gizmo_file' in node.knobs()
 
 
-def gizmo_is_nuke_default(gizmo):
-    '''Check if gizmo is in default install path'''
+def gizmo_is_nuke_default(gizmo) -> bool:
+    """Check if gizmo is in default install path"""
     plug_dir = os.path.join(os.path.dirname(
         nuke.env['ExecutablePath']), 'plugins')
     return gizmo.filename().startswith(plug_dir)
@@ -92,7 +92,7 @@ def bake_gizmos_recursively(in_group=None):
                     bake_gizmos_recursively(node)
 
 
-def is_headless():
+def is_headless() -> bool:
     """
     Returns:
         bool: headless

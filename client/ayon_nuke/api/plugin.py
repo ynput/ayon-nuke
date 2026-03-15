@@ -177,7 +177,7 @@ class NukeCreator(Creator):
         pre_create_data,
         class_name: str = None,
     ):
-        """ Get current node selection.
+        """Get current node selection.
 
         Arguments:
             pre_create_data (dict): The creator initial data.
@@ -370,7 +370,7 @@ class NukeWriteCreator(NukeCreator):
         self,
         pre_create_data,
     ):
-        """ Get current node selection.
+        """Get current node selection.
 
         Arguments:
             pre_create_data (dict): The creator initial data.
@@ -952,7 +952,7 @@ class ExporterReview(object):
         custom_tags=None,
         colorspace=None,
     ):
-        """ Add representation data to self.data
+        """Add representation data to self.data
 
         Args:
             tags (list[str], optional): list of defined tags.
@@ -1481,7 +1481,7 @@ class ExporterReviewMov(ExporterReview):
 
 
 def convert_to_valid_instaces():
-    """ Check and convert to latest publisher instances
+    """Check and convert to latest publisher instances
 
     Also save as new minor version of workfile.
     """

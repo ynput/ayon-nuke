@@ -11,8 +11,7 @@ from ayon_nuke.api.plugin import get_publish_config
 
 
 class ExtractCamera(publish.Extractor):
-    """ 3D camera extractor
-    """
+    """3D camera extractor"""
     label = 'Extract Camera'
     order = pyblish.api.ExtractorOrder
     families = ["camera"]
@@ -146,7 +145,7 @@ class ExtractCamera(publish.Extractor):
 
 
 def bakeCameraWithAxeses(camera_node, output_range):
-    """ Baking all perent hierarchy of axeses into camera
+    """Baking all perent hierarchy of axeses into camera
     with transposition onto word XYZ coordinance
     """
     bakeFocal = False
