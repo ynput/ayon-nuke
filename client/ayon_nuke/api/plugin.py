@@ -369,6 +369,7 @@ class NukeWriteCreator(NukeCreator):
     def _get_current_selected_nodes(
         self,
         pre_create_data,
+        class_name=None,
     ):
         """Get current node selection.
 
@@ -387,7 +388,7 @@ class NukeWriteCreator(NukeCreator):
 
         selected_nodes = super()._get_current_selected_nodes(
             pre_create_data,
-            class_name=None,
+            class_name=class_name,
         )
 
         if not selected_nodes:
