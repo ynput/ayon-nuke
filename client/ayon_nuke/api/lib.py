@@ -698,8 +698,7 @@ def get_matching_override_node(node_class, plugin_name, product_name):
 
 
 def get_imageio_node_setting(node_class, plugin_name, product_name):
-    """Get preset data for dataflow (fileType, compression, bitDepth)
-    """
+    """Get preset data for dataflow (fileType, compression, bitDepth)"""
     imageio_nodes = get_nuke_imageio_settings()["nodes"]
     required_nodes = imageio_nodes["required_nodes"]
 
@@ -742,8 +741,7 @@ def get_imageio_node_setting(node_class, plugin_name, product_name):
 def get_imageio_node_override_setting(
     node_class, plugin_name, product_name, knobs_settings
 ):
-    """Get imageio node overrides from settings
-    """
+    """Get imageio node overrides from settings"""
     # find matching override node
     override_imageio_node = get_matching_override_node(
         node_class, plugin_name, product_name
@@ -782,8 +780,7 @@ def get_imageio_node_override_setting(
 
 # TODO: move into ./colorspace.py
 def get_imageio_input_colorspace(filename):
-    """Get input file colorspace based on regex in settings.
-    """
+    """Get input file colorspace based on regex in settings."""
     imageio_regex_inputs = (
         get_nuke_imageio_settings()["regex_inputs"]["inputs"])
 
@@ -828,8 +825,7 @@ def get_view_process_node():
 
 
 def on_script_load():
-    """Callback for ffmpeg support
-    """
+    """Callback for ffmpeg support"""
     if nuke.env["LINUX"]:
         nuke.tcl('load ffmpegReader')
         nuke.tcl('load ffmpegWriter')
@@ -2221,7 +2217,7 @@ def get_write_node_template_attr(node):
 def get_dependent_nodes(nodes):
     """Get all dependent nodes connected to the list of nodes.
 
-    Looking for connections outside of the nodes in incoming argument.
+    Looking for connections outside the nodes in incoming argument.
 
     Arguments:
         nodes (list): list of nuke.Node objects
