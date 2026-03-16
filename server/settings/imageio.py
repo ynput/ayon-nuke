@@ -262,7 +262,7 @@ class ImageIOFileRulesModel(BaseSettingsModel):
 
 
 class ImageIOSettings(BaseSettingsModel):
-    """Nuke color management project settings. """
+    """Nuke color management project settings."""
 
     activate_host_color_management: bool = SettingsField(
         True, title="Enable Color Management")

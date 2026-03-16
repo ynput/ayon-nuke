@@ -84,7 +84,7 @@ def get_colorspace_list(colorspace_knob, node=None, consider_aliases=True):
 
 
 def colorspace_exists_on_node(node, colorspace_name):
-    """ Check if colorspace exists on node
+    """Check if colorspace exists on node
 
     Look through all options in the colorspace knob, and see if we have an
     exact match to one of the items.
