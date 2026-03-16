@@ -54,7 +54,7 @@ class ValidateBackdrop(
     pyblish.api.InstancePlugin,
     OptionalPyblishPluginMixin
 ):
-    """ Validate amount of nodes on backdrop node in case user
+    """Validate amount of nodes on backdrop node in case user
     forgotten to add nodes above the publishing backdrop node.
     """
 
