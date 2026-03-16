@@ -2189,9 +2189,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
 
 
 def get_write_node_template_attr(node):
-    """Gets all defined data from presets
-
-    """
+    """Gets all defined data from presets"""
 
     # TODO: add identifiers to settings and rename settings key
     plugin_names_mapping = {
