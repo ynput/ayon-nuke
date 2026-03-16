@@ -14,7 +14,7 @@ class ValidateScriptAttributes(
     OptionalPyblishPluginMixin,
     pyblish.api.InstancePlugin
 ):
-    """ Validates file output. """
+    """Validates script attributes."""
 
     order = pyblish.api.ValidatorOrder + 0.1
     families = ["workfile"]
