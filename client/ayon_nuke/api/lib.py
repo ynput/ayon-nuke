@@ -45,13 +45,9 @@ from ayon_core.pipeline import (
     get_current_context,
 )
 from ayon_core.pipeline.load import filter_containers
-from ayon_core.pipeline.context_tools import (
-    get_current_context_custom_workfile_template
-)
 from ayon_core.pipeline.colorspace import (
     get_current_context_imageio_config_preset
 )
-from ayon_core.pipeline.workfile import BuildWorkfile
 from ayon_core.resources import get_ayon_icon_filepath
 
 from .gizmo_menu import GizmoMenu
@@ -60,7 +56,6 @@ from .constants import (
     LOADER_CATEGORY_COLORS,
 )
 
-from .workio import save_file
 from .utils import get_node_outputs
 
 from .colorspace import get_formatted_display_and_view
