@@ -43,9 +43,7 @@ def get_node_outputs(node):
 
 
 def is_node_gizmo(node) -> bool:
-    """
-    return True if node is gizmo
-    """
+    """Return True if the node is a gizmo."""
     return 'gizmo_file' in node.knobs()
 
 
@@ -60,7 +58,7 @@ def bake_gizmos_recursively(in_group=None):
     """Converting a gizmo to group
 
     Arguments:
-        is_group (nuke.Node)[optonal]: group node or all nodes
+        in_group (Optional[nuke.Node]): group node or all nodes
     """
     from .lib import maintained_selection
     if in_group is None:

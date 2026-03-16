@@ -154,9 +154,9 @@ def get_main_window():
 
 
 def set_node_data(node, knob_name, data):
-    """Write data to node invisible knob
+    """Write data to an invisible node knob.
 
-    Will create new in case it doesn't exists
+    Will create a new one if it doesn't exist,
     or update the one already created.
 
     Args:

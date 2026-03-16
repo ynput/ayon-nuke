@@ -145,8 +145,8 @@ class ExtractCamera(publish.Extractor):
 
 
 def bakeCameraWithAxeses(camera_node, output_range):
-    """Baking all perent hierarchy of axeses into camera
-    with transposition onto word XYZ coordinance
+    """Bake the entire parent hierarchy of axes into the camera,
+    transforming it into world XYZ coordinates.
     """
     bakeFocal = False
     bakeHaperture = False
