@@ -181,7 +181,9 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         output_dir = os.path.dirname(write_file_path)
 
         # TODO: remove this when we have proper colorspace support
-        version_data = {"colorspace": colorspace}
+        version_data = {
+            "colorspace": colorspace
+        }
 
         if product_base_type == "plate":
             time_warp_node = _find_downstream_time_warp_node(
@@ -208,16 +210,14 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
                     ),
                 )
 
-        instance.data.update(
-            {
-                "versionData": version_data,
-                "path": write_file_path,
-                "outputDir": output_dir,
-                "ext": ext,
-                "colorspace": colorspace,
-                "color_channels": color_channels,
-            }
-        )
+        instance.data.update({
+            "versionData": version_data,
+            "path": write_file_path,
+            "outputDir": output_dir,
+            "ext": ext,
+            "colorspace": colorspace,
+            "color_channels": color_channels,
+        })
 
         if product_base_type == "render":
             instance.data.update({
@@ -275,10 +275,10 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             return self._write_nodes[instance_name]
 
     def _get_existing_frames_representation(
-            self,
-            instance,
-            collected_frames
-        ):
+        self,
+        instance,
+        collected_frames
+    ):
         """Get existing frames representation.
 
         Args:
@@ -380,7 +380,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         # Farm rendering
         instance.data.update({
             "transfer": False,
-            "farm": True,  # to skip integrate
+            "farm": True  # to skip integrate
         })
         self.log.info("Farm rendering ON ...")
 
