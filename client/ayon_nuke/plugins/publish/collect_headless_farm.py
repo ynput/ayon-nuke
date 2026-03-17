@@ -54,5 +54,6 @@ class SetupRenderOnFarm(pyblish.api.InstancePlugin, AYONPyblishPluginMixin):
 
         # Use the workfile instead of published.
         publish_attributes = instance.data["publish_attributes"]
-        plugin_attributes = publish_attributes["NukeSubmitDeadline"]
-        plugin_attributes["use_published_workfile"] = False
+        if "NukeSubmitDeadline" in publish_attributes:
+            plugin_attributes = publish_attributes["NukeSubmitDeadline"]
+            plugin_attributes["use_published_workfile"] = False

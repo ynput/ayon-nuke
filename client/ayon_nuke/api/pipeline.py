@@ -7,6 +7,7 @@ from collections import OrderedDict, defaultdict
 import pyblish.api
 
 from ayon_core.host import (
+    ApplicationInformation,
     HostBase,
     IWorkfileHost,
     ILoadHost,
@@ -99,6 +100,12 @@ class NukeHost(
     HostBase, IWorkfileHost, ILoadHost, IPublishHost
 ):
     name = "nuke"
+
+    def get_app_information(self):
+        return ApplicationInformation(
+            app_name="Nuke",
+            app_version=nuke.NUKE_VERSION_STRING,
+        )
 
     def open_workfile(self, filepath):
         return open_file(filepath)
@@ -543,7 +550,7 @@ def ls():
     need to implement a for-loop that then *yields* one Container at
     a time.
     """
-    all_nodes = nuke.allNodes(recurseGroups=False)
+    all_nodes = nuke.allNodes(recurseGroups=True)
 
     nodes = [n for n in all_nodes]
 
