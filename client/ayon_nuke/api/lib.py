@@ -45,13 +45,9 @@ from ayon_core.pipeline import (
     get_current_context,
 )
 from ayon_core.pipeline.load import filter_containers
-from ayon_core.pipeline.context_tools import (
-    get_current_context_custom_workfile_template
-)
 from ayon_core.pipeline.colorspace import (
     get_current_context_imageio_config_preset
 )
-from ayon_core.pipeline.workfile import BuildWorkfile
 from ayon_core.resources import get_ayon_icon_filepath
 
 from .gizmo_menu import GizmoMenu
@@ -60,7 +56,6 @@ from .constants import (
     LOADER_CATEGORY_COLORS,
 )
 
-from .workio import save_file
 from .utils import get_node_outputs
 
 from .colorspace import get_formatted_display_and_view
@@ -2492,64 +2487,6 @@ def _launch_workfile_app():
     #       changes to the main window after showing because of initialization
     #       which moves workfiles tool under it
     host_tools.show_workfiles(parent=None, on_top=True)
-
-
-@deprecated("ayon_nuke.api.lib.start_workfile_template_builder")
-def process_workfile_builder():
-    """[DEPRECATED] Process workfile builder on nuke start
-
-    This function is deprecated and will be removed in future versions.
-    Use settings for `project_settings/nuke/templated_workfile_build` which are
-    supported by api `start_workfile_template_builder()`.
-    """
-
-    # to avoid looping of the callback, remove it!
-    nuke.removeOnCreate(process_workfile_builder, nodeClass="Root")
-
-    # get state from settings
-    project_settings = get_current_project_settings()
-    workfile_builder = project_settings["nuke"].get(
-        "workfile_builder", {})
-
-    # get settings
-    create_fv_on = workfile_builder.get("create_first_version") or None
-    builder_on = workfile_builder.get("builder_on_start") or None
-
-    last_workfile_path = os.environ.get("AYON_LAST_WORKFILE")
-
-    # generate first version in file not existing and feature is enabled
-    if create_fv_on and not os.path.exists(last_workfile_path):
-        # get custom template path if any
-        custom_template_path = get_current_context_custom_workfile_template(
-            project_settings=project_settings
-        )
-
-        # if custom template is defined
-        if custom_template_path:
-            log.info("Adding nodes from `{}`...".format(
-                custom_template_path
-            ))
-            try:
-                # import nodes into current script
-                nuke.nodePaste(custom_template_path)
-            except RuntimeError:
-                raise RuntimeError((
-                    "Template defined for project: {} is not working. "
-                    "Talk to your manager for an advise").format(
-                        custom_template_path))
-
-        # if builder at start is defined
-        if builder_on:
-            log.info("Building nodes from presets...")
-            # build nodes by defined presets
-            BuildWorkfile().process()
-
-        log.info("Saving script as version `{}`...".format(
-            last_workfile_path
-        ))
-        # safe file as version
-        save_file(last_workfile_path)
-        return
 
 
 def start_workfile_template_builder():
