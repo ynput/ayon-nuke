@@ -47,7 +47,7 @@ def gizmo_enum_options():
 
 
 class GizmoItem(BaseSettingsModel):
-    """Nuke gizmo item """
+    """Nuke gizmo item"""
 
     toolbar_menu_name: str = SettingsField(
         title="Toolbar Menu Name"

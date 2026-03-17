@@ -46,7 +46,7 @@ class ValidateNukeWriteNode(
     OptionalPyblishPluginMixin,
     pyblish.api.InstancePlugin
 ):
-    """ Validate Write node's knobs.
+    """Validate Write node's knobs.
 
     Compare knobs on write node inside the render group
     with settings. At the moment supporting only `file` knob.
