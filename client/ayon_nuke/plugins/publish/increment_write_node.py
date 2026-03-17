@@ -9,7 +9,7 @@ from ayon_core.pipeline import OptionalPyblishPluginMixin
 from ayon_nuke.api.lib import writes_version_sync
 
 
-class IncrementWriteNodePathPostSubmit(
+class IncrementWriteNodePath(
     pyblish.api.InstancePlugin, OptionalPyblishPluginMixin
 ):
     """Increments render path in write node with actual workfile version after
