@@ -1,4 +1,5 @@
 import collections
+from typing import Any
 import nuke
 
 from ayon_core.pipeline import registered_host
@@ -18,6 +19,14 @@ from .lib import (
 
 PLACEHOLDER_SET = "PLACEHOLDERS_SET"
 
+
+LEGACY_PLACEHOLDER_KEYS = {
+    "product_type",   # replaced by "product_base_type" in ayon-core 1.8.0
+    "family",
+}
+"""Legacy placeholder keys that are deprecated but still supported for
+backward compatibility.
+"""
 
 class NukeTemplateBuilder(AbstractTemplateBuilder):
     """Concrete implementation of AbstractTemplateBuilder for nuke"""
@@ -92,14 +101,30 @@ class NukePlaceholderPlugin(PlaceholderPlugin):
         node = nuke.toNode(placeholder_item.scene_identifier)
         imprint(node, placeholder_data)
 
-    def _parse_placeholder_node_data(self, node):
-        placeholder_data = {}
+    def _parse_placeholder_node_data(self, node: nuke.Node):
+        placeholder_data: dict[str, Any] = {}
+
+        # collect current placeholder keys
         for key in self.get_placeholder_keys():
-            knob = node.knob(key)
-            value = None
-            if knob is not None:
-                value = knob.getValue()
-            placeholder_data[key] = value
+            if knob := node.knob(key):
+                placeholder_data[key] = knob.getValue()
+            else:
+                placeholder_data[key] = None
+
+        # collect legacy placeholder keys for backward compatibility
+        for key in LEGACY_PLACEHOLDER_KEYS:
+
+            if placeholder_data.get(key) is not None:
+                continue
+
+            if knob := node.knob(key):
+                self.log.warning(
+                    f"Legacy placeholder key '{key}' on '{node.fullName()}'"
+                    " is deprecated and will be removed in the future."
+                    "\nPlease recreate the placeholder to fix this."
+                )
+                placeholder_data[key] = knob.getValue()
+
         return placeholder_data
 
     def delete_placeholder(self, placeholder):
