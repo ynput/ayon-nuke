@@ -190,7 +190,7 @@ class AlembicCameraLoader(load.LoaderPlugin):
         return update_container(camera_node, data_imprint)
 
     def node_version_color(self, project_name, version_entity, node):
-        """ Coloring a node by correct color by actual version
+        """Coloring a node by correct color by actual version
         """
         # get all versions in list
         last_version_entity = ayon_api.get_last_version_by_product_id(

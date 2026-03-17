@@ -383,7 +383,7 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
                     input_node.setInput(0, node)
 
     def _create_sib_copies(self, placeholder):
-        """ creating copies of the palce_holder siblings (the ones who were
+        """Creating copies of the placeholder siblings (the ones who were
         loaded with it) for the new nodes added
 
         Returns :
