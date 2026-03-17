@@ -209,7 +209,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
                 )
             version_data.update({
                 "retime": True,
-                "timewarps": (time_warp_dict,),
+                "timewarps": [time_warp_dict],
             })
 
         instance.data.update({
