@@ -185,38 +185,13 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "colorspace": colorspace
         }
 
-        if product_base_type == "plate":
-            time_warp_node = _find_downstream_time_warp_node(
-                instance.data["transientData"]["node"]
-            )
-            if time_warp_node:
-                lookup_knob = time_warp_node["lookup"]
-                version_data.update(
-                    retime=True,
-                    timewarps=(
-                        dict(
-                            Class=time_warp_node.Class(),
-                            name=time_warp_node["name"].value(),
-                            lookup=[
-                                lookup_knob.valueAt(frame_number)
-                                - frame_number
-                                for frame_number in range(
-                                    int(nuke.root()["first_frame"].getValue()),
-                                    int(nuke.root()["last_frame"].getValue())
-                                    + 1,
-                                )
-                            ],
-                        ),
-                    ),
-                )
-
         instance.data.update({
             "versionData": version_data,
             "path": write_file_path,
             "outputDir": output_dir,
             "ext": ext,
             "colorspace": colorspace,
-            "color_channels": color_channels,
+            "color_channels": color_channels
         })
 
         if product_base_type == "render":
