@@ -398,12 +398,3 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         ]
 
         return collected_frames
-
-
-def _find_downstream_time_warp_node(start_node):
-    # HACK: no idea why calling `dependentNodes` the first time
-    # seems to always return nothing.
-    nuke.dependentNodes(nuke.INPUTS, [start_node])
-    for node in nuke.dependentNodes(nuke.INPUTS, [start_node]):
-        if node.Class() == "TimeWarp":
-            return node
