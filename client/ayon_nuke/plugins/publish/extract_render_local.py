@@ -1,23 +1,49 @@
-import os
-import shutil
+"""
+
+## notes:
+
+Removed Features:
+- handle "frames to fix" logic
+    imho this should be handled in a separate step, which would pass on a
+    "frames_to_render" list[int] that can then be used here.
+
+- _copy_last_published function
+    also: own step / combined with "frames to fix" logic
+
+- adding the representation data to the instance data
+    Should be done during collection (?)
+
+- this step was setting the "productType" to the "family" after removing
+  the ".local" suffix.
+  I dont think this should be done here in this step.
+  The purpose of this step is to render frames, It should not change the productType.
+
+
+"""
+
+import logging
+import typing
 
 import pyblish.api
-import clique
 import nuke
-from ayon_nuke import api as napi
 from ayon_core.pipeline import publish
-from ayon_core.lib import collect_frames
 
 
-class NukeRenderLocal(publish.Extractor,
-                      publish.ColormanagedPyblishPluginMixin):
+class NukeRenderLocal(
+    publish.Extractor,
+    publish.ColormanagedPyblishPluginMixin,
+):
     """Render the current Nuke composition locally.
 
     Extract the result of savers by starting a comp render
     This will run the local render of Nuke.
 
-    Allows to use last published frames and overwrite only specific ones
-    (set in instance.data.get("frames_to_fix"))
+    Uses the following instance data:
+    - "frames_to_render": list[int] optional
+    - "frameStartHandle" or "frameStart"
+    - "frameEndHandle" or "frameEnd"
+    - "writeNode" or "node": the node to render
+
     """
 
     order = pyblish.api.ExtractorOrder
@@ -27,190 +53,59 @@ class NukeRenderLocal(publish.Extractor,
 
     settings_category = "nuke"
 
-    def process(self, instance):
-        child_nodes = (
-            instance.data.get("transientData", {}).get("childNodes")
-            or instance
-        )
+    if typing.TYPE_CHECKING:
+        log: logging.Logger
 
-        node = None
-        for x in child_nodes:
-            if x.Class() == "Write":
-                node = x
-
-        self.log.debug("instance collected: {}".format(instance.data))
-
-        node_product_name = instance.data.get("name", None)
-
-        first_frame = instance.data.get("frameStartHandle", None)
-        last_frame = instance.data.get("frameEndHandle", None)
-
-        filenames = []
-        node_file = node["file"]
-        # Collect expected filepaths for each frame
-        # - for cases that output is still image is first created set of
-        #   paths which is then sorted and converted to list
-        expected_paths = list(sorted({
-            node_file.evaluate(frame)
-            for frame in range(first_frame, last_frame + 1)
-        }))
-        # Extract only filenames for representation
-        filenames.extend([
-            os.path.basename(filepath)
-            for filepath in expected_paths
-        ])
-
-        # Ensure output directory exists.
-        out_dir = os.path.dirname(expected_paths[0])
-        if not os.path.exists(out_dir):
-            os.makedirs(out_dir)
-
-        frames_to_render = [(first_frame, last_frame)]
-
-        frames_to_fix = instance.data.get("frames_to_fix")
-        if instance.data.get("last_version_published_files") and frames_to_fix:
-            frames_to_render = self._get_frames_to_render(frames_to_fix)
-            anatomy = instance.context.data["anatomy"]
-            self._copy_last_published(anatomy, instance, out_dir,
-                                      filenames)
-
-        for render_first_frame, render_last_frame in frames_to_render:
-
-            self.log.info("Starting render")
-            self.log.info("Start frame: {}".format(render_first_frame))
-            self.log.info("End frame: {}".format(render_last_frame))
-
-            # Render frames
-            try:
-                nuke.execute(
-                    str(node_product_name),
-                    int(render_first_frame),
-                    int(render_last_frame)
-                )
-            except RuntimeError as exc:
-                raise publish.PublishError(
-                    title="Render Failed",
-                    message=f"Failed to render {node_product_name}",
-                    description="Check Nuke console for more information.",
-                    detail=str(exc),
-                ) from exc
-
-        # Determine defined file type
-        path = node["file"].value()
-        ext = os.path.splitext(path)[1].lstrip(".")
-
-        colorspace = napi.get_colorspace_from_node(node)
-
-        if "representations" not in instance.data:
-            instance.data["representations"] = []
-
-        if len(filenames) == 1:
-            repre = {
-                'name': ext,
-                'ext': ext,
-                'files': filenames[0],
-                "stagingDir": out_dir
-            }
-        else:
-            repre = {
-                'name': ext,
-                'ext': ext,
-                'frameStart': (
-                    "{{:0>{}}}"
-                    .format(len(str(last_frame)))
-                    .format(first_frame)
-                ),
-                'files': filenames,
-                "stagingDir": out_dir
-            }
-
-        # inject colorspace data
-        self.set_representation_colorspace(
-            repre, instance.context,
-            colorspace=colorspace
-        )
-
-        instance.data["representations"].append(repre)
-
-        self.log.debug("Extracted instance '{0}' to: {1}".format(
-            instance.name,
-            out_dir
-        ))
-
-        families = instance.data["families"]
-        # redefinition of families
-        if "render.local" in families:
-            families.remove("render.local")
-            families.insert(0, "render2d")
-        elif "prerender.local" in families:
-            families.remove("prerender.local")
-            families.insert(0, "prerender")
-        elif "image.local" in families:
-            families.remove("image.local")
-        instance.data["families"] = families
-
-        collections, remainder = clique.assemble(filenames)
-        self.log.debug('collections: {}'.format(str(collections)))
-
-        if collections:
-            collection = collections[0]
-            instance.data['collection'] = collection
-
-        self.log.info('Finished render')
-
-        self.log.debug("_ instance.data: {}".format(instance.data))
-
-    def _copy_last_published(self, anatomy, instance, out_dir,
-                             expected_filenames):
-        """Copies last published files to temporary out_dir.
-
-        These are base of files which will be extended/fixed for specific
-        frames.
-        Renames published file to expected file name based on frame, eg.
-        test_project_test_asset_product_v005.1001.exr > new_render.1001.exr
-        """
-        last_published = instance.data["last_version_published_files"]
-        last_published_and_frames = collect_frames(last_published)
-
-        expected_and_frames = collect_frames(expected_filenames)
-        frames_and_expected = {v: k for k, v in expected_and_frames.items()}
-        for file_path, frame in last_published_and_frames.items():
-            file_path = anatomy.fill_root(file_path)
-            if not os.path.exists(file_path):
-                continue
-            target_file_name = frames_and_expected.get(frame)
-            if not target_file_name:
-                continue
-
-            out_path = os.path.join(out_dir, target_file_name)
-            self.log.debug("Copying '{}' -> '{}'".format(file_path, out_path))
-            shutil.copy(file_path, out_path)
-
-            # TODO shouldn't this be uncommented
-            # instance.context.data["cleanupFullPaths"].append(out_path)
-
-    def _get_frames_to_render(self, frames_to_fix):
-        """Return list of frame range tuples to render
+    def _get_framerange_from_instance(self, instance) -> nuke.FrameRanges:
+        """Get frame range from instance data.
 
         Args:
-            frames_to_fix (str): specific or range of frames to be rerendered
-             (1005, 1009-1010)
-        Returns:
-            (list): [(1005, 1005), (1009-1010)]
-        """
-        frames_to_render = []
+            instance (pyblish.api.Instance): pyblish instance
 
-        for frame_range in frames_to_fix.split(","):
-            if frame_range.isdigit():
-                render_first_frame = frame_range
-                render_last_frame = frame_range
-            elif '-' in frame_range:
-                frames = frame_range.split('-')
-                render_first_frame = int(frames[0])
-                render_last_frame = int(frames[1])
-            else:
-                raise ValueError("Wrong format of frames to fix {}"
-                                 .format(frames_to_fix))
-            frames_to_render.append((render_first_frame,
-                                     render_last_frame))
-        return frames_to_render
+        Returns:
+            list[nuke.FrameRange] | nuke.FrameRanges: frame range
+        """
+        # Check for a custom list of frames
+        # this could be the result of an expression ("1001-1050x5")
+        # and/or as a result of a previous step (eg.: "frames to fix")
+        # Note:
+        # `nuke.FrameRanges` supports list[int] as well as some expressions
+        # (eg.: "1001-1050x5") see: https://learn.foundry.com/nuke/content/getting_started/managing_scripts/defining_frame_ranges.html
+        # We should however change this to an ayon standardized format,
+        # thats familiar across DCC's (or maybe support both: nuke and ayon)
+        if "frames_to_render" in instance.data:
+            frames_to_render = instance.data["frames_to_render"]
+            return nuke.FrameRanges(frames_to_render)
+
+        # If no custom list of frames is found, use the frame range from the instance data
+        start = instance.data.get("frameStartHandle") or instance.data.get("frameStart")
+        end = instance.data.get("frameEndHandle") or instance.data.get("frameEnd")
+        step = 1
+
+        frame_ranges = nuke.FrameRanges()
+        frame_ranges.add(nuke.FrameRange(start, end, step))
+        return frame_ranges
+
+    def process(self, instance) -> None:
+
+        node: nuke.Node = instance.data["transientData"].get("writeNode")
+        node = node or instance.data["transientData"].get("node")
+
+        frame_ranges = self._get_framerange_from_instance(instance)
+
+        try:
+            nuke.execute(node, frame_ranges)
+        except RuntimeError as exc:
+            raise publish.PublishError(
+                title="Render Failed",
+                message=f"Failed to render {node.fullName()}",
+                description="Check Nuke console for more information.",
+                detail=str(exc),
+            ) from exc
+
+        # convert ".local" families back to their original versions
+        families = instance.data["families"]
+        families = [family.removesuffix(".local") for family in families]
+        # there might be duplicates after removing the suffix
+        families = list(set(families))
+        instance.data["families"] = families

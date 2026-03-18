@@ -23,20 +23,10 @@ class RepairNukeWriteNodeAction(pyblish.api.Action):
         instances = get_errored_instances_from_context(context)
 
         for instance in instances:
-            child_nodes = (
-                instance.data.get("transientData", {}).get("childNodes")
-                or instance
-            )
-
             write_group_node = instance.data["transientData"]["node"]
-            # get write node from inside of group
-            write_node = None
-            for x in child_nodes:
-                if x.Class() == "Write":
-                    write_node = x
-
             correct_data = get_write_node_template_attr(write_group_node)
 
+            write_node = instance.data["transientData"]["writeNode"]
             set_node_knobs_from_settings(write_node, correct_data["knobs"])
 
             self.log.debug("Node attributes were fixed")
@@ -71,20 +61,9 @@ class ValidateNukeWriteNode(
         if not self.is_active(instance.data):
             return
 
-        child_nodes = (
-            instance.data.get("transientData", {}).get("childNodes")
-            or instance
-        )
-
-        write_group_node = instance.data["transientData"]["node"]
-
-        # get write node from inside of group
-        write_node = None
-        for x in child_nodes:
-            if x.Class() == "Write":
-                write_node = x
-
-        if write_node is None:
+        write_group_node = instance.data.get("transientData", {}).get("node")
+        write_node = instance.data.get("transientData", {}).get("writeNode")
+        if not (write_group_node and write_node):
             return
 
         # gather exposed knobs to remove them from knobs check.

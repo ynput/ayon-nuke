@@ -28,8 +28,6 @@ class ValidateOutputResolution(
     actions = [RepairAction]
 
     settings_category = "nuke"
-
-    missing_msg = "Missing Reformat node in render group node"
     resolution_msg = "Reformat is set to wrong format"
 
     def process(self, instance):
@@ -41,74 +39,58 @@ class ValidateOutputResolution(
             raise PublishXmlValidationError(self, invalid)
 
     @classmethod
-    def get_reformat(cls, instance):
-        child_nodes = (
-            instance.data.get("transientData", {}).get("childNodes")
-            or instance
-        )
+    def get_reformat(cls, node: nuke.Node) -> nuke.Node | None:
+        """Find a reformat node under the given node."""
 
-        reformat = None
-        for inode in child_nodes:
-            if inode.Class() != "Reformat":
-                continue
-            reformat = inode
+        # if it is not a group node,
+        # we check if the node has a "format" knob and assume it
+        # can be used to control the output format
+        if not isinstance(node, nuke.Group):
+            if "format" in node.knobs():
+                return node
+            return None
 
-        return reformat
+        # if it is a group node, we look for a child reformat node
+        reformat_nodes = [n for n in node.nodes() if n.Class() == "Reformat"]
+        if reformat_nodes:
+            # todo: decide what to do if there are multiple reformat nodes
+            return reformat_nodes[0]
+
+        # add a new reformat node under the group node
+        # TODO: test this
+        with node:
+            with napi.maintained_selection():
+                node['selected'].setValue(True)  # todo: why is this needed? I guess we're implicitly connecting the nodes here... might be better to to that explicit
+                reformat_node = nuke.createNode("Reformat", "name Reformat01")
+                reformat_node["resize"].setValue(0)
+                reformat_node["black_outside"].setValue(1)
+                return reformat_node
 
     @classmethod
-    def get_invalid(cls, instance):
-        def _check_resolution(instance, reformat):
-            root_width = instance.data["resolutionWidth"]
-            root_height = instance.data["resolutionHeight"]
+    def get_invalid(cls, instance) -> str | None:
+        root_width = instance.data["resolutionWidth"]
+        root_height = instance.data["resolutionHeight"]
 
-            write_width = reformat.format().width()
-            write_height = reformat.format().height()
+        node: nuke.Node = instance.data["transientData"]["node"]
+        node_format = node.format()  # can be accessed without cooking the node
+        node_width = node_format.width()
+        node_height = node_format.height()
 
-            if (root_width != write_width) or (root_height != write_height):
-                return None
-            else:
-                return True
-
-        # check if reformat is in render node
-        reformat = cls.get_reformat(instance)
-        if not reformat:
-            return cls.missing_msg
-
-        # check if reformat is set to correct root format
-        correct_format = _check_resolution(instance, reformat)
+        correct_format = (root_width == node_width) and (root_height == node_height)
         if not correct_format:
             return cls.resolution_msg
+        return None
 
     @classmethod
-    def repair(cls, instance):
-        child_nodes = (
-            instance.data.get("transientData", {}).get("childNodes")
-            or instance
-        )
+    def repair(cls, instance: pyblish.api.Instance) -> None:
+        invalid_msg = cls.get_invalid(instance)
+        if not invalid_msg:
+            return
 
-        invalid = cls.get_invalid(instance)
-        grp_node = instance.data["transientData"]["node"]
-
-        if cls.missing_msg == invalid:
-            # make sure we are inside of the group node
-            with grp_node:
-                # find input node and select it
-                _input = None
-                for inode in child_nodes:
-                    if inode.Class() != "Input":
-                        continue
-                    _input = inode
-
-                # add reformat node under it
-                with napi.maintained_selection():
-                    _input['selected'].setValue(True)
-                    _rfn = nuke.createNode("Reformat", "name Reformat01")
-                    _rfn["resize"].setValue(0)
-                    _rfn["black_outside"].setValue(1)
-
-                cls.log.info("Adding reformat node")
-
-        if cls.resolution_msg == invalid:
-            reformat = cls.get_reformat(instance)
-            reformat["format"].setValue(nuke.root()["format"].value())
+        node: nuke.Node = instance.data["transientData"]["node"]
+        reformat_node = cls.get_reformat(node)
+        if reformat_node:
+            reformat_node["format"].setValue(nuke.root()["format"].value())
             cls.log.info("Fixing reformat to root.format")
+        else:
+            cls.log.error("No reformat node found")
