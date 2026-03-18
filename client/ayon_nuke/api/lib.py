@@ -1516,27 +1516,40 @@ class WorkfileSettings(object):
             imageio_nuke (dict): nuke colorspace configurations
 
         """
-        filter_knobs = [
+        filter_knobs: set[str] = {
             "viewerProcess",
             "wipe_position",
             "monitorOutOutputTransform"
-        ]
+        }
         viewer_process = get_formatted_display_and_view(
             imageio_nuke["viewer"], self.formatting_data, self._root_node
         )
+        if not viewer_process:
+            log.error(
+                f"Unable to resolve valid display/view from settings"
+                f" for Viewer: {imageio_nuke['viewer']}"
+            )
+            return
+
         output_transform = get_formatted_display_and_view(
             imageio_nuke["monitor"], self.formatting_data, self._root_node
         )
+        if not output_transform:
+            log.error(
+                f"Unable to resolve valid display/view from settings"
+                f" for Monitor OUT: {imageio_nuke['monitor']}"
+            )
+
         erased_viewers = []
         for v in nuke.allNodes(filter="Viewer"):
             # set viewProcess to preset from settings
             v["viewerProcess"].setValue(viewer_process)
-
-            if viewer_process not in v["viewerProcess"].value():
+            if viewer_process != v["viewerProcess"].value():
                 copy_inputs = v.dependencies()
                 copy_knobs = {
-                    k: v[k].value() for k in v.knobs()
-                    if k not in filter_knobs
+                    knob_name: knob.value()
+                    for knob_name, knob in v.knobs().items()
+                    if knob_name not in filter_knobs
                 }
 
                 # delete viewer with wrong settings
@@ -1560,8 +1573,9 @@ class WorkfileSettings(object):
 
         if erased_viewers:
             log.warning(
-                "Attention! Viewer nodes {} were erased. "
-                "It had wrong color profile".format(erased_viewers))
+                f"Attention! Deleted viewer nodes: {erased_viewers}."
+                " It had wrong color profile"
+            )
 
     # TODO: move into ./colorspace.py
     def set_root_colorspace(self, imageio_host):
