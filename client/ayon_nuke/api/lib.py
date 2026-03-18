@@ -14,7 +14,6 @@ from qtpy import QtCore, QtWidgets
 import ayon_api
 
 from ayon_core.host import HostDirmap
-from ayon_core.tools.utils import host_tools
 from ayon_core.pipeline.workfile.workfile_template_builder import (
     TemplateProfileNotFound
 )
@@ -1561,7 +1560,7 @@ class WorkfileSettings(object):
 
         if erased_viewers:
             log.warning(
-                "Attention! Viewer nodes {} were erased."
+                "Attention! Viewer nodes {} were erased. "
                 "It had wrong color profile".format(erased_viewers))
 
     # TODO: move into ./colorspace.py
@@ -2469,6 +2468,9 @@ def launch_workfiles_app():
 def _launch_workfile_app():
     # Safeguard to not show window when application is still starting up
     #   or is already closing down.
+    if not nuke.GUI:
+        raise RuntimeError("Invalid in non-GUI mode.")
+
     closing_down = QtWidgets.QApplication.closingDown()
     starting_up = QtWidgets.QApplication.startingUp()
 
@@ -2486,6 +2488,7 @@ def _launch_workfile_app():
     #   - this happened on Centos 7 and it is because the focus of nuke
     #       changes to the main window after showing because of initialization
     #       which moves workfiles tool under it
+    from ayon_core.tools.utils import host_tools
     host_tools.show_workfiles(parent=None, on_top=True)
 
 

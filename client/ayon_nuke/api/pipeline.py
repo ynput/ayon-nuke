@@ -27,9 +27,7 @@ from ayon_core.pipeline import (
     registered_host,
 )
 from ayon_core.pipeline.workfile import BuildWorkfile
-from ayon_core.tools.utils import host_tools
 from ayon_nuke import NUKE_ROOT_DIR
-from ayon_core.tools.workfile_template_build import open_template_ui
 
 # Function 'get_current_project_settings' was moved in ayon-core 1.5.1
 try:
@@ -142,16 +140,18 @@ class NukeHost(
         # Register AYON event for workfiles loading.
         register_event_callback("workio.open_file", check_inventory_versions)
         register_event_callback("taskChanged", change_context_label)
+
+    def setup_ui_callbacks_and_menu(self):
+        """Setup AYON menus."""
+        if not nuke.GUI:
+            raise RuntimeError("Cannot set up in non-GUI mode.")
+
         project_settings = get_current_project_settings()
-        if nuke.GUI:
-            _install_menu(project_settings)
-
-            # add script menu
-            add_scripts_menu()
-            add_scripts_gizmo()
-
         add_nuke_callbacks(project_settings)
+        _install_menu(project_settings)
 
+        add_scripts_menu()
+        add_scripts_gizmo()
         launch_workfiles_app()
 
     def get_context_data(self):
@@ -224,14 +224,6 @@ def reload_config():
             reload(module)
 
 
-def _show_workfiles():
-    # Make sure parent is not set
-    # - this makes Workfiles tool as separated window which
-    #   avoid issues with reopening
-    # - it is possible to explicitly change on top flag of the tool
-    host_tools.show_workfiles(parent=None, on_top=False)
-
-
 def get_context_label():
     return "{0}, {1}".format(
         get_current_folder_path(),
@@ -241,6 +233,9 @@ def get_context_label():
 
 def _install_menu(project_settings: dict):
     """Install AYON menu into Nuke's main menu bar."""
+    # local imports, modules not available in non-GUI mode
+    from ayon_core.tools.utils import host_tools
+    from ayon_core.tools.workfile_template_build import open_template_ui
 
     # uninstall original AYON menu
     main_window = get_main_window()
@@ -273,6 +268,13 @@ def _install_menu(project_settings: dict):
             lambda: save_next_version(),
             shortcut_str
         )
+
+    def _show_workfiles():
+        # Make sure parent is not set
+        # - this makes Workfiles tool as separated window which
+        #   avoid issues with reopening
+        # - it is possible to explicitly change on top flag of the tool
+        host_tools.show_workfiles(parent=None, on_top=False)
 
     menu.addCommand(
         "Work Files...",
