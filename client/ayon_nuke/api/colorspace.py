@@ -201,6 +201,7 @@ def get_formatted_display_and_view(
         # making sure formatted colorspace exists in running session
         if dv_item_resolved in get_display_and_view_colorspaces(root_node):
             return dv_item_resolved
+    return ""
 
 
 def get_formatted_display_and_view_as_dict(
