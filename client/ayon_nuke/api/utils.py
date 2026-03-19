@@ -8,7 +8,6 @@ from qtpy import QtWidgets
 
 from ayon_core import resources
 from ayon_core.pipeline import registered_host
-from ayon_core.tools.utils import show_message_dialog
 from ayon_core.pipeline.create import CreateContext
 
 
@@ -109,7 +108,7 @@ def submit_render_on_farm(node):
             _submit_render_on_farm(node)
 
 
-def _submit_render_on_farm(node):
+def _submit_render_on_farm(node) -> bool:
     """Render on farm submission
 
     This function prepares the context for farm submission, validates it,
@@ -118,6 +117,9 @@ def _submit_render_on_farm(node):
 
     Args:
         node (Node): The node for which the farm submission is being made.
+
+    Returns:
+        bool: Did the submission succeed?
     """
 
     host = registered_host()
@@ -161,12 +163,17 @@ def _submit_render_on_farm(node):
         error_message += "\n"
         error_message += err.formatted_traceback
 
-    if not success:
-        show_message_dialog(
-            "Publish Errors", error_message, level="critical"
-        )
-        return
+    if nuke.GUI:
+        from ayon_core.tools.utils import show_message_dialog
+        if success:
+            show_message_dialog(
+                "Submission Successful",
+                "Submission to the farm was successful."
+            )
+        else:
+            show_message_dialog(
+                 "Publish Errors",
+                 error_message, level="critical"
+            )
 
-    show_message_dialog(
-        "Submission Successful", "Submission to the farm was successful."
-    )
+    return success

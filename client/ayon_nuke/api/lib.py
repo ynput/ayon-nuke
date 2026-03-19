@@ -14,7 +14,6 @@ from qtpy import QtCore, QtWidgets
 import ayon_api
 
 from ayon_core.host import HostDirmap
-from ayon_core.tools.utils import host_tools
 from ayon_core.pipeline.workfile.workfile_template_builder import (
     TemplateProfileNotFound
 )
@@ -45,13 +44,9 @@ from ayon_core.pipeline import (
     get_current_context,
 )
 from ayon_core.pipeline.load import filter_containers
-from ayon_core.pipeline.context_tools import (
-    get_current_context_custom_workfile_template
-)
 from ayon_core.pipeline.colorspace import (
     get_current_context_imageio_config_preset
 )
-from ayon_core.pipeline.workfile import BuildWorkfile
 from ayon_core.resources import get_ayon_icon_filepath
 
 from .gizmo_menu import GizmoMenu
@@ -60,7 +55,6 @@ from .constants import (
     LOADER_CATEGORY_COLORS,
 )
 
-from .workio import save_file
 from .utils import get_node_outputs
 
 from .colorspace import get_formatted_display_and_view
@@ -1522,27 +1516,40 @@ class WorkfileSettings(object):
             imageio_nuke (dict): nuke colorspace configurations
 
         """
-        filter_knobs = [
+        filter_knobs: set[str] = {
             "viewerProcess",
             "wipe_position",
             "monitorOutOutputTransform"
-        ]
+        }
         viewer_process = get_formatted_display_and_view(
             imageio_nuke["viewer"], self.formatting_data, self._root_node
         )
+        if not viewer_process:
+            log.error(
+                f"Unable to resolve valid display/view from settings"
+                f" for Viewer: {imageio_nuke['viewer']}"
+            )
+            return
+
         output_transform = get_formatted_display_and_view(
             imageio_nuke["monitor"], self.formatting_data, self._root_node
         )
+        if not output_transform:
+            log.error(
+                f"Unable to resolve valid display/view from settings"
+                f" for Monitor OUT: {imageio_nuke['monitor']}"
+            )
+
         erased_viewers = []
         for v in nuke.allNodes(filter="Viewer"):
             # set viewProcess to preset from settings
             v["viewerProcess"].setValue(viewer_process)
-
-            if viewer_process not in v["viewerProcess"].value():
+            if viewer_process != v["viewerProcess"].value():
                 copy_inputs = v.dependencies()
                 copy_knobs = {
-                    k: v[k].value() for k in v.knobs()
-                    if k not in filter_knobs
+                    knob_name: knob.value()
+                    for knob_name, knob in v.knobs().items()
+                    if knob_name not in filter_knobs
                 }
 
                 # delete viewer with wrong settings
@@ -1566,8 +1573,9 @@ class WorkfileSettings(object):
 
         if erased_viewers:
             log.warning(
-                "Attention! Viewer nodes {} were erased."
-                "It had wrong color profile".format(erased_viewers))
+                f"Attention! Deleted viewer nodes: {erased_viewers}."
+                " It had wrong color profile"
+            )
 
     # TODO: move into ./colorspace.py
     def set_root_colorspace(self, imageio_host):
@@ -2476,6 +2484,9 @@ def launch_workfiles_app():
 def _launch_workfile_app():
     # Safeguard to not show window when application is still starting up
     #   or is already closing down.
+    if not nuke.GUI:
+        raise RuntimeError("Invalid in non-GUI mode.")
+
     closing_down = QtWidgets.QApplication.closingDown()
     starting_up = QtWidgets.QApplication.startingUp()
 
@@ -2493,65 +2504,8 @@ def _launch_workfile_app():
     #   - this happened on Centos 7 and it is because the focus of nuke
     #       changes to the main window after showing because of initialization
     #       which moves workfiles tool under it
+    from ayon_core.tools.utils import host_tools
     host_tools.show_workfiles(parent=None, on_top=True)
-
-
-@deprecated("ayon_nuke.api.lib.start_workfile_template_builder")
-def process_workfile_builder():
-    """[DEPRECATED] Process workfile builder on nuke start
-
-    This function is deprecated and will be removed in future versions.
-    Use settings for `project_settings/nuke/templated_workfile_build` which are
-    supported by api `start_workfile_template_builder()`.
-    """
-
-    # to avoid looping of the callback, remove it!
-    nuke.removeOnCreate(process_workfile_builder, nodeClass="Root")
-
-    # get state from settings
-    project_settings = get_current_project_settings()
-    workfile_builder = project_settings["nuke"].get(
-        "workfile_builder", {})
-
-    # get settings
-    create_fv_on = workfile_builder.get("create_first_version") or None
-    builder_on = workfile_builder.get("builder_on_start") or None
-
-    last_workfile_path = os.environ.get("AYON_LAST_WORKFILE")
-
-    # generate first version in file not existing and feature is enabled
-    if create_fv_on and not os.path.exists(last_workfile_path):
-        # get custom template path if any
-        custom_template_path = get_current_context_custom_workfile_template(
-            project_settings=project_settings
-        )
-
-        # if custom template is defined
-        if custom_template_path:
-            log.info("Adding nodes from `{}`...".format(
-                custom_template_path
-            ))
-            try:
-                # import nodes into current script
-                nuke.nodePaste(custom_template_path)
-            except RuntimeError:
-                raise RuntimeError((
-                    "Template defined for project: {} is not working. "
-                    "Talk to your manager for an advise").format(
-                        custom_template_path))
-
-        # if builder at start is defined
-        if builder_on:
-            log.info("Building nodes from presets...")
-            # build nodes by defined presets
-            BuildWorkfile().process()
-
-        log.info("Saving script as version `{}`...".format(
-            last_workfile_path
-        ))
-        # safe file as version
-        save_file(last_workfile_path)
-        return
 
 
 def start_workfile_template_builder():
