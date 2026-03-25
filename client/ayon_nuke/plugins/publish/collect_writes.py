@@ -218,7 +218,10 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "outputDir": output_dir,
             "ext": ext,
             "colorspace": colorspace,
-            "color_channels": color_channels
+            "color_channels": color_channels,
+            "resolutionWidth": write_node.width(),
+            "resolutionHeight": write_node.height(),
+            "pixelAspect": write_node.pixelAspect(),
         })
 
         if product_base_type == "render":
