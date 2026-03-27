@@ -1,6 +1,3 @@
-from ayon_core.pipeline.workfile.workfile_template_builder import (
-    PlaceholderItem
-)
 from ayon_nuke.api.workfile_template_builder import (
     NukePlaceholderPlugin
 )
