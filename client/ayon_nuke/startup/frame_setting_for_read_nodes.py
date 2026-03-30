@@ -1,11 +1,11 @@
-""" AYON custom script for resetting read nodes start frame values """
+"""AYON custom script for resetting read nodes start frame values"""
 
 import nuke
 import nukescripts
 
 
 class FrameSettingsPanel(nukescripts.PythonPanel):
-    """ Frame Settings Panel """
+    """Frame Settings Panel"""
     def __init__(self):
         nukescripts.PythonPanel.__init__(self, "Set Frame Start (Read Node)")
 
@@ -22,7 +22,7 @@ class FrameSettingsPanel(nukescripts.PythonPanel):
         self.frame.setValue(nuke.root().firstFrame())
 
     def process(self):
-        """ Process the panel values. """
+        """Process the panel values."""
         # get values
         frame = self.frame.value()
         if self.selected.value():

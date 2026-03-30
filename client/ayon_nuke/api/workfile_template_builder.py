@@ -7,9 +7,7 @@ from ayon_core.pipeline.workfile.workfile_template_builder import (
     AbstractTemplateBuilder,
     PlaceholderPlugin,
 )
-from ayon_core.tools.workfile_template_build import (
-    WorkfileBuildPlaceholderDialog,
-)
+
 from .lib import (
     imprint,
     reset_selection,
@@ -22,6 +20,7 @@ PLACEHOLDER_SET = "PLACEHOLDERS_SET"
 
 LEGACY_PLACEHOLDER_KEYS = {
     "product_type",   # replaced by "product_base_type" in ayon-core 1.8.0
+    "family",
 }
 """Legacy placeholder keys that are deprecated but still supported for
 backward compatibility.
@@ -146,6 +145,13 @@ def update_workfile_template(*args):
 
 
 def create_placeholder(*args):
+    if not nuke.GUI:
+        raise RuntimeError("Invalid in non-GUI mode.")
+
+    from ayon_core.tools.workfile_template_build import (
+        WorkfileBuildPlaceholderDialog,
+    )
+
     host = registered_host()
     builder = NukeTemplateBuilder(host)
     window = WorkfileBuildPlaceholderDialog(host, builder,
@@ -154,6 +160,13 @@ def create_placeholder(*args):
 
 
 def update_placeholder(*args):
+    if not nuke.GUI:
+        raise RuntimeError("Invalid in non-GUI mode.")
+
+    from ayon_core.tools.workfile_template_build import (
+        WorkfileBuildPlaceholderDialog,
+    )
+
     host = registered_host()
     builder = NukeTemplateBuilder(host)
     placeholder_items_by_id = {

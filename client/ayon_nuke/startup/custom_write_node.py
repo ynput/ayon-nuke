@@ -1,4 +1,4 @@
-""" AYON custom script for setting up write nodes for non-publish """
+"""AYON custom script for setting up write nodes for non-publish"""
 import os
 import nuke
 import nukescripts
@@ -57,7 +57,7 @@ knobs_setting = {
 
 
 class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
-    """ Write Node's Knobs Settings Panel """
+    """Write Node's Knobs Settings Panel"""
     def __init__(self):
         nukescripts.PythonPanel.__init__(self, "Set Knobs Value(Write Node)")
 
@@ -70,7 +70,7 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
         self.addKnob(self.selected_preset_name)
 
     def process(self):
-        """ Process the panel values. """
+        """Process the panel values."""
         write_selected_nodes = [
             selected_nodes for selected_nodes in nuke.selectedNodes()
             if selected_nodes.Class() == "Write"]
