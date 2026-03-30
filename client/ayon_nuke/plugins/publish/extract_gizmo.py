@@ -1,6 +1,5 @@
 import os
 import nuke
-import contextlib
 
 import pyblish.api
 
@@ -8,9 +7,9 @@ from ayon_core.pipeline import publish
 from ayon_nuke.api import utils as pnutils
 from ayon_nuke.api.lib import (
     maintained_selection,
-    strip_instance_data,
     reset_selection,
-    select_nodes
+    select_nodes,
+    INSTANCE_DATA_KNOB
 )
 
 
@@ -37,9 +36,7 @@ class ExtractGizmo(publish.Extractor):
         path = os.path.join(stagingdir, filename)
 
         # maintain selection
-        with contextlib.ExitStack() as stack:
-            stack.enter_context(maintained_selection())
-            stack.enter_context(strip_instance_data(orig_grpn))
+        with maintained_selection():
             orig_grpn_name = orig_grpn.name()
             tmp_grpn_name = orig_grpn_name + "_tmp"
             # select original group node
@@ -57,6 +54,13 @@ class ExtractGizmo(publish.Extractor):
             # assign pasted node
             copy_grpn = nuke.selectedNode()
             copy_grpn.setXYpos((orig_grpn.xpos() + 120), orig_grpn.ypos())
+
+            # remove instance attributes so loading it back won't directly
+            # make it a publishable instance again
+            data_knob = copy_grpn.knob(INSTANCE_DATA_KNOB)
+            if data_knob is not None:
+                self.log.debug("Stripping instance data knob...")
+                copy_grpn.removeKnob(data_knob)
 
             # convert gizmos to groups
             pnutils.bake_gizmos_recursively(copy_grpn)

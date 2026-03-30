@@ -211,17 +211,6 @@ def update_node_data(node, knob_name, data):
     knob.setValue(knob_value)
 
 
-def remove_node_data(node, knobname):
-    """Remove data from node.
-
-    Args:
-        node (nuke.Node): node object
-        knobname (str): knob name
-    """
-    if knobname in node.knobs():
-        node.removeKnob(node[knobname])
-
-
 class Knobby(object):
     """[DEPRECATED] For creating knob which it's type isn't
                     mapped in `create_knobs`
@@ -2353,34 +2342,6 @@ def find_free_space_to_paste_nodes(
             xpos = min(group_xpos)
             ypos = max(group_ypos) + abs(offset)
             return xpos, ypos
-
-
-@contextlib.contextmanager
-def strip_instance_data(new_node: nuke.Node):
-    """Strip instance data from node
-
-    Strip instance data from node during context and restore it after context
-    is done.
-
-    Arguments:
-        new_node (nuke.Node): node to strip instance data from
-
-    Example:
-        >> with strip_instance_data(new_node):
-        ..     # do something with new_node
-        ..
-        >> # after context is done, instance data is restored
-    """
-    # get data from node
-    node_data = get_node_data(new_node, INSTANCE_DATA_KNOB)
-
-    try:
-        # strip data from node
-        remove_node_data(new_node, INSTANCE_DATA_KNOB)
-        yield
-    finally:
-        # restore data to node
-        set_node_data(new_node, INSTANCE_DATA_KNOB, node_data)
 
 
 @contextlib.contextmanager
