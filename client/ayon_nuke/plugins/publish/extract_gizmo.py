@@ -1,5 +1,6 @@
 import os
 import nuke
+import contextlib
 
 import pyblish.api
 
@@ -7,6 +8,7 @@ from ayon_core.pipeline import publish
 from ayon_nuke.api import utils as pnutils
 from ayon_nuke.api.lib import (
     maintained_selection,
+    strip_instance_data,
     reset_selection,
     select_nodes
 )
@@ -35,7 +37,9 @@ class ExtractGizmo(publish.Extractor):
         path = os.path.join(stagingdir, filename)
 
         # maintain selection
-        with maintained_selection():
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(maintained_selection())
+            stack.enter_context(strip_instance_data(orig_grpn))
             orig_grpn_name = orig_grpn.name()
             tmp_grpn_name = orig_grpn_name + "_tmp"
             # select original group node
