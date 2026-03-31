@@ -6,6 +6,7 @@ from ayon_core.pipeline import registered_host
 from ayon_core.pipeline.workfile.workfile_template_builder import (
     AbstractTemplateBuilder,
     PlaceholderPlugin,
+    PlaceholderItem
 )
 
 from .lib import (
@@ -51,6 +52,8 @@ class NukeTemplateBuilder(AbstractTemplateBuilder):
 
 class NukePlaceholderPlugin(PlaceholderPlugin):
     node_color = 4278190335
+
+    item_class = PlaceholderItem
 
     def _collect_scene_placeholders(self):
         # Cache placeholder data to shared data
@@ -129,6 +132,24 @@ class NukePlaceholderPlugin(PlaceholderPlugin):
         """Remove placeholder if building was successful"""
         placeholder_node = nuke.toNode(placeholder.scene_identifier)
         nuke.delete(placeholder_node)
+
+    def collect_placeholders(self):
+        output = []
+        scene_placeholders = self._collect_scene_placeholders()
+        for node_name, node in scene_placeholders.items():
+            plugin_identifier_knob = node.knob("plugin_identifier")
+            if (
+                plugin_identifier_knob is None
+                or plugin_identifier_knob.getValue() != self.identifier
+            ):
+                continue
+
+            placeholder_data = self._parse_placeholder_node_data(node)
+            output.append(
+                self.item_class(node_name, placeholder_data, self)
+            )
+
+        return output
 
 
 def build_workfile_template(*args, **kwargs):
