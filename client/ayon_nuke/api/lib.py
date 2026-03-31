@@ -1200,7 +1200,7 @@ def create_write_node(
     prev_node = None
     with GN:
         if input:
-            input_name = str(input.name()).replace(" ", "")
+            input_name = str(input.name()).replace("regex_inputs", "")
             # if connected input node was defined
             prev_node = nuke.createNode(
                 "Input",
