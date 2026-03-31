@@ -1200,7 +1200,7 @@ def create_write_node(
     prev_node = None
     with GN:
         if input:
-            input_name = str(input.name()).replace("regex_inputs", "")
+            input_name = str(input.name()).replace(" ", "")
             # if connected input node was defined
             prev_node = nuke.createNode(
                 "Input",
@@ -2021,7 +2021,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             log.error(_error)
 
         log.info("Setting colorspace to read nodes...")
-        read_clrs_inputs = nuke_colorspace[" "].get("inputs", [])
+        read_clrs_inputs = nuke_colorspace["regex_inputs"].get("inputs", [])
         if read_clrs_inputs:
             self.set_reads_colorspace(read_clrs_inputs)
 
