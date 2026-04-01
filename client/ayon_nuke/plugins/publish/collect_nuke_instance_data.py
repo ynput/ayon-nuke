@@ -8,7 +8,7 @@ class CollectInstanceData(pyblish.api.InstancePlugin):
 
     """
 
-    order = pyblish.api.CollectorOrder - 0.49
+    order = pyblish.api.CollectorOrder + 0.0001
     label = "Collect Nuke Instance Data"
     hosts = ["nuke", "nukeassist"]
 
