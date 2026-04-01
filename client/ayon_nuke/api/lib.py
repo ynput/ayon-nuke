@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import re
 import json
@@ -1941,52 +1942,55 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             set_node_knobs_from_settings(write_node, colorspace_knobs)
 
     # TODO: move into ./colorspace.py
-    def set_reads_colorspace(self, read_clrs_inputs):
+    def set_reads_colorspace(self, read_clrs_inputs: list[dict[str, str]]):
         """Setting colorspace to Read nodes
 
         Looping through all read nodes and tries to set colorspace based
         on regex rules in presets
         """
         changes = {}
-        for n in nuke.allNodes():
-            file = nuke.filename(n)
-            if n.Class() != "Read":
+        for node in nuke.allNodes("Read"):
+            file = nuke.filename(node)
+            # Read node may return `None` if never set to any value
+            if file is None:
                 continue
 
             # check if any colorspace presets for read is matching
-            preset_clrsp = None
+            preset_colorspace = None
 
-            for input in read_clrs_inputs:
-                if not bool(re.search(input["regex"], file)):
+            for input_ in read_clrs_inputs:
+                if not bool(re.search(input_["regex"], file)):
                     continue
-                preset_clrsp = input["colorspace"]
+                preset_colorspace = input_["colorspace"]
 
-            if preset_clrsp is not None:
-                current = n["colorspace"].value()
-                future = str(preset_clrsp)
+            if preset_colorspace is not None:
+                current = node["colorspace"].value()
+                future = str(preset_colorspace)
                 if current != future:
-                    changes[n.name()] = {
+                    changes[node.name()] = {
                         "from": current,
                         "to": future
                     }
 
         if changes:
             msg = "Read nodes are not set to correct colorspace:\n\n"
-            for nname, knobs in changes.items():
+            for node_name, knobs in changes.items():
                 msg += (
                     " - node: '{0}' is now '{1}' but should be '{2}'\n"
-                ).format(nname, knobs["from"], knobs["to"])
+                ).format(node_name, knobs["from"], knobs["to"])
 
             msg += "\nWould you like to change it?"
 
             if nuke.ask(msg):
-                for nname, knobs in changes.items():
-                    n = nuke.toNode(nname)
-                    n["colorspace"].setValue(knobs["to"])
+                for node_name, knobs in changes.items():
+                    node = nuke.toNode(node_name)
+                    node["colorspace"].setValue(knobs["to"])
                     log.info(
                         "Setting `{0}` to `{1}`".format(
-                            nname,
-                            knobs["to"]))
+                            node_name,
+                            knobs["to"]
+                        )
+                    )
 
     # TODO: move into ./colorspace.py
     def set_colorspace(self):
