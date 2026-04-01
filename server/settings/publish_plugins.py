@@ -73,7 +73,7 @@ class NodeModel(BaseSettingsModel):
         return value
 
 
-class CollectInstanceDataModel(BaseSettingsModel):
+class CollectSyncWorkfileVersionModel(BaseSettingsModel):
     sync_workfile_version_on_product_base_types: list[str] = SettingsField(
         default_factory=list,
         enum_resolver=nuke_product_base_types_enum,

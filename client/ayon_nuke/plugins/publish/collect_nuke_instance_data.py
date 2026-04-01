@@ -8,18 +8,13 @@ class CollectInstanceData(pyblish.api.InstancePlugin):
 
     """
 
-    order = pyblish.api.CollectorOrder + 0.0001
+    order = pyblish.api.CollectorOrder - 0.49
     label = "Collect Nuke Instance Data"
     hosts = ["nuke", "nukeassist"]
 
     settings_category = "nuke"
 
-    # presets
-    sync_workfile_version_on_product_base_types: list[str] = []
-
     def process(self, instance):
-        product_base_type = instance.data["productBaseType"]
-
         # Get format
         root = nuke.root()
         format_ = root['format'].value()
@@ -27,15 +22,6 @@ class CollectInstanceData(pyblish.api.InstancePlugin):
         resolution_height = format_.height()
         pixel_aspect = format_.pixelAspect()
 
-        # sync workfile version
-        if product_base_type in self.sync_workfile_version_on_product_base_types:  # noqa: E501
-            self.log.debug(
-                "Syncing version with workfile for '{}'".format(
-                    product_base_type
-                )
-            )
-            # get version to instance for integration
-            instance.data['version'] = instance.context.data['version']
 
         instance.data.update({
             "step": 1,
