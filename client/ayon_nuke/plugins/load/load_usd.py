@@ -13,7 +13,8 @@ from ayon_nuke.api import (
 class GeoImportLoader(load.LoaderPlugin):
     """This will load files to GeoImport node."""
 
-    product_types = {"*"}
+    product_base_types = {"*"}
+    product_types = product_base_types
     representations = {"*"}
     extensions = {"abc", "usd", "usda", "usdc"}
     order = 2

@@ -20,7 +20,7 @@ class CollectRenderOnFarm(pyblish.api.ContextPlugin):
             return
 
         for instance in context:
-            if instance.data["productType"] == "workfile":
+            if instance.data["productBaseType"] == "workfile":
                 instance.data["active"] = False
                 continue
 
@@ -54,5 +54,6 @@ class SetupRenderOnFarm(pyblish.api.InstancePlugin, AYONPyblishPluginMixin):
 
         # Use the workfile instead of published.
         publish_attributes = instance.data["publish_attributes"]
-        plugin_attributes = publish_attributes["NukeSubmitDeadline"]
-        plugin_attributes["use_published_workfile"] = False
+        if "NukeSubmitDeadline" in publish_attributes:
+            plugin_attributes = publish_attributes["NukeSubmitDeadline"]
+            plugin_attributes["use_published_workfile"] = False

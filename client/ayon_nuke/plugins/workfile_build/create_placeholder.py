@@ -29,10 +29,10 @@ class NukePlaceholderCreatePlugin(
     identifier = "nuke.create"
     label = "Nuke create"
 
+    item_class = CreatePlaceholderItem
+
     def _parse_placeholder_node_data(self, node):
-        placeholder_data = super(
-            NukePlaceholderCreatePlugin, self
-        )._parse_placeholder_node_data(node)
+        placeholder_data = super()._parse_placeholder_node_data(node)
 
         node_knobs = node.knobs()
         nb_children = 0
@@ -53,25 +53,6 @@ class NukePlaceholderCreatePlugin(
 
     def _before_instance_create(self, placeholder):
         placeholder.data["nodes_init"] = nuke.allNodes()
-
-    def collect_placeholders(self):
-        output = []
-        scene_placeholders = self._collect_scene_placeholders()
-        for node_name, node in scene_placeholders.items():
-            plugin_identifier_knob = node.knob("plugin_identifier")
-            if (
-                plugin_identifier_knob is None
-                or plugin_identifier_knob.getValue() != self.identifier
-            ):
-                continue
-
-            placeholder_data = self._parse_placeholder_node_data(node)
-
-            output.append(
-                CreatePlaceholderItem(node_name, placeholder_data, self)
-            )
-
-        return output
 
     def populate_placeholder(self, placeholder):
         self.populate_create_placeholder(placeholder)
@@ -356,7 +337,7 @@ class NukePlaceholderCreatePlugin(
                     input_node.setInput(0, node)
 
     def _create_sib_copies(self, placeholder):
-        """ creating copies of the palce_holder siblings (the ones who were
+        """Creating copies of the placeholder siblings (the ones who were
         created with it) for the new nodes added
 
         Returns :

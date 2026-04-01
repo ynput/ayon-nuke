@@ -35,6 +35,7 @@ def node_type_enum_options():
         }
     ]
 
+
 class LoadClipOptionsModel(BaseSettingsModel):
     start_at_workfile: bool = SettingsField(
         title="Start at workfile's start frame"
@@ -47,6 +48,13 @@ class LoadClipOptionsModel(BaseSettingsModel):
         enum_resolver=node_type_enum_options,
         default="auto",
     )
+
+
+class LoadBackdropNodesModel(BaseSettingsModel):
+    remove_nodes_from_backdrop: bool = SettingsField(
+        title="Remove existing AYON backdrops when removing container"
+    )
+
 
 class LoadClipModel(BaseSettingsModel):
     enabled: bool = SettingsField(
@@ -75,6 +83,10 @@ class LoaderPluginsModel(BaseSettingsModel):
         default_factory=LoadClipModel,
         title="Load Clip"
     )
+    LoadBackdropNodes: LoadBackdropNodesModel = SettingsField(
+        default_factory=LoadBackdropNodesModel,
+        title="Load Backdrop Nodes"
+    )
     GeoImportLoader: LoaderEnabledModel = SettingsField(
         default_factory=LoaderEnabledModel,
         title="Load GeoImport"
@@ -100,6 +112,9 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
             "add_retime": True,
             "node_type": "auto"
         }
+    },
+    "LoadBackdropNodes": {
+        "remove_nodes_from_backdrop": False
     },
     "GeoImportLoader": {
         "enabled": True

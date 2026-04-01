@@ -8,12 +8,11 @@ from qtpy import QtWidgets
 
 from ayon_core import resources
 from ayon_core.pipeline import registered_host
-from ayon_core.tools.utils import show_message_dialog
 from ayon_core.pipeline.create import CreateContext
 
 
 def set_context_favorites(favorites=None):
-    """ Adding favorite folders to nuke's browser
+    """Adding favorite folders to nuke's browser
 
     Arguments:
         favorites (dict): couples of {name:path}
@@ -29,9 +28,9 @@ def set_context_favorites(favorites=None):
 
 
 def get_node_outputs(node):
-    '''
+    """
     Return a dictionary of the nodes and pipes that are connected to node
-    '''
+    """
     dep_dict = {}
     dependencies = node.dependent(nuke.INPUTS | nuke.HIDDEN_INPUTS)
     for d in dependencies:
@@ -42,15 +41,13 @@ def get_node_outputs(node):
     return dep_dict
 
 
-def is_node_gizmo(node):
-    '''
-    return True if node is gizmo
-    '''
+def is_node_gizmo(node) -> bool:
+    """Return True if the node is a gizmo."""
     return 'gizmo_file' in node.knobs()
 
 
-def gizmo_is_nuke_default(gizmo):
-    '''Check if gizmo is in default install path'''
+def gizmo_is_nuke_default(gizmo) -> bool:
+    """Check if gizmo is in default install path"""
     plug_dir = os.path.join(os.path.dirname(
         nuke.env['ExecutablePath']), 'plugins')
     return gizmo.filename().startswith(plug_dir)
@@ -60,7 +57,7 @@ def bake_gizmos_recursively(in_group=None):
     """Converting a gizmo to group
 
     Arguments:
-        is_group (nuke.Node)[optonal]: group node or all nodes
+        in_group (Optional[nuke.Node]): group node or all nodes
     """
     from .lib import maintained_selection
     if in_group is None:
@@ -92,7 +89,7 @@ def bake_gizmos_recursively(in_group=None):
                     bake_gizmos_recursively(node)
 
 
-def is_headless():
+def is_headless() -> bool:
     """
     Returns:
         bool: headless
@@ -111,7 +108,7 @@ def submit_render_on_farm(node):
             _submit_render_on_farm(node)
 
 
-def _submit_render_on_farm(node):
+def _submit_render_on_farm(node) -> bool:
     """Render on farm submission
 
     This function prepares the context for farm submission, validates it,
@@ -120,6 +117,9 @@ def _submit_render_on_farm(node):
 
     Args:
         node (Node): The node for which the farm submission is being made.
+
+    Returns:
+        bool: Did the submission succeed?
     """
 
     host = registered_host()
@@ -163,12 +163,17 @@ def _submit_render_on_farm(node):
         error_message += "\n"
         error_message += err.formatted_traceback
 
-    if not success:
-        show_message_dialog(
-            "Publish Errors", error_message, level="critical"
-        )
-        return
+    if nuke.GUI:
+        from ayon_core.tools.utils import show_message_dialog
+        if success:
+            show_message_dialog(
+                "Submission Successful",
+                "Submission to the farm was successful."
+            )
+        else:
+            show_message_dialog(
+                 "Publish Errors",
+                 error_message, level="critical"
+            )
 
-    show_message_dialog(
-        "Submission Successful", "Submission to the farm was successful."
-    )
+    return success

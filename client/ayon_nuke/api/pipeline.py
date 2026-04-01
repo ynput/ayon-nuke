@@ -7,12 +7,12 @@ from collections import OrderedDict, defaultdict
 import pyblish.api
 
 from ayon_core.host import (
+    ApplicationInformation,
     HostBase,
     IWorkfileHost,
     ILoadHost,
     IPublishHost
 )
-from ayon_core.settings import get_current_project_settings
 from ayon_core.lib import register_event_callback, Logger
 from ayon_core.pipeline import (
     register_loader_plugin_path,
@@ -27,9 +27,21 @@ from ayon_core.pipeline import (
     registered_host,
 )
 from ayon_core.pipeline.workfile import BuildWorkfile
-from ayon_core.tools.utils import host_tools
 from ayon_nuke import NUKE_ROOT_DIR
-from ayon_core.tools.workfile_template_build import open_template_ui
+
+# Function 'get_current_project_settings' was moved in ayon-core 1.5.1
+try:
+    from ayon_core.pipeline.context_tools import get_current_project_settings
+except ImportError:
+    from ayon_core.settings import get_current_project_settings
+
+# Function 'save_next_version' was introduced in ayon-core 1.5.0
+try:
+    from ayon_core.pipeline.workfile import save_next_version
+except ImportError:
+    from ayon_core.pipeline.context_tools import (
+        version_up_current_workfile as save_next_version
+    )
 
 from .lib import (
     Context,
@@ -86,6 +98,12 @@ class NukeHost(
 ):
     name = "nuke"
 
+    def get_app_information(self):
+        return ApplicationInformation(
+            app_name="Nuke",
+            app_version=nuke.NUKE_VERSION_STRING,
+        )
+
     def open_workfile(self, filepath):
         return open_file(filepath)
 
@@ -123,15 +141,17 @@ class NukeHost(
         register_event_callback("workio.open_file", check_inventory_versions)
         register_event_callback("taskChanged", change_context_label)
 
-        if nuke.GUI:
-            _install_menu()
+    def setup_ui_callbacks_and_menu(self):
+        """Setup AYON menus."""
+        if not nuke.GUI:
+            raise RuntimeError("Cannot set up in non-GUI mode.")
 
-            # add script menu
-            add_scripts_menu()
-            add_scripts_gizmo()
+        project_settings = get_current_project_settings()
+        add_nuke_callbacks(project_settings)
+        _install_menu(project_settings)
 
-        add_nuke_callbacks()
-
+        add_scripts_menu()
+        add_scripts_gizmo()
         launch_workfiles_app()
 
     def get_context_data(self):
@@ -143,10 +163,12 @@ class NukeHost(
         set_node_data(root_node, ROOT_DATA_KNOB, data)
 
 
-def add_nuke_callbacks():
-    """ Adding all available nuke callbacks
-    """
-    nuke_settings = get_current_project_settings()["nuke"]
+def add_nuke_callbacks(project_settings: dict = None):
+    """Adding all available nuke callbacks"""
+    if project_settings is None:
+        project_settings = get_current_project_settings()
+
+    nuke_settings = project_settings["nuke"]
     workfile_settings = WorkfileSettings()
 
     # Set context settings.
@@ -202,14 +224,6 @@ def reload_config():
             reload(module)
 
 
-def _show_workfiles():
-    # Make sure parent is not set
-    # - this makes Workfiles tool as separated window which
-    #   avoid issues with reopening
-    # - it is possible to explicitly change on top flag of the tool
-    host_tools.show_workfiles(parent=None, on_top=False)
-
-
 def get_context_label():
     return "{0}, {1}".format(
         get_current_folder_path(),
@@ -217,8 +231,11 @@ def get_context_label():
     )
 
 
-def _install_menu():
+def _install_menu(project_settings: dict):
     """Install AYON menu into Nuke's main menu bar."""
+    # local imports, modules not available in non-GUI mode
+    from ayon_core.tools.utils import host_tools
+    from ayon_core.tools.workfile_template_build import open_template_ui
 
     # uninstall original AYON menu
     main_window = get_main_window()
@@ -237,6 +254,27 @@ def _install_menu():
 
         # add separator after context label
         menu.addSeparator()
+
+    if project_settings["core"]["tools"]["ayon_menu"].get(
+            "version_up_current_workfile"):
+        # To allow overriding the default version up shortcut we directly
+        # set the shortcut, because applying the shortcut later in
+        # add_shortcuts_from_presets would not override an existing one.
+        shortcut_str: str = project_settings["nuke"]["general"].get(
+            "menu", {}
+        ).get("version_up_workfile", "")
+        menu.addCommand(
+            "Version Up Workfile",
+            lambda: save_next_version(),
+            shortcut_str
+        )
+
+    def _show_workfiles():
+        # Make sure parent is not set
+        # - this makes Workfiles tool as separated window which
+        #   avoid issues with reopening
+        # - it is possible to explicitly change on top flag of the tool
+        host_tools.show_workfiles(parent=None, on_top=False)
 
     menu.addCommand(
         "Work Files...",
@@ -346,7 +384,7 @@ def _install_menu():
         menu.addCommand("Reload Pipeline", reload_config)
 
     # adding shortcuts
-    add_shortcuts_from_presets()
+    add_shortcuts_from_presets(project_settings)
 
 
 def change_context_label():
@@ -367,33 +405,42 @@ def change_context_label():
         old_label, new_label))
 
 
-def add_shortcuts_from_presets():
+def add_shortcuts_from_presets(project_settings: dict):
     menubar = nuke.menu("Nuke")
-    nuke_presets = get_current_project_settings()["nuke"]["general"]
+    nuke_presets = project_settings["nuke"]["general"]
 
-    if nuke_presets.get("menu"):
+    menu_shortctuts = nuke_presets.get("menu", {})
+    if menu_shortctuts:
         menu_label_mapping = {
             "create": "Create...",
             "manage": "Manage...",
             "load": "Load...",
             "build_workfile": "Build Workfile",
-            "publish": "Publish..."
+            "publish": "Publish...",
         }
 
-        for command_name, shortcut_str in nuke_presets.get("menu").items():
+        menu = menubar.findItem(MENU_LABEL)
+        for command_name, shortcut_str in menu_shortctuts.items():
+            # Note: workfile version up shortcut is added directly in
+            # _install_menu to allow overriding default shortcut.
+            if command_name == "version_up_workfile":
+                continue
+
+            if not shortcut_str:
+                continue
+
+            item_label = menu_label_mapping[command_name]
+            menuitem = menu.findItem(item_label)
+            if not menuitem:
+                continue
+
             log.info("menu_name `{}` | menu_label `{}`".format(
                 command_name, MENU_LABEL
             ))
             log.info("Adding Shortcut `{}` to `{}`".format(
                 shortcut_str, command_name
             ))
-            try:
-                menu = menubar.findItem(MENU_LABEL)
-                item_label = menu_label_mapping[command_name]
-                menuitem = menu.findItem(item_label)
-                menuitem.setShortcut(shortcut_str)
-            except (AttributeError, KeyError) as e:
-                log.error(e)
+            menuitem.setShortcut(shortcut_str)
 
 
 def containerise(node,
@@ -502,7 +549,7 @@ def ls():
     need to implement a for-loop that then *yields* one Container at
     a time.
     """
-    all_nodes = nuke.allNodes(recurseGroups=False)
+    all_nodes = nuke.allNodes(recurseGroups=True)
 
     nodes = [n for n in all_nodes]
 

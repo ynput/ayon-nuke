@@ -11,8 +11,7 @@ from ayon_nuke.api.lib import (
 
 
 class ExtractModel(publish.Extractor):
-    """ 3D model extractor
-    """
+    """3D model extractor"""
     label = 'Extract Model'
     order = pyblish.api.ExtractorOrder
     families = ["model"]

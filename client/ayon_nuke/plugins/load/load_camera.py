@@ -20,7 +20,8 @@ class AlembicCameraLoader(load.LoaderPlugin):
     This will load a camera into script.
     """
 
-    product_types = {"camera"}
+    product_base_types = {"camera"}
+    product_types = product_base_types
     representations = {"*"}
     extensions = {"abc"}
     label = "Load Alembic Camera"
@@ -64,15 +65,19 @@ class AlembicCameraLoader(load.LoaderPlugin):
                     "Camera3",
                     "name {} file {} read_from_file True".format(
                         object_name, file),
-                    inpanel=False
+                    inpanel=False,
                 )
             except RuntimeError: # older nuke version
                 camera_node = nuke.createNode(
                     "Camera2",
                     "name {} file {} read_from_file True".format(
                         object_name, file),
-                    inpanel=False
-                )                
+                    inpanel=False,
+                )
+
+            # get the actual name of the camera node
+            # might be different if a the desired name is already in use
+            object_name = camera_node.name()
 
             camera_node.forceValidate()
             camera_node["frame_rate"].setValue(float(fps))
@@ -185,7 +190,7 @@ class AlembicCameraLoader(load.LoaderPlugin):
         return update_container(camera_node, data_imprint)
 
     def node_version_color(self, project_name, version_entity, node):
-        """ Coloring a node by correct color by actual version
+        """Coloring a node by correct color by actual version
         """
         # get all versions in list
         last_version_entity = ayon_api.get_last_version_by_product_id(

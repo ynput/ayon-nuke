@@ -1,14 +1,14 @@
 import collections
+from typing import Any
 import nuke
 
 from ayon_core.pipeline import registered_host
 from ayon_core.pipeline.workfile.workfile_template_builder import (
     AbstractTemplateBuilder,
     PlaceholderPlugin,
+    PlaceholderItem
 )
-from ayon_core.tools.workfile_template_build import (
-    WorkfileBuildPlaceholderDialog,
-)
+
 from .lib import (
     imprint,
     reset_selection,
@@ -18,6 +18,14 @@ from .lib import (
 
 PLACEHOLDER_SET = "PLACEHOLDERS_SET"
 
+
+LEGACY_PLACEHOLDER_KEYS = {
+    "product_type",   # replaced by "product_base_type" in ayon-core 1.8.0
+    "family",
+}
+"""Legacy placeholder keys that are deprecated but still supported for
+backward compatibility.
+"""
 
 class NukeTemplateBuilder(AbstractTemplateBuilder):
     """Concrete implementation of AbstractTemplateBuilder for nuke"""
@@ -44,6 +52,8 @@ class NukeTemplateBuilder(AbstractTemplateBuilder):
 
 class NukePlaceholderPlugin(PlaceholderPlugin):
     node_color = 4278190335
+
+    item_class = PlaceholderItem
 
     def _collect_scene_placeholders(self):
         # Cache placeholder data to shared data
@@ -92,20 +102,54 @@ class NukePlaceholderPlugin(PlaceholderPlugin):
         node = nuke.toNode(placeholder_item.scene_identifier)
         imprint(node, placeholder_data)
 
-    def _parse_placeholder_node_data(self, node):
-        placeholder_data = {}
+    def _parse_placeholder_node_data(self, node: nuke.Node):
+        placeholder_data: dict[str, Any] = {}
+
+        # collect current placeholder keys
         for key in self.get_placeholder_keys():
-            knob = node.knob(key)
-            value = None
-            if knob is not None:
-                value = knob.getValue()
-            placeholder_data[key] = value
+            if knob := node.knob(key):
+                placeholder_data[key] = knob.getValue()
+            else:
+                placeholder_data[key] = None
+
+        # collect legacy placeholder keys for backward compatibility
+        for key in LEGACY_PLACEHOLDER_KEYS:
+
+            if placeholder_data.get(key) is not None:
+                continue
+
+            if knob := node.knob(key):
+                self.log.warning(
+                    f"Legacy placeholder key '{key}' on '{node.fullName()}'"
+                    " is deprecated and will be removed in the future."
+                    "\nPlease recreate the placeholder to fix this."
+                )
+                placeholder_data[key] = knob.getValue()
+
         return placeholder_data
 
     def delete_placeholder(self, placeholder):
         """Remove placeholder if building was successful"""
         placeholder_node = nuke.toNode(placeholder.scene_identifier)
         nuke.delete(placeholder_node)
+
+    def collect_placeholders(self):
+        output = []
+        scene_placeholders = self._collect_scene_placeholders()
+        for node_name, node in scene_placeholders.items():
+            plugin_identifier_knob = node.knob("plugin_identifier")
+            if (
+                plugin_identifier_knob is None
+                or plugin_identifier_knob.getValue() != self.identifier
+            ):
+                continue
+
+            placeholder_data = self._parse_placeholder_node_data(node)
+            output.append(
+                self.item_class(node_name, placeholder_data, self)
+            )
+
+        return output
 
 
 def build_workfile_template(*args, **kwargs):
@@ -122,6 +166,13 @@ def update_workfile_template(*args):
 
 
 def create_placeholder(*args):
+    if not nuke.GUI:
+        raise RuntimeError("Invalid in non-GUI mode.")
+
+    from ayon_core.tools.workfile_template_build import (
+        WorkfileBuildPlaceholderDialog,
+    )
+
     host = registered_host()
     builder = NukeTemplateBuilder(host)
     window = WorkfileBuildPlaceholderDialog(host, builder,
@@ -130,6 +181,13 @@ def create_placeholder(*args):
 
 
 def update_placeholder(*args):
+    if not nuke.GUI:
+        raise RuntimeError("Invalid in non-GUI mode.")
+
+    from ayon_core.tools.workfile_template_build import (
+        WorkfileBuildPlaceholderDialog,
+    )
+
     host = registered_host()
     builder = NukeTemplateBuilder(host)
     placeholder_items_by_id = {

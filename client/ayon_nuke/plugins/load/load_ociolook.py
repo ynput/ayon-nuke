@@ -19,7 +19,8 @@ from ayon_nuke.api import (
 class LoadOcioLookNodes(load.LoaderPlugin):
     """Loading Ocio look to the nuke.Node graph"""
 
-    product_types = {"ociolook"}
+    product_base_types = {"ociolook"}
+    product_types = product_base_types
     representations = {"*"}
     extensions = {"json"}
 
@@ -294,7 +295,7 @@ class LoadOcioLookNodes(load.LoaderPlugin):
             nuke.delete(node)
 
     def _node_version_color(self, project_name, version_entity, node):
-        """ Coloring a node by correct color by actual version"""
+        """Coloring a node by correct color by actual version"""
 
         last_version_entity = ayon_api.get_last_version_by_product_id(
             project_name, version_entity["productId"], fields={"id"}

@@ -9,7 +9,7 @@ from ayon_core.pipeline import KnownPublishError
 class CollectContextData(pyblish.api.ContextPlugin):
     """Collect current context publish."""
 
-    order = pyblish.api.CollectorOrder - 0.499
+    order = pyblish.api.CollectorOrder - 0.5
     label = "Collect context data"
     hosts = ['nuke']
 

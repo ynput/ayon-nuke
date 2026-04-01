@@ -14,6 +14,7 @@ from .plugin import (
     NukeWriteCreator,
     NukeCreatorError,
     get_instance_group_node_childs,
+    get_instance_group_node_children,
     get_colorspace_from_node,
     get_publish_config,
 )
@@ -71,6 +72,7 @@ __all__ = (
     "NukeCreatorError",
     "NukeHost",
     "get_instance_group_node_childs",
+    "get_instance_group_node_children",
     "get_colorspace_from_node",
     "get_publish_config",
 
