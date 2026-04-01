@@ -249,9 +249,9 @@ class ExtractSlateFrameModel(BaseSettingsModel):
 
 
 class PublishPluginsModel(BaseSettingsModel):
-    CollectInstanceData: CollectInstanceDataModel = SettingsField(
-        title="Collect Instance Version",
-        default_factory=CollectInstanceDataModel,
+    CollectSyncWorkfileVersion: CollectSyncWorkfileVersionModel = SettingsField(
+        title="Collect Sync Workfile Version",
+        default_factory=CollectSyncWorkfileVersionModel,
         section="Collectors"
     )
     ValidateCorrectAssetContext: OptionalPluginModel = SettingsField(
@@ -321,7 +321,7 @@ class PublishPluginsModel(BaseSettingsModel):
 
 
 DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
-    "CollectInstanceData": {
+    "CollectSyncWorkfileVersion": {
         "sync_workfile_version_on_product_types": [
             "nukenodes",
             "camera",
