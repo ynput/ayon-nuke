@@ -268,29 +268,28 @@ def _convert_collect_instance_data_model_0_4_0(overrides: dict) -> None:
     )
 
 
-def _convert_collect_sync_workfile_version_model_0_4_0(overrides: dict) -> None:
+def _convert_collect_sync_workfile_version_model_0_4_5(overrides: dict) -> None:
     """Convert collect sync workfile version model to include product_base_type."""
-    collect_instance_data = (
+    publish= (
         overrides
         .get("publish", {})
-        .get("CollectInstanceData")
     )
+    # Before 0.4.5 CollectInstanceData only contained
+    # `sync_workfile_version_on_product_types`
+    collect_instance_data = publish.get("CollectInstanceData", {})
+    sync_workfile_version_on_product_base_types = collect_instance_data.pop(
+        "sync_workfile_version_on_product_base_types", None
+    )
+    if not sync_workfile_version_on_product_base_types:
+        # Nothing to convert
+        return
     if not collect_instance_data:
-        return
+        # Ensure to remove this key if no more content
+        del publish["CollectInstanceData"]
 
-    if "sync_workfile_version_on_product_types" not in collect_instance_data:
-        return
-
-    collect_sync_workfile_version = (
-        overrides
-        .get("publish", {})
-        .get("CollectSyncWorkfileVersion")
-    )
-    if "sync_workfile_version_on_product_types" not in collect_sync_workfile_version:
-        return
-
+    collect_sync_workfile_version = publish.setdefault("CollectSyncWorkfileVersion", {})
     collect_sync_workfile_version["sync_workfile_version_on_product_base_types"] = (
-        collect_instance_data.pop("sync_workfile_version_on_product_types")
+        sync_workfile_version_on_product_base_types
     )
 
 
@@ -305,5 +304,5 @@ def convert_settings_overrides(
     _convert_workfile_builder_0_4_0(overrides)
     _convert_baking_stream_filter_product_base_type_0_4_0(overrides)
     _convert_collect_instance_data_model_0_4_0(overrides)
-    _convert_collect_sync_workfile_version_model_0_4_0(overrides)
+    _convert_collect_sync_workfile_version_model_0_4_5(overrides)
     return overrides
