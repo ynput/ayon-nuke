@@ -3,7 +3,9 @@ import pyblish.api
 
 
 class CollectSyncWorkfileVersion(pyblish.api.InstancePlugin):
-    """Collect sync workfile version to instance data for integration"""
+    """Collect sync workfile version to instance data
+    after scene version is collected by CollectSceneVersion.
+    """
 
     order = pyblish.api.CollectorOrder + 0.001
     label = "Collect Sync Workfile Version"
