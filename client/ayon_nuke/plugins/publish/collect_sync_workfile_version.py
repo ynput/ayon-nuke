@@ -19,9 +19,7 @@ class CollectSyncWorkfileVersion(pyblish.api.InstancePlugin):
         # sync workfile version
         if product_base_type in self.sync_workfile_version_on_product_base_types:  # noqa: E501
             self.log.debug(
-                "Syncing version with workfile for '{}'".format(
-                    product_base_type
-                )
+                f"Syncing version with workfile for '{product_base_type}'"
             )
             # get version to instance for integration
             instance.data['version'] = instance.context.data['version']
