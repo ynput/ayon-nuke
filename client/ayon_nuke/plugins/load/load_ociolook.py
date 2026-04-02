@@ -1,6 +1,5 @@
 import os
 import json
-import secrets
 
 import nuke
 import ayon_api
