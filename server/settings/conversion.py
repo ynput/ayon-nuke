@@ -296,7 +296,7 @@ def _convert_collect_sync_workfile_version_model_0_4_0(overrides: dict) -> None:
 
 def _convert_instance_data_to_sync_workfile_version_0_4_0(overrides: dict) -> None:
     """Migrate values from CollectInstanceData to CollectSyncWorkfileVersion.
-    
+
     If CollectInstanceData has sync_workfile_version settings, migrate them
     to CollectSyncWorkfileVersion even if it doesn't already have the key.
     """
