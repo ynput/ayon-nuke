@@ -2770,6 +2770,12 @@ def get_group_io_nodes(nodes):
     if not nodes:
         raise ValueError("there is no nodes in the list")
 
+    nodes = [
+        node for node in nodes
+        # Avoid non-connectable nodes, like Backdrops
+        if node.maxInputs() > 0 or node.maxOutputs() > 0
+    ]
+
     input_node = None
     output_node = None
 
