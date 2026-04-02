@@ -61,6 +61,6 @@ class CreateModel(NukeCreator):
             created_node["tile_color"].setValue(
                 int(self.node_color, 16))
 
-            created_node["name"].setValue(node_name)
+            created_node.setName(node_name)
 
             return created_node
