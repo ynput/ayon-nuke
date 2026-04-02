@@ -268,6 +268,61 @@ def _convert_collect_instance_data_model_0_4_0(overrides: dict) -> None:
     )
 
 
+def _convert_collect_sync_workfile_version_model_0_4_0(overrides: dict) -> None:
+    """Convert collect sync workfile version model to include product_base_type."""
+    collect_instance_data = (
+        overrides
+        .get("publish", {})
+        .get("CollectInstanceData")
+    )
+    if not collect_instance_data:
+        return
+
+    if "sync_workfile_version_on_product_types" not in collect_instance_data:
+        return
+
+    collect_sync_workfile_version = (
+        overrides
+        .get("publish", {})
+        .get("CollectSyncWorkfileVersion")
+    )
+    if "sync_workfile_version_on_product_types" not in collect_sync_workfile_version:
+        return
+
+    collect_sync_workfile_version["sync_workfile_version_on_product_base_types"] = (
+        collect_instance_data.pop("sync_workfile_version_on_product_types")
+    )
+
+
+def _convert_instance_data_to_sync_workfile_version_0_4_0(overrides: dict) -> None:
+    """Migrate values from CollectInstanceData to CollectSyncWorkfileVersion.
+    
+    If CollectInstanceData has sync_workfile_version settings, migrate them
+    to CollectSyncWorkfileVersion even if it doesn't already have the key.
+    """
+    collect_instance_data = (
+        overrides
+        .get("publish", {})
+        .get("CollectInstanceData")
+    )
+    if not collect_instance_data:
+        return
+
+    if "sync_workfile_version_on_product_base_types" not in collect_instance_data:
+        return
+
+    publish_overrides = overrides.get("publish", {})
+    if "CollectSyncWorkfileVersion" not in publish_overrides:
+        publish_overrides["CollectSyncWorkfileVersion"] = {}
+
+    collect_sync_workfile_version = publish_overrides["CollectSyncWorkfileVersion"]
+
+    # Pop from CollectInstanceData and set in CollectSyncWorkfileVersion
+    collect_sync_workfile_version["sync_workfile_version_on_product_base_types"] = (
+        collect_instance_data.pop("sync_workfile_version_on_product_base_types")
+    )
+
+
 def convert_settings_overrides(
     source_version: str,
     overrides: dict[str, Any],
@@ -279,4 +334,6 @@ def convert_settings_overrides(
     _convert_workfile_builder_0_4_0(overrides)
     _convert_baking_stream_filter_product_base_type_0_4_0(overrides)
     _convert_collect_instance_data_model_0_4_0(overrides)
+    _convert_collect_sync_workfile_version_model_0_4_0(overrides)
+    _convert_instance_data_to_sync_workfile_version_0_4_0(overrides)
     return overrides
