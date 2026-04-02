@@ -162,7 +162,7 @@ class NukeCreator(Creator):
         try:
             with parent_node:
                 created_node = nuke.createNode(node_type)
-                created_node["name"].setValue(node_name)
+                created_node.setName(node_name)
 
                 for key, values in node_knobs.items():
                     if key in created_node.knobs():
@@ -291,7 +291,7 @@ class NukeCreator(Creator):
 
             # update instance node name if product name changed
             if "productName" in changes.changed_keys:
-                instance_node["name"].setValue(
+                instance_node.setName(
                     changes["productName"].new_value
                 )
 
