@@ -1740,6 +1740,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
 
         Path set into nuke workfile. It is trying to replace path with
         environment variable if possible. If not, it will set it as it is.
+
         Args:
             config_data (dict): OCIO config data from settings
 
