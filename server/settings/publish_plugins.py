@@ -322,7 +322,7 @@ class PublishPluginsModel(BaseSettingsModel):
 
 DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
     "CollectSyncWorkfileVersion": {
-        "sync_workfile_version_on_product_types": [
+        "sync_workfile_version_on_product_base_types": [
             "nukenodes",
             "camera",
             "gizmo",

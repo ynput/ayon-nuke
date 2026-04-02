@@ -283,6 +283,7 @@ def _convert_collect_sync_workfile_version_model_0_4_5(overrides: dict) -> None:
     if not sync_workfile_version_on_product_base_types:
         # Nothing to convert
         return
+
     if not collect_instance_data:
         # Ensure to remove this key if no more content
         del publish["CollectInstanceData"]
