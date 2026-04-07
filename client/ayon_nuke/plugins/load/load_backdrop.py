@@ -83,10 +83,8 @@ class LoadBackdropNodes(load.LoaderPlugin):
         bdn_frame = 50
 
         with maintained_selection():
-
             # add group from nk
             nuke.nodePaste(file)
-
             # get all pasted nodes
             new_nodes = list()
             nodes = nuke.selectedNodes()
@@ -274,8 +272,11 @@ class LoadBackdropNodes(load.LoaderPlugin):
         bdn["bdwidth"].setValue(bdwidth)
         bdn["bdheight"].setValue(bdheight)
 
-        bdn["name"].setValue(object_name)
-        bdn["label"].setValue("Version tracked frame: \n`{}`\n\nPLEASE DO NOT REMOVE OR MOVE \nANYTHING FROM THIS FRAME!".format(object_name))
+        bdn.setName(object_name)
+        bdn["label"].setValue(
+            f"Version tracked frame: \n`{object_name}`\n\n"
+            "PLEASE DO NOT REMOVE OR MOVE \nANYTHING FROM THIS FRAME!"
+        )
         bdn["note_font_size"].setValue(20)
 
         return bdn

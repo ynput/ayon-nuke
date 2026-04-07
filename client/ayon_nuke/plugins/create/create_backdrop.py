@@ -50,7 +50,7 @@ class CreateBackdrop(NukeCreator):
                 select_nodes(node_selection)
 
             created_node = autoBackdrop()
-            created_node["name"].setValue(node_name)
+            created_node.setName(node_name)
             created_node["tile_color"].setValue(int(self.node_color, 16))
             created_node["note_font_size"].setValue(24)
             created_node["label"].setValue("[{}]".format(node_name))

@@ -75,7 +75,7 @@ class LinkAsGroup(load.LoaderPlugin):
         # Set colorspace defined in version data
         self.log.info("colorspace: {}\n".format(colorspace))
 
-        P["name"].setValue("{}_{}".format(name, namespace))
+        P.setName(f"{name}_{namespace}")
         P["useOutput"].setValue(True)
 
         with P:

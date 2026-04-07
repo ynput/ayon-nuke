@@ -31,7 +31,7 @@ class LoadGizmo(plugin.NukeGroupLoader):
         nuke.nodePaste(file)
 
         group_node = nuke.selectedNode()
-        group_node["name"].setValue(object_name)
+        group_node.setName(object_name)
 
         return group_node
 
@@ -54,7 +54,7 @@ class LoadGizmo(plugin.NukeGroupLoader):
             # swap nodes with maintained connections
             with swap_node_with_dependency(
                     group_node, new_group_node) as node_name:
-                new_group_node["name"].setValue(node_name)
+                new_group_node.setName(node_name)
 
                 # Transfer data to the new group
                 set_avalon_knob_data(new_group_node, avalon_data)
