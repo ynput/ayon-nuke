@@ -1740,8 +1740,6 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
 
         Path set into nuke workfile. It is trying to replace path with
         environment variable if possible. If not, it will set it as it is.
-        It also saves the script to apply the change, but only if it's not
-        empty Untitled script.
 
         Args:
             config_data (dict): OCIO config data from settings
@@ -1749,19 +1747,11 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         """
         # replace path with env var if possible
         ocio_path = self._replace_ocio_path_with_env_var(config_data)
+        log.info("Setting OCIO config path to: %s", ocio_path)
 
-        log.info("Setting OCIO config path to: `{}`".format(
-            ocio_path))
-
-        self._root_node["customOCIOConfigPath"].setValue(
-            ocio_path
-        )
-        self._root_node["OCIO_config"].setValue("custom")
-
-        # only save script if it's not empty
-        if self._root_node["name"].value() != "":
-            log.info("Saving script to apply OCIO config path change.")
-            nuke.scriptSave()
+        root = self._root_node
+        root["customOCIOConfigPath"].setValue(ocio_path)
+        root["OCIO_config"].setValue("custom")
 
     def _get_included_vars(self, config_template):
         """Get all environment variables included in template
@@ -1799,7 +1789,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         formatted values.
 
         Args:
-            config_data (str): OCIO config dict from settings
+            config_data (dict[str, str]): OCIO config dict from settings
 
         Returns:
             str: OCIO config path with environment variable TCL expression
