@@ -1430,9 +1430,9 @@ def get_backdrop_nodes(backdrop_node):
     y_max = y_min + backdrop_node["bdheight"].value()
     contained = []
     for node in nuke.allNodes(
-            group=backdrop_node.parent(),
-            recurseGroups=False
-        ):
+        group=backdrop_node.parent(),
+        recurseGroups=False
+    ):
         if node is backdrop_node:
             continue
 
