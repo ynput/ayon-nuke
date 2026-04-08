@@ -1,5 +1,4 @@
 from copy import deepcopy
-import os
 
 import nuke
 import ayon_api
@@ -13,7 +12,6 @@ from ayon_core.pipeline.colorspace import (
     get_imageio_file_rules_colorspace_from_filepath,
     get_current_context_imageio_config_preset,
 )
-from ayon_core.pipeline.load import LoadError
 from ayon_nuke.api.lib import (
     get_imageio_input_colorspace,
     maintained_selection
@@ -137,12 +135,7 @@ class LoadClip(plugin.NukeLoader):
         self.log.debug(
             "Representation id `{}` ".format(repre_id))
 
-        handle_start = version_attributes.get("handleStart") or 0
-        handle_end = version_attributes.get("handleEnd") or 0
-
-        first, last = self._get_frame_range(
-            version_attributes, handle_start, handle_end
-        )
+        first, last = self._get_frame_range(version_attributes)
 
         # If a slate is present, the frame range is 1 frame longer for movies,
         # but file sequences its the first frame that is 1 frame lower.
@@ -179,7 +172,7 @@ class LoadClip(plugin.NukeLoader):
         # to avoid multiple undo steps for rest of process
         # we will switch off undo-ing
         with viewer_update_and_undo_stop():
-            read_node["file"].setValue(filepath)
+            read_node["file"].fromUserText(filepath)
             if read_node.Class() == "Read":
                 self.set_colorspace_to_node(
                     read_node,
@@ -188,14 +181,13 @@ class LoadClip(plugin.NukeLoader):
                     version_entity,
                     repre_entity
                 )
-            if first and last:
+            if first is not None and last is not None:
                 self._set_range_to_node(
-                    read_node, first, last, start_at_workfile, slate_frames
+                    read_node, first, last
                 )
-            else:
-                self._set_range_to_node_by_nuke(
-                    read_node, filepath, start_at_workfile, slate_frames
-                )
+
+            if start_at_workfile:
+                self._start_at_workfile_frame(read_node, slate_frames)
 
             version_name = version_entity["version"]
             if version_name < 0:
@@ -315,13 +307,9 @@ class LoadClip(plugin.NukeLoader):
         ]
 
         repre_id = repre_entity["id"]
-
+        first, last = self._get_frame_range(version_attributes)
         handle_start = version_attributes.get("handleStart") or 0
         handle_end = version_attributes.get("handleEnd") or 0
-
-        first, last = self._get_frame_range(
-            version_attributes, handle_start, handle_end
-        )
 
         if first is not None and last is not None and not is_sequence:
             duration = last - first
@@ -346,14 +334,16 @@ class LoadClip(plugin.NukeLoader):
                     version_entity,
                     repre_entity
                 )
-            if first and last:
+            if first is not None and last is not None:
                 self._set_range_to_node(
-                    read_node, first, last, start_at_workfile
+                    read_node, first, last
                 )
             else:
-                first, last = self._set_range_to_node_by_nuke(
-                    read_node, filepath, start_at_workfile
-                )
+                first = int(read_node['first'].value())
+                last = int(read_node['last'].value())
+
+            if start_at_workfile:
+                self._start_at_workfile_frame(read_node)
 
             updated_dict = {
                 "representation": repre_entity["id"],
@@ -437,42 +427,14 @@ class LoadClip(plugin.NukeLoader):
                 nuke.delete(member)
 
     def _set_range_to_node(
-        self, read_node, first, last, start_at_workfile, slate_frames=0
+        self, read_node: nuke.Node, first: int, last: int
     ):
-
         read_node['origfirst'].setValue(int(first))
         read_node['first'].setValue(int(first))
         read_node['origlast'].setValue(int(last))
         read_node['last'].setValue(int(last))
 
-        # set start frame depending on workfile or version
-        if start_at_workfile:
-            self._start_at_workfile_frame(read_node, slate_frames)
-
-    def _set_range_to_node_by_nuke(
-        self, read_node,filepath, start_at_workfile, slate_frames=0
-    ):
-        basename = os.path.basename(filepath)
-        dirname = os.path.dirname(filepath)
-
-        for nuke_file_name in nuke.getFileNameList(dirname):
-            if basename in nuke_file_name :
-                break
-        else:
-            raise LoadError(f"Cannot find nuke media path for: {filepath}.")
-
-        # Let nuke configure read node from media source.
-        nuke_media_path = os.path.join(dirname, nuke_file_name)
-        read_node["file"].fromUserText(nuke_media_path)
-        frame_start = int(read_node['first'].value())
-        frame_end = int(read_node['last'].value())
-
-        if start_at_workfile:
-            self._start_at_workfile_frame(read_node, slate_frames)
-
-        return frame_start, frame_end
-
-    def _start_at_workfile_frame(self, read_node, slate_frames):
+    def _start_at_workfile_frame(self, read_node, slate_frames=0):
         """Set read node to start at workfile's start frame"""
         read_node['frame_mode'].setValue("start at")
         start_frame = self.script_start - slate_frames
@@ -618,25 +580,20 @@ class LoadClip(plugin.NukeLoader):
             or colorspace
         )
 
-    def _get_frame_range(self, version_attributes, handle_start, handle_end):
-        """Get first and last frame from version attributes
+    def _get_frame_range(self, version_attributes):
+        """Get first and last frame from version attributes, including handles.
 
         Args:
             version_attributes (dict): version attributes
-            handle_start (int): handle start frames
-            handle_end (int): handle end frames
 
         Returns:
             tuple: first and last frame numbers
         """
-
         first = version_attributes.get("frameStart")
-
         last = version_attributes.get("frameEnd")
-        if not first or not last:
+        if first is None or last is None:
             return None, None
 
-        first -= handle_start
-        last += handle_end
-
+        first -= version_attributes.get("handleStart") or 0
+        last += version_attributes.get("handleEnd") or 0
         return first, last
