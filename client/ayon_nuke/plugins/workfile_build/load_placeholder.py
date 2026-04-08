@@ -6,6 +6,7 @@ from ayon_core.pipeline.workfile.workfile_template_builder import (
 )
 from ayon_nuke.api.lib import (
     find_free_space_to_paste_nodes,
+    get_backdrop_nodes,
     get_extreme_positions,
     get_group_io_nodes,
     imprint,
@@ -328,7 +329,7 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
                 not isinstance(node, nuke.BackdropNode)
                 or (
                     isinstance(node, nuke.BackdropNode)
-                    and not set(contained_nodes) <= set(node.getNodes())
+                    and not set(contained_nodes) <= set(get_backdrop_nodes(node))
                 )
             ):
                 if offset_y is None and node.xpos() >= min_x:
