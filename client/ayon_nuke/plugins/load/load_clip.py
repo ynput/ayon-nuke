@@ -138,7 +138,7 @@ class LoadClip(plugin.NukeLoader):
         first, last = self._get_frame_range(version_attributes)
 
         # If a slate is present, the frame range is 1 frame longer for movies,
-        # but file sequences its the first frame that is 1 frame lower.
+        # but file sequences it's the first frame that is 1 frame lower.
         slate_frames = repre_entity["data"].get("slateFrames", 0)
         extension = "." + repre_entity["context"]["ext"]
         files_count = len(repre_entity["files"])
@@ -229,7 +229,6 @@ class LoadClip(plugin.NukeLoader):
                 read_node,
                 version_attributes,
                 version_data,
-                handle_start
             )
 
         self.set_as_member(read_node)
@@ -377,7 +376,6 @@ class LoadClip(plugin.NukeLoader):
                 read_node,
                 version_attributes,
                 version_data,
-                handle_start
             )
         else:
             self.clear_members(read_node)
@@ -440,8 +438,8 @@ class LoadClip(plugin.NukeLoader):
         start_frame = self.script_start - slate_frames
         read_node['frame'].setValue(str(start_frame))
 
-    def _make_retimes(self, parent_node, version_attributes, version_data, handle_start):
-        ''' Create all retime and timewarping nodes with copied animation '''
+    def _make_retimes(self, parent_node, version_attributes, version_data):
+        """Create all retime and timewarping nodes with copied animation"""
         speed = version_data.get('speed', 1)
         time_warp_nodes = version_data.get('timewarps', [])
         last_node = None
@@ -450,6 +448,7 @@ class LoadClip(plugin.NukeLoader):
         self.log.debug("__ members: {}".format(
             self.get_members(parent_node)))
 
+        handle_start = version_attributes.get("handleStart") or 0
         dependent_nodes = self.clear_members(parent_node)
 
         with maintained_selection():
