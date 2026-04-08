@@ -182,9 +182,7 @@ class LoadClip(plugin.NukeLoader):
                     repre_entity
                 )
             if first is not None and last is not None:
-                self._set_range_to_node(
-                    read_node, first, last
-                )
+                self._set_range_to_node(read_node, first, last)
 
             if start_at_workfile:
                 self._start_at_workfile_frame(read_node, slate_frames)
@@ -334,9 +332,7 @@ class LoadClip(plugin.NukeLoader):
                     repre_entity
                 )
             if first is not None and last is not None:
-                self._set_range_to_node(
-                    read_node, first, last
-                )
+                self._set_range_to_node(read_node, first, last)
             else:
                 first = int(read_node['first'].value())
                 last = int(read_node['last'].value())
