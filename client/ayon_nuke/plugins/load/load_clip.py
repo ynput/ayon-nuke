@@ -188,7 +188,7 @@ class LoadClip(plugin.NukeLoader):
                     version_entity,
                     repre_entity
                 )
-            if first is not None and last is not None:
+            if first and last:
                 self._set_range_to_node(
                     read_node, first, last, start_at_workfile, slate_frames
                 )
