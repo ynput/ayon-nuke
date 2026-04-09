@@ -201,6 +201,7 @@ class LoadClip(plugin.NukeLoader):
 
             data_imprint = {
                 "version": version_name,
+                "option_set_start_frame": set_frame_range
             }
 
             # add attributes from the version to imprint metadata knob
@@ -305,7 +306,9 @@ class LoadClip(plugin.NukeLoader):
         self.log.debug("_ filepath: {}".format(filepath))
 
         start_at_workfile = "start at" in read_node['frame_mode'].value()
-        set_frame_range = self.options_defaults["set_frame_range"]
+        set_frame_range: bool = container.get("option_set_start_frame",
+            self.options_defaults["set_frame_range"]
+        )
 
         add_retime = [
             key for key in read_node.knobs().keys()
