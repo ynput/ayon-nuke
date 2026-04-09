@@ -6,6 +6,7 @@ import ayon_api
 from ayon_core.pipeline import load
 from ayon_nuke.api.lib import (
     find_free_space_to_paste_nodes,
+    get_backdrop_nodes,
     maintained_selection,
     reset_selection,
     select_nodes,
@@ -202,7 +203,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
         avalon_data = get_avalon_knob_data(GN)
 
         # Preserve external connections (to/from outside the backdrop)
-        backdrop_nodes = GN.getNodes()
+        backdrop_nodes = get_backdrop_nodes(GN)
         with restore_node_connections(backdrop_nodes):
             for node in backdrop_nodes:
                 # Delete old backdrop nodes
@@ -242,7 +243,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
         node = container["node"]
         with viewer_update_and_undo_stop():
             if self.remove_nodes_from_backdrop:
-                for child_node in node.getNodes():
+                for child_node in get_backdrop_nodes(node):
                     nuke.delete(child_node)
             nuke.delete(node)
 
