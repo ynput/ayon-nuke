@@ -40,7 +40,7 @@ class LoadClipOptionsModel(BaseSettingsModel):
     set_frame_range: bool = SettingsField(
         title="Set frame range to version frame range",
         description=(
-            "On load set the node's frame range to version frame range"
+            "When loading, set the node's frame range to the version's frame range."
         )
     )
     start_at_workfile: bool = SettingsField(
