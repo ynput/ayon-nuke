@@ -63,7 +63,8 @@ class LoadClip(plugin.NukeLoader):
 
     # option gui
     options_defaults = {
-        "start_at_workfile": True,
+        "set_frame_range": True,
+        "start_at_workfile": False,
         "add_retime": True,
         "node_type": "auto",
     }
@@ -73,6 +74,11 @@ class LoadClip(plugin.NukeLoader):
     @classmethod
     def get_options(cls, *args):
         return [
+            BoolDef(
+                "set_frame_range",
+                label="Set frame range from version data",
+                default=cls.options_defaults["set_frame_range"]
+            ),
             BoolDef(
                 "start_at_workfile",
                 label="Start at workfile's start frame",
@@ -124,10 +130,12 @@ class LoadClip(plugin.NukeLoader):
         filepath = filepath.replace("\\", "/")
         self.log.debug("_ filepath: {}".format(filepath))
 
-        start_at_workfile = options.get(
+        start_at_workfile: bool = options.get(
             "start_at_workfile", self.options_defaults["start_at_workfile"])
-
-        add_retime = options.get(
+        set_frame_range: bool = options.get(
+            "set_frame_range", self.options_defaults["set_frame_range"]
+        )
+        add_retime: bool = options.get(
             "add_retime", self.options_defaults["add_retime"])
 
         repre_id = repre_entity["id"]
@@ -181,7 +189,7 @@ class LoadClip(plugin.NukeLoader):
                     version_entity,
                     repre_entity
                 )
-            if first is not None and last is not None:
+            if set_frame_range and first is not None and last is not None:
                 self._set_range_to_node(read_node, first, last)
 
             if start_at_workfile:
@@ -193,6 +201,7 @@ class LoadClip(plugin.NukeLoader):
 
             data_imprint = {
                 "version": version_name,
+                "option_set_start_frame": set_frame_range
             }
 
             # add attributes from the version to imprint metadata knob
@@ -297,6 +306,9 @@ class LoadClip(plugin.NukeLoader):
         self.log.debug("_ filepath: {}".format(filepath))
 
         start_at_workfile = "start at" in read_node['frame_mode'].value()
+        set_frame_range: bool = container.get("option_set_start_frame",
+            self.options_defaults["set_frame_range"]
+        )
 
         add_retime = [
             key for key in read_node.knobs().keys()
@@ -331,7 +343,7 @@ class LoadClip(plugin.NukeLoader):
                     version_entity,
                     repre_entity
                 )
-            if first is not None and last is not None:
+            if set_frame_range and first is not None and last is not None:
                 self._set_range_to_node(read_node, first, last)
             else:
                 first = int(read_node['first'].value())
