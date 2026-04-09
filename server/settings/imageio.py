@@ -21,6 +21,7 @@ def nuke_creator_plugins_enum():
         {"value": "CreateBackdrop", "label": "Nukenodes (backdrop)"},
         {"value": "CreateWriteRender", "label": "Render (write)"},
         {"value": "CreateSource", "label": "Source (read)"},
+        {"value": "CreateWritePlate", "label": "Plate (write)"},
     ]
 
 
@@ -385,6 +386,25 @@ DEFAULT_IMAGEIO_SETTINGS = {
                     },
                     {"type": "text", "name": "channels", "text": "rgb"},
                     {"type": "text", "name": "colorspace", "text": "texture_paint"},
+                    {"type": "boolean", "name": "create_directories", "boolean": True},
+                ],
+            },
+            {
+                "plugins": ["CreateWritePlate"],
+                "nuke_node_class": "Write",
+                "custom_class": "",
+                "knobs": [
+                    {"type": "text", "name": "file_type", "text": "exr"},
+                    {"type": "text", "name": "datatype", "text": "16 bit half"},
+                    {"type": "text", "name": "compression", "text": "Zip (1 scanline)"},
+                    {"type": "boolean", "name": "autocrop", "boolean": True},
+                    {
+                        "type": "color_gui",
+                        "name": "tile_color",
+                        "color_gui": [186, 35, 35],
+                    },
+                    {"type": "text", "name": "channels", "text": "rgb"},
+                    {"type": "text", "name": "colorspace", "text": "scene_linear"},
                     {"type": "boolean", "name": "create_directories", "boolean": True},
                 ],
             },
