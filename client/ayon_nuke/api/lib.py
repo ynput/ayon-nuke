@@ -1403,6 +1403,56 @@ def color_gui_to_int(color_gui):
     return int(hex_value, 16)
 
 
+def get_backdrop_nodes(backdrop_node):
+    """Return all nodes contained within a backdrop node.
+
+    In GUI mode uses the native ``BackdropNode.getNodes()`` method.
+    In headless/terminal mode that method is unavailable, so we fall back
+    to a manual positional check: any node whose top-left corner (xpos, ypos)
+    falls inside the backdrop's bounding rectangle is considered a member.
+
+    Args:
+        backdrop_node (nuke.BackdropNode): The backdrop node to query.
+
+    Returns:
+        list[nuke.Node]: Nodes contained within the backdrop.
+    """
+    if nuke.GUI:
+        return backdrop_node.getNodes()
+
+    # Headless fallback: find nodes whose position falls inside the backdrop.
+    # Note: this may include nodes that are inside only partially (by their top
+    # left corner) instead of the full node because `node.screenWidth()` and
+    # `node.screenHeight()` always return 0 in terminal mode.
+    x_min = backdrop_node.xpos()
+    y_min = backdrop_node.ypos()
+    x_max = x_min + backdrop_node["bdwidth"].value()
+    y_max = y_min + backdrop_node["bdheight"].value()
+    contained = []
+    for node in nuke.allNodes(
+        group=backdrop_node.parent(),
+        recurseGroups=False
+    ):
+        if node is backdrop_node:
+            continue
+
+        # Skip if out of bounds
+        node_x_min = node.xpos()
+        if node_x_min < x_min:
+            continue
+        node_y_min = node.ypos()
+        if node_y_min < y_min:
+            continue
+        node_x_max = node_x_min + node.screenWidth()
+        if node_x_max > x_max:
+            continue
+        node_y_max = node_y_min + node.screenHeight()
+        if node_y_max > y_max:
+            continue
+        contained.append(node)
+    return contained
+
+
 def create_backdrop(label="", color=None, layer=0,
                     nodes=None):
     """
