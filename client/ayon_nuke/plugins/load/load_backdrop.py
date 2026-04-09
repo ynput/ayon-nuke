@@ -6,6 +6,7 @@ import ayon_api
 from ayon_core.pipeline import load
 from ayon_nuke.api.lib import (
     find_free_space_to_paste_nodes,
+    get_backdrop_nodes,
     maintained_selection,
     reset_selection,
     select_nodes,
@@ -83,10 +84,8 @@ class LoadBackdropNodes(load.LoaderPlugin):
         bdn_frame = 50
 
         with maintained_selection():
-
             # add group from nk
             nuke.nodePaste(file)
-
             # get all pasted nodes
             new_nodes = list()
             nodes = nuke.selectedNodes()
@@ -204,7 +203,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
         avalon_data = get_avalon_knob_data(GN)
 
         # Preserve external connections (to/from outside the backdrop)
-        backdrop_nodes = GN.getNodes()
+        backdrop_nodes = get_backdrop_nodes(GN)
         with restore_node_connections(backdrop_nodes):
             for node in backdrop_nodes:
                 # Delete old backdrop nodes
@@ -244,7 +243,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
         node = container["node"]
         with viewer_update_and_undo_stop():
             if self.remove_nodes_from_backdrop:
-                for child_node in node.getNodes():
+                for child_node in get_backdrop_nodes(node):
                     nuke.delete(child_node)
             nuke.delete(node)
 
@@ -274,8 +273,11 @@ class LoadBackdropNodes(load.LoaderPlugin):
         bdn["bdwidth"].setValue(bdwidth)
         bdn["bdheight"].setValue(bdheight)
 
-        bdn["name"].setValue(object_name)
-        bdn["label"].setValue("Version tracked frame: \n`{}`\n\nPLEASE DO NOT REMOVE OR MOVE \nANYTHING FROM THIS FRAME!".format(object_name))
+        bdn.setName(object_name)
+        bdn["label"].setValue(
+            f"Version tracked frame: \n`{object_name}`\n\n"
+            "PLEASE DO NOT REMOVE OR MOVE \nANYTHING FROM THIS FRAME!"
+        )
         bdn["note_font_size"].setValue(20)
 
         return bdn

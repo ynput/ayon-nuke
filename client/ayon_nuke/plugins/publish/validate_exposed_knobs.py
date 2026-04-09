@@ -41,7 +41,7 @@ class ValidateExposedKnobs(
     OptionalPyblishPluginMixin,
     pyblish.api.InstancePlugin
 ):
-    """ Validate write node exposed knobs.
+    """Validate write node exposed knobs.
 
     Compare exposed linked knobs to settings.
     """

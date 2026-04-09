@@ -1,3 +1,4 @@
+from __future__ import annotations
 import nuke
 
 from ayon_core.pipeline.workfile.workfile_template_builder import (
@@ -6,6 +7,7 @@ from ayon_core.pipeline.workfile.workfile_template_builder import (
 )
 from ayon_nuke.api.lib import (
     find_free_space_to_paste_nodes,
+    get_backdrop_nodes,
     get_extreme_positions,
     get_group_io_nodes,
     imprint,
@@ -27,10 +29,10 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
     identifier = "nuke.load"
     label = "Nuke load"
 
+    item_class = LoadPlaceholderItem
+
     def _parse_placeholder_node_data(self, node):
-        placeholder_data = super(
-            NukePlaceholderLoadPlugin, self
-        )._parse_placeholder_node_data(node)
+        placeholder_data = super()._parse_placeholder_node_data(node)
 
         node_knobs = node.knobs()
         nb_children = 0
@@ -71,25 +73,6 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
 
     def _before_repre_load(self, placeholder, representation):
         placeholder.data["last_repre_id"] = representation["id"]
-
-    def collect_placeholders(self):
-        output = []
-        scene_placeholders = self._collect_scene_placeholders()
-        for node_name, node in scene_placeholders.items():
-            plugin_identifier_knob = node.knob("plugin_identifier")
-            if (
-                plugin_identifier_knob is None
-                or plugin_identifier_knob.getValue() != self.identifier
-            ):
-                continue
-
-            placeholder_data = self._parse_placeholder_node_data(node)
-            # TODO do data validations and maybe updgrades if are invalid
-            output.append(
-                LoadPlaceholderItem(node_name, placeholder_data, self)
-            )
-
-        return output
 
     def populate_placeholder(self, placeholder):
         self.populate_load_placeholder(placeholder)
@@ -314,14 +297,14 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
         min_x, min_y, max_x, max_y = get_extreme_positions(considered_nodes)
 
         diff_x = diff_y = 0
-        contained_nodes = []  # for backdrops
+        contained_nodes: set[nuke.Node] = set()  # for backdrops
 
         if offset_y is None:
             width_ph = placeholder_node.screenWidth()
             height_ph = placeholder_node.screenHeight()
             diff_y = max_y - min_y - height_ph
             diff_x = max_x - min_x - width_ph
-            contained_nodes = [placeholder_node]
+            contained_nodes = {placeholder_node}
             min_x = placeholder_node.xpos()
             min_y = placeholder_node.ypos()
         else:
@@ -329,7 +312,7 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
             minX, _, maxX, _ = get_extreme_positions(siblings)
             diff_y = max_y - min_y + 20
             diff_x = abs(max_x - min_x - maxX + minX)
-            contained_nodes = considered_nodes
+            contained_nodes = set(considered_nodes)
 
         if diff_y <= 0 and diff_x <= 0:
             return
@@ -347,7 +330,7 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
                 not isinstance(node, nuke.BackdropNode)
                 or (
                     isinstance(node, nuke.BackdropNode)
-                    and not set(contained_nodes) <= set(node.getNodes())
+                    and not contained_nodes <= set(get_backdrop_nodes(node))
                 )
             ):
                 if offset_y is None and node.xpos() >= min_x:
@@ -383,7 +366,7 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
                     input_node.setInput(0, node)
 
     def _create_sib_copies(self, placeholder):
-        """ creating copies of the palce_holder siblings (the ones who were
+        """Creating copies of the placeholder siblings (the ones who were
         loaded with it) for the new nodes added
 
         Returns :

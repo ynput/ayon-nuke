@@ -84,7 +84,7 @@ def get_colorspace_list(colorspace_knob, node=None, consider_aliases=True):
 
 
 def colorspace_exists_on_node(node, colorspace_name):
-    """ Check if colorspace exists on node
+    """Check if colorspace exists on node
 
     Look through all options in the colorspace knob, and see if we have an
     exact match to one of the items.
@@ -201,6 +201,7 @@ def get_formatted_display_and_view(
         # making sure formatted colorspace exists in running session
         if dv_item_resolved in get_display_and_view_colorspaces(root_node):
             return dv_item_resolved
+    return ""
 
 
 def get_formatted_display_and_view_as_dict(

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import re
 import json
@@ -14,7 +15,6 @@ from qtpy import QtCore, QtWidgets
 import ayon_api
 
 from ayon_core.host import HostDirmap
-from ayon_core.tools.utils import host_tools
 from ayon_core.pipeline.workfile.workfile_template_builder import (
     TemplateProfileNotFound
 )
@@ -45,13 +45,9 @@ from ayon_core.pipeline import (
     get_current_context,
 )
 from ayon_core.pipeline.load import filter_containers
-from ayon_core.pipeline.context_tools import (
-    get_current_context_custom_workfile_template
-)
 from ayon_core.pipeline.colorspace import (
     get_current_context_imageio_config_preset
 )
-from ayon_core.pipeline.workfile import BuildWorkfile
 from ayon_core.resources import get_ayon_icon_filepath
 
 from .gizmo_menu import GizmoMenu
@@ -60,7 +56,6 @@ from .constants import (
     LOADER_CATEGORY_COLORS,
 )
 
-from .workio import save_file
 from .utils import get_node_outputs
 
 from .colorspace import get_formatted_display_and_view
@@ -153,44 +148,44 @@ def get_main_window():
     return Context.main_window
 
 
-def set_node_data(node, knobname, data):
-    """Write data to node invisible knob
+def set_node_data(node, knob_name, data):
+    """Write data to an invisible node knob.
 
-    Will create new in case it doesn't exists
+    Will create a new one if it doesn't exist,
     or update the one already created.
 
     Args:
         node (nuke.Node): node object
-        knobname (str): knob name
+        knob_name (str): knob name
         data (dict): data to be stored in knob
     """
     # if exists then update data
-    if knobname in node.knobs():
-        update_node_data(node, knobname, data)
+    if knob_name in node.knobs():
+        update_node_data(node, knob_name, data)
         return
 
     # else create new
     knob_value = JSON_PREFIX + json.dumps(data)
-    knob = nuke.String_Knob(knobname)
+    knob = nuke.String_Knob(knob_name)
     knob.setValue(knob_value)
     knob.setFlag(nuke.INVISIBLE)
     node.addKnob(knob)
 
 
-def get_node_data(node, knobname):
+def get_node_data(node, knob_name):
     """Read data from node.
 
     Args:
         node (nuke.Node): node object
-        knobname (str): knob name
+        knob_name (str): knob name
 
     Returns:
         dict: data stored in knob
     """
-    if knobname not in node.knobs():
-        return
+    if knob_name not in node.knobs():
+        return {}
 
-    rawdata = node[knobname].getValue()
+    rawdata = node[knob_name].getValue()
     if (
         isinstance(rawdata, str)
         and rawdata.startswith(JSON_PREFIX)
@@ -198,19 +193,20 @@ def get_node_data(node, knobname):
         try:
             return json.loads(rawdata[len(JSON_PREFIX):])
         except json.JSONDecodeError:
-            return
+            pass
+    return {}
 
 
-def update_node_data(node, knobname, data):
+def update_node_data(node, knob_name, data):
     """Update already present data.
 
     Args:
         node (nuke.Node): node object
-        knobname (str): knob name
+        knob_name (str): knob name
         data (dict): data to update knob value
     """
-    knob = node[knobname]
-    node_data = get_node_data(node, knobname) or {}
+    knob = node[knob_name]
+    node_data = get_node_data(node, knob_name)
     node_data.update(data)
     knob_value = JSON_PREFIX + json.dumps(node_data)
     knob.setValue(knob_value)
@@ -405,25 +401,6 @@ def imprint(node, data, tab=None):
             node[knob.name()].setValue(knob.value())
         else:
             node.addKnob(knob)
-
-
-@deprecated
-def add_publish_knob(node):
-    """[DEPRECATED] Add Publish knob to node
-
-    Arguments:
-        node (nuke.Node): nuke node to be processed
-
-    Returns:
-        node (nuke.Node): processed nuke node
-
-    """
-    if "publish" not in node.knobs():
-        body = OrderedDict()
-        body[("divd", "Publishing")] = Knobby("Text_Knob", '')
-        body["publish"] = True
-        imprint(node, body)
-    return node
 
 
 @deprecated("ayon_nuke.api.lib.set_node_data")
@@ -716,8 +693,7 @@ def get_matching_override_node(node_class, plugin_name, product_name):
 
 
 def get_imageio_node_setting(node_class, plugin_name, product_name):
-    ''' Get preset data for dataflow (fileType, compression, bitDepth)
-    '''
+    """Get preset data for dataflow (fileType, compression, bitDepth)"""
     imageio_nodes = get_nuke_imageio_settings()["nodes"]
     required_nodes = imageio_nodes["required_nodes"]
 
@@ -760,8 +736,7 @@ def get_imageio_node_setting(node_class, plugin_name, product_name):
 def get_imageio_node_override_setting(
     node_class, plugin_name, product_name, knobs_settings
 ):
-    ''' Get imageio node overrides from settings
-    '''
+    """Get imageio node overrides from settings"""
     # find matching override node
     override_imageio_node = get_matching_override_node(
         node_class, plugin_name, product_name
@@ -800,8 +775,7 @@ def get_imageio_node_override_setting(
 
 # TODO: move into ./colorspace.py
 def get_imageio_input_colorspace(filename):
-    ''' Get input file colorspace based on regex in settings.
-    '''
+    """Get input file colorspace based on regex in settings."""
     imageio_regex_inputs = (
         get_nuke_imageio_settings()["regex_inputs"]["inputs"])
 
@@ -846,8 +820,7 @@ def get_view_process_node():
 
 
 def on_script_load():
-    ''' Callback for ffmpeg support
-    '''
+    """Callback for ffmpeg support"""
     if nuke.env["LINUX"]:
         nuke.tcl('load ffmpegReader')
         nuke.tcl('load ffmpegWriter')
@@ -880,7 +853,7 @@ def check_inventory_versions():
 
 
 def writes_version_sync(write_node, log):
-    """ Callback synchronizing version of publishable write nodes
+    """Callback synchronizing version of publishable write nodes
 
     Tries to find version string in render path of write node and bump it to
     workfile version.
@@ -962,31 +935,15 @@ def has_tcl_expressions(text: str) -> bool:
     return "[" in text or "$" in text
 
 
-def check_product_name_exists(nodes, product_name):
-    """
-    Checking if node is not already created to secure there is no duplicity
-
-    Arguments:
-        nodes (list): list of nuke.Node objects
-        product_name (str): name we try to find
-
-    Returns:
-        bool: True of False
-    """
-    return next((True for n in nodes
-                 if product_name in read_avalon_data(n).get("productName", "")),
-                False)
-
-
 def get_work_default_directory(data):
-    ''' Helping function for formatting of anatomy paths
+    """Helping function for formatting of anatomy paths
 
     Arguments:
         data (dict): dictionary with attributes used for formatting
 
     Return:
         path (str)
-    '''
+    """
 
     project_name = get_current_project_name()
     anatomy = Anatomy(project_name)
@@ -1027,9 +984,8 @@ def get_work_default_directory(data):
     return str(normalized_dir).replace("\\", "/")
 
 
-def script_name():
-    ''' Returns nuke script path
-    '''
+def script_name() -> str:
+    """Returns nuke script path"""
     return nuke.root().knob("name").value()
 
 
@@ -1135,7 +1091,7 @@ def create_write_node(
     linked_knobs=None,
     **kwargs
 ):
-    ''' Creating write node which is group node
+    """Creating write node which is group node
 
     Arguments:
         name (str): name of node
@@ -1158,7 +1114,7 @@ def create_write_node(
                 "knobs": [
                     {
                         "type": "text",
-                        "name": "knobname",
+                        "name": "knob_name",
                         "value": "knob value"
                     },
                     ...
@@ -1170,7 +1126,7 @@ def create_write_node(
 
     Return:
         node (obj): group node with avalon data as Knobs
-    '''
+    """
     # Ensure name does not contain any invalid characters.
     special_chars = re.escape("!@#$%^&*()=[]{}|\\;',.<>/?~+-")
     special_chars_regex = re.compile(f"[{special_chars}]")
@@ -1356,7 +1312,7 @@ def create_write_node(
 
 
 def set_node_knobs_from_settings(node, knob_settings, **kwargs):
-    """ Overriding knob values from settings
+    """Overriding knob values from settings
 
     Using `schema_nuke_knob_inputs` for knob type definitions.
 
@@ -1445,6 +1401,56 @@ def color_gui_to_int(color_gui):
     hex_value = (
         "0x{0:0>2x}{1:0>2x}{2:0>2x}{3:0>2x}").format(*color_gui)
     return int(hex_value, 16)
+
+
+def get_backdrop_nodes(backdrop_node):
+    """Return all nodes contained within a backdrop node.
+
+    In GUI mode uses the native ``BackdropNode.getNodes()`` method.
+    In headless/terminal mode that method is unavailable, so we fall back
+    to a manual positional check: any node whose top-left corner (xpos, ypos)
+    falls inside the backdrop's bounding rectangle is considered a member.
+
+    Args:
+        backdrop_node (nuke.BackdropNode): The backdrop node to query.
+
+    Returns:
+        list[nuke.Node]: Nodes contained within the backdrop.
+    """
+    if nuke.GUI:
+        return backdrop_node.getNodes()
+
+    # Headless fallback: find nodes whose position falls inside the backdrop.
+    # Note: this may include nodes that are inside only partially (by their top
+    # left corner) instead of the full node because `node.screenWidth()` and
+    # `node.screenHeight()` always return 0 in terminal mode.
+    x_min = backdrop_node.xpos()
+    y_min = backdrop_node.ypos()
+    x_max = x_min + backdrop_node["bdwidth"].value()
+    y_max = y_min + backdrop_node["bdheight"].value()
+    contained = []
+    for node in nuke.allNodes(
+        group=backdrop_node.parent(),
+        recurseGroups=False
+    ):
+        if node is backdrop_node:
+            continue
+
+        # Skip if out of bounds
+        node_x_min = node.xpos()
+        if node_x_min < x_min:
+            continue
+        node_y_min = node.ypos()
+        if node_y_min < y_min:
+            continue
+        node_x_max = node_x_min + node.screenWidth()
+        if node_x_max > x_max:
+            continue
+        node_y_max = node_y_min + node.screenHeight()
+        if node_y_max > y_max:
+            continue
+        contained.append(node)
+    return contained
 
 
 def create_backdrop(label="", color=None, layer=0,
@@ -1555,33 +1561,46 @@ class WorkfileSettings(object):
 
     # TODO: move into ./colorspace.py
     def set_viewers_colorspace(self, imageio_nuke):
-        ''' Adds correct colorspace to viewer
+        """Adds correct colorspace to viewer
 
         Arguments:
             imageio_nuke (dict): nuke colorspace configurations
 
-        '''
-        filter_knobs = [
+        """
+        filter_knobs: set[str] = {
             "viewerProcess",
             "wipe_position",
             "monitorOutOutputTransform"
-        ]
+        }
         viewer_process = get_formatted_display_and_view(
             imageio_nuke["viewer"], self.formatting_data, self._root_node
         )
+        if not viewer_process:
+            log.error(
+                f"Unable to resolve valid display/view from settings"
+                f" for Viewer: {imageio_nuke['viewer']}"
+            )
+            return
+
         output_transform = get_formatted_display_and_view(
             imageio_nuke["monitor"], self.formatting_data, self._root_node
         )
+        if not output_transform:
+            log.error(
+                f"Unable to resolve valid display/view from settings"
+                f" for Monitor OUT: {imageio_nuke['monitor']}"
+            )
+
         erased_viewers = []
         for v in nuke.allNodes(filter="Viewer"):
             # set viewProcess to preset from settings
             v["viewerProcess"].setValue(viewer_process)
-
-            if viewer_process not in v["viewerProcess"].value():
+            if viewer_process != v["viewerProcess"].value():
                 copy_inputs = v.dependencies()
                 copy_knobs = {
-                    k: v[k].value() for k in v.knobs()
-                    if k not in filter_knobs
+                    knob_name: knob.value()
+                    for knob_name, knob in v.knobs().items()
+                    if knob_name not in filter_knobs
                 }
 
                 # delete viewer with wrong settings
@@ -1605,17 +1624,18 @@ class WorkfileSettings(object):
 
         if erased_viewers:
             log.warning(
-                "Attention! Viewer nodes {} were erased."
-                "It had wrong color profile".format(erased_viewers))
+                f"Attention! Deleted viewer nodes: {erased_viewers}."
+                " It had wrong color profile"
+            )
 
     # TODO: move into ./colorspace.py
     def set_root_colorspace(self, imageio_host):
-        ''' Adds correct colorspace to root
+        """Adds correct colorspace to root
 
         Arguments:
             imageio_host (dict): host colorspace configurations
 
-        '''
+        """
         config_data = get_current_context_imageio_config_preset()
 
         workfile_settings = imageio_host["workfile"]
@@ -1687,7 +1707,7 @@ class WorkfileSettings(object):
             self._root_node[knob].setValue(str(value_))
 
     def _get_monitor_settings(self, viewer_lut, monitor_lut):
-        """ Get monitor settings from viewer and monitor lut
+        """Get monitor settings from viewer and monitor lut
 
         Args:
             viewer_lut (str): viewer lut string
@@ -1721,7 +1741,7 @@ class WorkfileSettings(object):
         return output_data
 
     def _is_settings_matching_environment(self, config_data):
-        """ Check if OCIO config path is different from environment
+        """Check if OCIO config path is different from environment
 
         Args:
             config_data (dict): OCIO config data from settings
@@ -1766,12 +1786,10 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         return True
 
     def _set_ocio_config_path_to_workfile(self, config_data):
-        """ Set OCIO config path to workfile
+        """Set OCIO config path to workfile
 
         Path set into nuke workfile. It is trying to replace path with
         environment variable if possible. If not, it will set it as it is.
-        It also saves the script to apply the change, but only if it's not
-        empty Untitled script.
 
         Args:
             config_data (dict): OCIO config data from settings
@@ -1779,22 +1797,14 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         """
         # replace path with env var if possible
         ocio_path = self._replace_ocio_path_with_env_var(config_data)
+        log.info("Setting OCIO config path to: %s", ocio_path)
 
-        log.info("Setting OCIO config path to: `{}`".format(
-            ocio_path))
-
-        self._root_node["customOCIOConfigPath"].setValue(
-            ocio_path
-        )
-        self._root_node["OCIO_config"].setValue("custom")
-
-        # only save script if it's not empty
-        if self._root_node["name"].value() != "":
-            log.info("Saving script to apply OCIO config path change.")
-            nuke.scriptSave()
+        root = self._root_node
+        root["customOCIOConfigPath"].setValue(ocio_path)
+        root["OCIO_config"].setValue("custom")
 
     def _get_included_vars(self, config_template):
-        """ Get all environment variables included in template
+        """Get all environment variables included in template
 
         Args:
             config_template (str): OCIO config template from settings
@@ -1822,14 +1832,14 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         return included_vars
 
     def _replace_ocio_path_with_env_var(self, config_data):
-        """ Replace OCIO config path with environment variable
+        """Replace OCIO config path with environment variable
 
         Environment variable is added as TCL expression to path. TCL expression
         is also replacing backward slashes found in path for windows
         formatted values.
 
         Args:
-            config_data (str): OCIO config dict from settings
+            config_data (dict[str, str]): OCIO config dict from settings
 
         Returns:
             str: OCIO config path with environment variable TCL expression
@@ -1870,9 +1880,9 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
 
     # TODO: move into ./colorspace.py
     def set_writes_colorspace(self):
-        ''' Adds correct colorspace to write node dict
+        """Adds correct colorspace to write node dict
 
-        '''
+        """
         for node in nuke.allNodes(filter="Group", group=self._root_node):
             log.info("Setting colorspace to `{}`".format(node.name()))
 
@@ -1972,57 +1982,60 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             set_node_knobs_from_settings(write_node, colorspace_knobs)
 
     # TODO: move into ./colorspace.py
-    def set_reads_colorspace(self, read_clrs_inputs):
-        """ Setting colorspace to Read nodes
+    def set_reads_colorspace(self, read_clrs_inputs: list[dict[str, str]]):
+        """Setting colorspace to Read nodes
 
         Looping through all read nodes and tries to set colorspace based
         on regex rules in presets
         """
         changes = {}
-        for n in nuke.allNodes():
-            file = nuke.filename(n)
-            if n.Class() != "Read":
+        for node in nuke.allNodes("Read"):
+            file = nuke.filename(node)
+            # Read node may return `None` if never set to any value
+            if file is None:
                 continue
 
             # check if any colorspace presets for read is matching
-            preset_clrsp = None
+            preset_colorspace = None
 
-            for input in read_clrs_inputs:
-                if not bool(re.search(input["regex"], file)):
+            for input_ in read_clrs_inputs:
+                if not bool(re.search(input_["regex"], file)):
                     continue
-                preset_clrsp = input["colorspace"]
+                preset_colorspace = input_["colorspace"]
 
-            if preset_clrsp is not None:
-                current = n["colorspace"].value()
-                future = str(preset_clrsp)
+            if preset_colorspace is not None:
+                current = node["colorspace"].value()
+                future = str(preset_colorspace)
                 if current != future:
-                    changes[n.name()] = {
+                    changes[node.name()] = {
                         "from": current,
                         "to": future
                     }
 
         if changes:
             msg = "Read nodes are not set to correct colorspace:\n\n"
-            for nname, knobs in changes.items():
+            for node_name, knobs in changes.items():
                 msg += (
                     " - node: '{0}' is now '{1}' but should be '{2}'\n"
-                ).format(nname, knobs["from"], knobs["to"])
+                ).format(node_name, knobs["from"], knobs["to"])
 
             msg += "\nWould you like to change it?"
 
             if nuke.ask(msg):
-                for nname, knobs in changes.items():
-                    n = nuke.toNode(nname)
-                    n["colorspace"].setValue(knobs["to"])
+                for node_name, knobs in changes.items():
+                    node = nuke.toNode(node_name)
+                    node["colorspace"].setValue(knobs["to"])
                     log.info(
                         "Setting `{0}` to `{1}`".format(
-                            nname,
-                            knobs["to"]))
+                            node_name,
+                            knobs["to"]
+                        )
+                    )
 
     # TODO: move into ./colorspace.py
     def set_colorspace(self):
-        ''' Setting colorspace following presets
-        '''
+        """Setting colorspace following presets
+        """
         # get imageio
         nuke_colorspace = get_nuke_imageio_settings()
 
@@ -2228,9 +2241,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
 
 
 def get_write_node_template_attr(node):
-    ''' Gets all defined data from presets
-
-    '''
+    """Gets all defined data from presets"""
 
     # TODO: add identifiers to settings and rename settings key
     plugin_names_mapping = {
@@ -2256,7 +2267,7 @@ def get_write_node_template_attr(node):
 def get_dependent_nodes(nodes):
     """Get all dependent nodes connected to the list of nodes.
 
-    Looking for connections outside of the nodes in incoming argument.
+    Looking for connections outside the nodes in incoming argument.
 
     Arguments:
         nodes (list): list of nuke.Node objects
@@ -2413,7 +2424,7 @@ def maintained_selection(exclude_nodes=None):
 
 @contextlib.contextmanager
 def swap_node_with_dependency(old_node, new_node):
-    """ Swap node with dependency
+    """Swap node with dependency
 
     Swap node with dependency and reconnect all inputs and outputs.
     It removes old node.
@@ -2515,6 +2526,9 @@ def launch_workfiles_app():
 def _launch_workfile_app():
     # Safeguard to not show window when application is still starting up
     #   or is already closing down.
+    if not nuke.GUI:
+        raise RuntimeError("Invalid in non-GUI mode.")
+
     closing_down = QtWidgets.QApplication.closingDown()
     starting_up = QtWidgets.QApplication.startingUp()
 
@@ -2532,65 +2546,8 @@ def _launch_workfile_app():
     #   - this happened on Centos 7 and it is because the focus of nuke
     #       changes to the main window after showing because of initialization
     #       which moves workfiles tool under it
+    from ayon_core.tools.utils import host_tools
     host_tools.show_workfiles(parent=None, on_top=True)
-
-
-@deprecated("ayon_nuke.api.lib.start_workfile_template_builder")
-def process_workfile_builder():
-    """ [DEPRECATED] Process workfile builder on nuke start
-
-    This function is deprecated and will be removed in future versions.
-    Use settings for `project_settings/nuke/templated_workfile_build` which are
-    supported by api `start_workfile_template_builder()`.
-    """
-
-    # to avoid looping of the callback, remove it!
-    nuke.removeOnCreate(process_workfile_builder, nodeClass="Root")
-
-    # get state from settings
-    project_settings = get_current_project_settings()
-    workfile_builder = project_settings["nuke"].get(
-        "workfile_builder", {})
-
-    # get settings
-    create_fv_on = workfile_builder.get("create_first_version") or None
-    builder_on = workfile_builder.get("builder_on_start") or None
-
-    last_workfile_path = os.environ.get("AYON_LAST_WORKFILE")
-
-    # generate first version in file not existing and feature is enabled
-    if create_fv_on and not os.path.exists(last_workfile_path):
-        # get custom template path if any
-        custom_template_path = get_current_context_custom_workfile_template(
-            project_settings=project_settings
-        )
-
-        # if custom template is defined
-        if custom_template_path:
-            log.info("Adding nodes from `{}`...".format(
-                custom_template_path
-            ))
-            try:
-                # import nodes into current script
-                nuke.nodePaste(custom_template_path)
-            except RuntimeError:
-                raise RuntimeError((
-                    "Template defined for project: {} is not working. "
-                    "Talk to your manager for an advise").format(
-                        custom_template_path))
-
-        # if builder at start is defined
-        if builder_on:
-            log.info("Building nodes from presets...")
-            # build nodes by defined presets
-            BuildWorkfile().process()
-
-        log.info("Saving script as version `{}`...".format(
-            last_workfile_path
-        ))
-        # safe file as version
-        save_file(last_workfile_path)
-        return
 
 
 def start_workfile_template_builder():
@@ -2852,6 +2809,12 @@ def get_group_io_nodes(nodes):
 
     if not nodes:
         raise ValueError("there is no nodes in the list")
+
+    nodes = [
+        node for node in nodes
+        # Avoid non-connectable nodes, like Backdrops
+        if node.maxInputs() > 0 or node.maxOutputs() > 0
+    ]
 
     input_node = None
     output_node = None

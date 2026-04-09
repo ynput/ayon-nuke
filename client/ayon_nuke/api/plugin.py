@@ -162,7 +162,7 @@ class NukeCreator(Creator):
         try:
             with parent_node:
                 created_node = nuke.createNode(node_type)
-                created_node["name"].setValue(node_name)
+                created_node.setName(node_name)
 
                 for key, values in node_knobs.items():
                     if key in created_node.knobs():
@@ -177,7 +177,7 @@ class NukeCreator(Creator):
         pre_create_data,
         class_name: str = None,
     ):
-        """ Get current node selection.
+        """Get current node selection.
 
         Arguments:
             pre_create_data (dict): The creator initial data.
@@ -291,7 +291,7 @@ class NukeCreator(Creator):
 
             # update instance node name if product name changed
             if "productName" in changes.changed_keys:
-                instance_node["name"].setValue(
+                instance_node.setName(
                     changes["productName"].new_value
                 )
 
@@ -369,8 +369,9 @@ class NukeWriteCreator(NukeCreator):
     def _get_current_selected_nodes(
         self,
         pre_create_data,
+        class_name=None,
     ):
-        """ Get current node selection.
+        """Get current node selection.
 
         Arguments:
             pre_create_data (dict): The creator initial data.
@@ -387,7 +388,7 @@ class NukeWriteCreator(NukeCreator):
 
         selected_nodes = super()._get_current_selected_nodes(
             pre_create_data,
-            class_name=None,
+            class_name=class_name,
         )
 
         if not selected_nodes:
@@ -946,7 +947,7 @@ class ExporterReview(object):
         custom_tags=None,
         colorspace=None,
     ):
-        """ Add representation data to self.data
+        """Add representation data to self.data
 
         Args:
             tags (list[str], optional): list of defined tags.
@@ -1475,7 +1476,7 @@ class ExporterReviewMov(ExporterReview):
 
 
 def convert_to_valid_instaces():
-    """ Check and convert to latest publisher instances
+    """Check and convert to latest publisher instances
 
     Also save as new minor version of workfile.
     """

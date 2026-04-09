@@ -1,6 +1,7 @@
 import nuke
 import pyblish.api
-from ayon_nuke.api.lib import maintained_selection
+
+from ayon_nuke.api.lib import maintained_selection, reset_selection
 
 
 class CreateOutputNode(pyblish.api.ContextPlugin):
@@ -18,6 +19,7 @@ class CreateOutputNode(pyblish.api.ContextPlugin):
     def process(self, context):
         # capture selection state
         with maintained_selection():
+            reset_selection()
 
             active_node = [
                 inst.data.get("transientData", {}).get("node")

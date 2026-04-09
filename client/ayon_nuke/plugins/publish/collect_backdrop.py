@@ -1,6 +1,6 @@
-from pprint import pformat
+from __future__ import annotations
 import pyblish.api
-from ayon_nuke.api import lib as pnlib
+from ayon_nuke.api import lib
 import nuke
 
 
@@ -16,47 +16,25 @@ class CollectBackdrops(pyblish.api.InstancePlugin):
     settings_category = "nuke"
 
     def process(self, instance):
-        self.log.debug(pformat(instance.data))
+        transient_data: dict = instance.data["transientData"]
+        backdrop_node: nuke.BackdropNode = transient_data["node"]
 
-        bckn = instance.data["transientData"]["node"]
-
-        # define size of the backdrop
-        left = bckn.xpos()
-        top = bckn.ypos()
-        right = left + bckn['bdwidth'].value()
-        bottom = top + bckn['bdheight'].value()
-
-        instance.data["transientData"]["childNodes"] = []
-        # iterate all nodes
-        for node in nuke.allNodes():
-
+        child_nodes: list[nuke.Node] = [
+            node for node in lib.get_backdrop_nodes(backdrop_node)
             # exclude viewer
-            if node.Class() == "Viewer":
-                continue
-
-            # find all related nodes
-            if (node.xpos() > left) \
-                and (node.xpos() + node.screenWidth() < right) \
-                    and (node.ypos() > top) \
-                    and (node.ypos() + node.screenHeight() < bottom):
-
-                # add contained nodes to instance's node list
-                instance.data["transientData"]["childNodes"].append(node)
+            if node.Class() != "Viewer"
+        ]
 
         # get all connections from outside of backdrop
-        nodes = instance.data["transientData"]["childNodes"]
-        connections_in, connections_out = pnlib.get_dependent_nodes(nodes)
-        instance.data["transientData"]["nodeConnectionsIn"] = connections_in
-        instance.data["transientData"]["nodeConnectionsOut"] = connections_out
+        connections_in, connections_out = lib.get_dependent_nodes(child_nodes)
+        transient_data["childNodes"] = child_nodes
+        transient_data["nodeConnectionsIn"] = connections_in
+        transient_data["nodeConnectionsOut"] = connections_out
 
         # make label nicer
         instance.data["label"] = "{0} ({1} nodes)".format(
-            bckn.name(), len(instance.data["transientData"]["childNodes"]))
-
-        # get version
-        version = instance.context.data.get('version')
-
-        if version:
-            instance.data['version'] = version
+            backdrop_node.name(),
+            len(child_nodes)
+        )
 
         self.log.debug("Backdrop instance collected: `{}`".format(instance))
