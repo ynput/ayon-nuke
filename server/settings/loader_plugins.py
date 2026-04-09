@@ -37,6 +37,12 @@ def node_type_enum_options():
 
 
 class LoadClipOptionsModel(BaseSettingsModel):
+    set_frame_range: bool = SettingsField(
+        title="Set frame range to version frame range",
+        description=(
+            "On load set the node's frame range to version frame range"
+        )
+    )
     start_at_workfile: bool = SettingsField(
         title="Start at workfile's start frame"
     )
@@ -108,6 +114,7 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
         "representations_include": [],
         "node_name_template": "{class_name}_{ext}",
         "options_defaults": {
+            "set_frame_range": True,
             "start_at_workfile": False,
             "add_retime": True,
             "node_type": "auto"
