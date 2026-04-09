@@ -584,12 +584,6 @@ def get_instance_group_node_children(instance):
     return node.nodes()
 
 
-# alias for backwards compatibility
-@deprecated("ayon_nuke.api.plugin.get_instance_group_node_children")
-def get_instance_group_node_childs(instance):
-    return get_instance_group_node_children(instance)
-
-
 def get_colorspace_from_node(node):
     # Add version data to instance
     colorspace = node["colorspace"].value()
