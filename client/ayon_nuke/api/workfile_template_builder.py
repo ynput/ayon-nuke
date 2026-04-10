@@ -107,8 +107,8 @@ class NukePlaceholderPlugin(PlaceholderPlugin):
 
         def _get_knob_value(knob):
             if isinstance(knob, (nuke.EvalString_Knob, nuke.String_Knob)):
-                # Do not evaluate the contents, return us the exact
-                # text value we put in
+                # Do not evaluate the contents; return the exact
+                # text value we set
                 return knob.getText()
             else:
                 return knob.getValue()
