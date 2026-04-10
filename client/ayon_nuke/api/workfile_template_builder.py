@@ -105,10 +105,18 @@ class NukePlaceholderPlugin(PlaceholderPlugin):
     def _parse_placeholder_node_data(self, node: nuke.Node):
         placeholder_data: dict[str, Any] = {}
 
+        def _get_knob_value(knob):
+            if isinstance(knob, (nuke.EvalString_Knob, nuke.String_Knob)):
+                # Do not evaluate the contents; return the exact
+                # text value we set
+                return knob.getText()
+            else:
+                return knob.getValue()
+
         # collect current placeholder keys
         for key in self.get_placeholder_keys():
             if knob := node.knob(key):
-                placeholder_data[key] = knob.getValue()
+                placeholder_data[key] = _get_knob_value(knob)
             else:
                 placeholder_data[key] = None
 
@@ -124,7 +132,7 @@ class NukePlaceholderPlugin(PlaceholderPlugin):
                     " is deprecated and will be removed in the future."
                     "\nPlease recreate the placeholder to fix this."
                 )
-                placeholder_data[key] = knob.getValue()
+                placeholder_data[key] = _get_knob_value(knob)
 
         return placeholder_data
 
