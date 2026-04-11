@@ -1411,7 +1411,8 @@ class ExporterReviewMov(ExporterReview):
         write_node["file"].setValue(str(self.path))
         write_node["file_type"].setValue(str(self.ext))
         # enforce this to rgb to be sure that we are not
-        # writing in wrong color space
+        # writing in other cololr channels than rgb and get
+        # the black thumbnail
         write_node["channels"].setValue("rgb")
 
         # Knobs `meta_codec` and `mov64_codec` are not available on centos.
