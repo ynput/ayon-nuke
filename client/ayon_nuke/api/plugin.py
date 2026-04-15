@@ -1411,7 +1411,11 @@ class ExporterReviewMov(ExporterReview):
 
         write_node["file"].setValue(str(self.path))
         write_node["file_type"].setValue(str(self.ext))
-        write_node["channels"].setValue(str(self.color_channels))
+        skip_alpha_channel = kwargs.get("skip_alpha_channel", False)
+        if skip_alpha_channel:
+            write_node["channels"].setValue("rgb")
+        else:
+            write_node["channels"].setValue(str(self.color_channels))
 
         # Knobs `meta_codec` and `mov64_codec` are not available on centos.
         # TODO shouldn't this come from settings on outputs?
