@@ -152,6 +152,10 @@ class IntermediateOutputModel(BaseSettingsModel):
         False,
         title="Publish"
     )
+    skip_alpha_channel: bool = SettingsField(
+        False,
+        title="Skip alpha channel for review intermediates"
+    )
     filter: BakingStreamFilterModel = SettingsField(
         title="Filter", default_factory=BakingStreamFilterModel)
     read_raw: bool = SettingsField(
@@ -376,6 +380,7 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
             {
                 "name": "baking",
                 "publish": False,
+                "skip_alpha_channel": False,
                 "filter": {
                     "task_types": [],
                     "product_base_types": [],
