@@ -1,7 +1,8 @@
 import json
 
 import nuke
-
+from ayon_core.lib import StringTemplate
+from ayon_core.pipeline import Anatomy, get_current_project_name
 from ayon_nuke.api import plugin
 
 
@@ -102,6 +103,26 @@ class LoadEffects(plugin.NukeGroupLoader):
                 except NameError as e:
                     self.log.warning(e)
                     continue
+
+                # check if `file` in knob name
+                print(f"{k}: {v}")
+                if k == "file":
+                    file_path =  v
+                    project_name = get_current_project_name()
+                    anatomy = Anatomy(project_name=project_name)
+                    _template_data = {
+                        "root": anatomy.roots,
+                    }
+                    success, rootless_path = \
+                        anatomy.find_root_template_from_path(file_path)
+
+                    self.log.info(f"rootless_path: {rootless_path}")
+                    if success:
+                        abs_resources_path = StringTemplate.format_strict_template(
+                            rootless_path, _template_data
+                        )
+                        v = abs_resources_path
+                        self.log.info(f"File path: {abs_resources_path}")
 
                 # Set node attribute values
                 if isinstance(v, list) and len(v) > 4:
