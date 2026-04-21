@@ -29,8 +29,7 @@ class LoadEffects(plugin.NukeGroupLoader):
         return group_node
 
     def connect_read_node(self, group_node, namespace, product_name):
-        """
-        Finds read node and selects it
+        """Finds read node and selects it
 
         Arguments:
             group_node (nuke.Node): Group node to connect to.
@@ -41,7 +40,7 @@ class LoadEffects(plugin.NukeGroupLoader):
             nuke node: node is selected
             None: if nothing found
         """
-        search_name = "{0}_{1}".format(namespace, product_name)
+        search_name = f"{namespace}_{product_name}"
 
         read_node = next(
             (
@@ -66,9 +65,8 @@ class LoadEffects(plugin.NukeGroupLoader):
     def _load_effects_to_group(
             self, context: dict, group_node: nuke.Node) -> str:
         """Load the json file and create nodes inside the group node"""
-
         file = self.filepath_from_context(context).replace("\\", "/")
-        with open(file, "r") as f:
+        with open(file) as f:
             json_f = json.load(f)
 
         # get correct order of nodes by positions on track and subtrack
@@ -86,7 +84,6 @@ class LoadEffects(plugin.NukeGroupLoader):
 
     def _create_nodes_order(self, nodes_order: dict):
         workfile_first_frame = int(nuke.root()["first_frame"].getValue())
-
         # create input node
         pre_node = nuke.createNode("Input")
         pre_node["name"].setValue("rgb")
@@ -104,8 +101,8 @@ class LoadEffects(plugin.NukeGroupLoader):
                     self.log.warning(e)
                     continue
 
-                # check if `file` in knob name
-                print(f"{k}: {v}")
+                # check if `file` in knob name then format the path
+                # so it is multiplatform compatible
                 if k == "file":
                     file_path =  v
                     project_name = get_current_project_name()
@@ -170,7 +167,6 @@ class LoadEffects(plugin.NukeGroupLoader):
                 if isinstance(val, dict)
                 if sub_track_index == val["subTrackIndex"]
                 if track_index == val["trackIndex"]}
-
 
 
 class LoadEffectsInputProcess(LoadEffects):
