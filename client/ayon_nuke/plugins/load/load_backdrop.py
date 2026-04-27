@@ -66,7 +66,8 @@ class LoadBackdropNodes(load.LoaderPlugin):
 
         # add attributes from the version to imprint to metadata knob
         for k in ["source", "fps"]:
-            data_imprint[k] = version_attributes[k]
+            if k in version_attributes:
+                data_imprint[k] = version_attributes[k]
 
         # getting file path
         file = self.filepath_from_context(context).replace("\\", "/")
@@ -192,7 +193,8 @@ class LoadBackdropNodes(load.LoaderPlugin):
         }
 
         for k in ["source", "fps"]:
-            data_imprint[k] = version_attributes[k]
+            if k in version_attributes:
+                data_imprint[k] = version_attributes[k]
 
         # adding nodes to node graph
         # just in case we are in group lets jump out of it
