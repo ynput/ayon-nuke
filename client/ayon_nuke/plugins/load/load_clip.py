@@ -194,6 +194,11 @@ class LoadClip(plugin.NukeLoader):
 
             if start_at_workfile:
                 self._start_at_workfile_frame(read_node, slate_frames)
+            elif extension in VIDEO_EXTENSIONS:
+                read_node["frame_mode"].setValue("start at")
+                read_node["frame"].setValue(
+                    str(version_attributes.get("frameStart") - version_attributes["handleStart"])
+                )
 
             version_name = version_entity["version"]
             if version_name < 0:
@@ -320,6 +325,8 @@ class LoadClip(plugin.NukeLoader):
         handle_start = version_attributes.get("handleStart") or 0
         handle_end = version_attributes.get("handleEnd") or 0
 
+        extension = "." + repre_entity["context"]["ext"]
+
         if first is not None and last is not None and not is_sequence:
             duration = last - first
             first = 1
@@ -351,6 +358,11 @@ class LoadClip(plugin.NukeLoader):
 
             if start_at_workfile:
                 self._start_at_workfile_frame(read_node)
+            elif extension in VIDEO_EXTENSIONS:
+                read_node["frame_mode"].setValue("start at")
+                read_node["frame"].setValue(
+                    str(version_attributes.get("frameStart") - version_attributes["handleStart"])
+                )
 
             updated_dict = {
                 "representation": repre_entity["id"],
