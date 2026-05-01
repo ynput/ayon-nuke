@@ -358,7 +358,7 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
 
         # Workaround: There are some cases where only the second call to `.dependent()` seems to
         #  start returning the input dependencies directly after a scene open (reproduced in Nuke 14.1)
-        #  so we just enforce and extra call to be sure this works as intended
+        #  so we just enforce an extra call to be sure this works as intended
         placeholder_node.dependent()
 
         for node in placeholder_node.dependent():
