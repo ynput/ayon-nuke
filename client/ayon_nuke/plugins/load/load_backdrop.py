@@ -75,15 +75,15 @@ class LoadBackdropNodes(load.LoaderPlugin):
         # just in case we are in group lets jump out of it
         nuke.endGroup()
 
-        # Get mouse position
-        n = nuke.createNode("NoOp")
-        xcursor, ycursor = (n.xpos(), n.ypos())
-        reset_selection()
-        nuke.delete(n)
-
-        bdn_frame = 50
-
         with maintained_selection():
+            # Get mouse position
+            reset_selection()  # clear selection first to avoid automatic connections to selection
+            n = nuke.createNode("NoOp")
+            xcursor, ycursor = (n.xpos(), n.ypos())
+            nuke.delete(n)
+
+            bdn_frame = 50
+
             # add group from nk
             nuke.nodePaste(file)
             # get all pasted nodes
@@ -120,7 +120,6 @@ class LoadBackdropNodes(load.LoaderPlugin):
                         d.setInput(index, dot)
 
                     # remove Input node
-                    reset_selection()
                     nuke.delete(n)
                     continue
 
@@ -139,7 +138,6 @@ class LoadBackdropNodes(load.LoaderPlugin):
                         dot.setInput(0, dep)
 
                     # remove Input node
-                    reset_selection()
                     nuke.delete(n)
                     continue
                 else:
