@@ -172,9 +172,9 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         color_channels = write_node["channels"].value()
 
         # get frame range data
-        handle_start = instance.context.data["handleStart"]
-        handle_end = instance.context.data["handleEnd"]
         first_frame, last_frame = self._get_frame_range_data(instance)
+        handle_start = max(0, root_first_frame + context_handle_start - first_frame)
+        handle_end = max(0, last_frame - (root_last_frame - context_handle_end))
 
         # get output paths
         write_file_path = nuke.filename(write_node)
@@ -198,8 +198,8 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             for frame_number in range(
                 # Excluding handles to match the logic when
                 # loading timewarps - @splidje
-                int(nuke.root()["first_frame"].getValue()) + handle_start,
-                int(nuke.root()["last_frame"].getValue()) - handle_end + 1,
+                first_frame + handle_start,
+                last_frame - handle_end + 1,
             ):
                 # The format for this lookup list is
                 # the frame offset per frame
@@ -224,7 +224,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "pixelAspect": write_node.pixelAspect(),
         })
 
-        if product_base_type == "render":
+        if product_base_type in ("render", "plate"):
             instance.data.update({
                 "handleStart": handle_start,
                 "handleEnd": handle_end,
