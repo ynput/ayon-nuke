@@ -48,6 +48,7 @@ from ayon_core.pipeline.load import filter_containers
 from ayon_core.pipeline.colorspace import (
     get_current_context_imageio_config_preset
 )
+from ayon_core.pipeline.create import CreateContext
 from ayon_core.resources import get_ayon_icon_filepath
 
 from .gizmo_menu import GizmoMenu
@@ -1293,6 +1294,11 @@ def create_write_node(
     # adding clear rendered button
     add_button_clear_rendered(GN)
 
+    if data.get("render_on_farm", False):
+        requires_gpu_knob = nuke.Boolean_Knob("requires_gpu", "Requires GPU")
+        GN.addKnob(requires_gpu_knob)
+        requires_gpu_knob.setFlag(nuke.STARTLINE)
+
     # set tile color
     tile_color = next(
         iter(
@@ -1309,6 +1315,33 @@ def create_write_node(
         color_gui_to_int(new_tile_color))
 
     return GN
+
+
+def group_node_knob_changed():
+    requires_gpu_knob = nuke.thisKnob()
+    if requires_gpu_knob.name() != "requires_gpu":
+        return
+
+    instance_id = get_node_data(nuke.thisNode(), INSTANCE_DATA_KNOB).get("instance_id")
+    if not instance_id:
+        return
+    
+    with nuke.Root():
+        create_context = CreateContext(registered_host())
+        instance = create_context.instances_by_id.get(instance_id)
+    if not instance:
+        return
+    
+    collect_opencue_layer_args = instance.publish_attributes.get("CollectOpenCueLayerArgs")
+    if not collect_opencue_layer_args:
+        return
+    
+    requires_gpu = requires_gpu_knob.value()
+    if collect_opencue_layer_args.get("requires_gpu") == requires_gpu:
+        return
+    
+    collect_opencue_layer_args["requires_gpu"] = requires_gpu
+    create_context.save_changes()
 
 
 def set_node_knobs_from_settings(node, knob_settings, **kwargs):

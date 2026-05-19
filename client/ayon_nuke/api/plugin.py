@@ -405,6 +405,16 @@ class NukeWriteCreator(NukeCreator):
             # ensure was not deleted by super()
             if self.create_context.get_instance_by_id(created_inst.id):
                 self._update_write_node_filepath(created_inst, changes)
+            requires_gpu = (
+                "publish_attributes" in (changes.changed_keys - changes.removed_keys)
+                and changes.new_value.get(
+                    "publish_attributes", {}
+                ).get("CollectOpenCueLayerArgs", {}).get("requires_gpu")
+            )
+            # Approach to avoiding the infinite loop of this bi-directional
+            # relationship is just to only set if different.
+            if isinstance(requires_gpu, bool) and created_inst.transient_data["node"]["requires_gpu"].value() != requires_gpu:
+                created_inst.transient_data["node"]["requires_gpu"].setValue(requires_gpu)
 
     def _update_write_node_filepath(self, created_inst, changes):
         """Update instance node on context changes.
