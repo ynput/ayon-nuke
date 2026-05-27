@@ -413,8 +413,9 @@ class NukeWriteCreator(NukeCreator):
             )
             # Approach to avoiding the infinite loop of this bi-directional
             # relationship is just to only set if different.
-            if isinstance(requires_gpu, bool) and created_inst.transient_data["node"]["requires_gpu"].value() != requires_gpu:
-                created_inst.transient_data["node"]["requires_gpu"].setValue(requires_gpu)
+            requires_gpu_knob = created_inst.transient_data["node"].knob("requires_gpu")
+            if isinstance(requires_gpu, bool) and requires_gpu_knob and requires_gpu_knob.value() != requires_gpu:
+                requires_gpu_knob.setValue(requires_gpu)
 
     def _update_write_node_filepath(self, created_inst, changes):
         """Update instance node on context changes.
