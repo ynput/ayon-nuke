@@ -2183,6 +2183,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                 "Failed to set root format from %r: %r",
                 format_data,
                 error,
+                exc_info=True,
             )
             raise
 
