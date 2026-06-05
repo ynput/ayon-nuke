@@ -86,9 +86,9 @@ class ExtractBackdropNode(publish.Extractor):
                     next((i for i, d in enumerate(output.dependencies())
                           if d.name() in n.name()), 0), n)
 
-            # Fix #259: When deleting the temporary nodes before the reconnect
-            # of inputs and outputs the node Python Objects would somehow
-            # become invalid errors. So we do this cleanup after
+            # Fix #259: Deleting the temporary Input/Output nodes before
+            # reconnecting can invalidate Nuke node Python objects.
+            # Perform cleanup only after the original connections are restored.
             # Clean up
             for tn in tmp_nodes:
                 nuke.delete(tn)
