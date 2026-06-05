@@ -74,10 +74,6 @@ class ExtractBackdropNode(publish.Extractor):
             # save file to the path
             nuke.nodeCopy(path)
 
-            # Clean up
-            for tn in tmp_nodes:
-                nuke.delete(tn)
-
             # restore original connections
             # reconnect input node
             for n, inputs in connections_in.items():
@@ -89,6 +85,13 @@ class ExtractBackdropNode(publish.Extractor):
                 output.setInput(
                     next((i for i, d in enumerate(output.dependencies())
                           if d.name() in n.name()), 0), n)
+
+            # Fix #259: Deleting the temporary Input/Output nodes before
+            # reconnecting can invalidate Nuke node Python objects.
+            # Perform cleanup only after the original connections are restored.
+            # Clean up
+            for tn in tmp_nodes:
+                nuke.delete(tn)
 
         if "representations" not in instance.data:
             instance.data["representations"] = []
