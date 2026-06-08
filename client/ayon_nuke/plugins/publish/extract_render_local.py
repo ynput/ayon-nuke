@@ -23,7 +23,7 @@ class NukeRenderLocal(publish.Extractor,
     order = pyblish.api.ExtractorOrder
     label = "Render Local"
     hosts = ["nuke"]
-    families = ["render.local", "prerender.local", "image.local"]
+    families = ["render.local", "prerender.local", "image.local", "plate.local"]
 
     settings_category = "nuke"
 
@@ -147,6 +147,8 @@ class NukeRenderLocal(publish.Extractor,
             families.insert(0, "prerender")
         elif "image.local" in families:
             families.remove("image.local")
+        elif "plate.local" in families:
+            families.remove("plate.local")
         instance.data["families"] = families
 
         collections, remainder = clique.assemble(filenames)
