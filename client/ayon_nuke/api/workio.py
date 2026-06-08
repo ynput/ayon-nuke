@@ -23,6 +23,7 @@ def save_file(filepath):
 
 
 def open_file(filepath):
+    from .lib import WorkfileSettings
 
     def read_script(nuke_script):
         if not ASSIST:
@@ -31,6 +32,7 @@ def open_file(filepath):
             nuke.Root()["name"].setValue(nuke_script)
             nuke.Root()["project_directory"].setValue(os.path.dirname(nuke_script))
             nuke.Root().setModified(False)
+            WorkfileSettings().set_context_settings(requires_confirmation=True)
         else:
             nuke.scriptOpen(nuke_script)
 
