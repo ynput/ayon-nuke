@@ -48,11 +48,11 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         colorspace = napi.get_colorspace_from_node(write_node)
 
         if render_target == "frames":
-            self._set_existing_files_data(instance, colorspace)
+            self._set_existing_files_data(instance, colorspace, render_target)
 
         elif render_target == "frames_farm":
             collected_frames = self._set_existing_files_data(
-                instance, colorspace)
+                instance, colorspace, render_target)
 
             self._set_expected_files(instance, collected_frames)
 
@@ -64,17 +64,22 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         # set additional instance data
         self._set_additional_instance_data(instance, render_target, colorspace)
 
-    def _set_existing_files_data(self, instance, colorspace):
+    def _set_existing_files_data(self, instance, colorspace, render_target):
         """Set existing files data to instance data.
 
         Args:
             instance (pyblish.api.Instance): pyblish instance
             colorspace (str): colorspace
+            render_target (str): instance render target
 
         Returns:
             list: collected frames
         """
         collected_frames = self._get_collected_frames(instance)
+
+        # Skip adding representation if processed on farm
+        if render_target == "frames_farm":
+            return collected_frames
 
         representation = self._get_existing_frames_representation(
             instance, collected_frames
