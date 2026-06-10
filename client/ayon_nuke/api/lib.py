@@ -22,6 +22,12 @@ from ayon_core.lib import (
     env_value_to_bool,
     Logger,
     StringTemplate,
+    BoolDef,
+    UILabelDef,
+)
+
+from ayon_core.tools.attribute_defs.dialog import (
+    AttributeDefinitionsDialog
 )
 
 from ayon_core.settings import (
@@ -44,6 +50,7 @@ from ayon_core.pipeline import (
     AVALON_INSTANCE_ID,
     get_current_context,
 )
+from ayon_core.pipeline.create import CreateContext
 from ayon_core.pipeline.load import filter_containers
 from ayon_core.pipeline.colorspace import (
     get_current_context_imageio_config_preset
@@ -2558,6 +2565,86 @@ def _launch_workfile_app():
     #       which moves workfiles tool under it
     from ayon_core.tools.utils import host_tools
     host_tools.show_workfiles(parent=None, on_top=True)
+
+
+def update_content_on_context_change():
+    """Update all Creator instances to current folder and task"""
+    host = registered_host()
+    context = host.get_current_context()
+
+    folder_path = context["folder_path"]
+    task = context["task_name"]
+
+    create_context = CreateContext(host, reset=True)
+
+    for instance in create_context.instances:
+        instance_folder_path = instance.get("folderPath")
+        if instance_folder_path and instance_folder_path != folder_path:
+            instance["folderPath"] = folder_path
+        instance_task = instance.get("task")
+        if instance_task and instance_task != task:
+            instance["task"] = task
+
+    create_context.save_changes()
+
+
+def prompt_reset_context():
+    """Prompt the user what context settings to reset.
+    This prompt is used on saving to a different task to allow the scene to
+    get matched to the new context.
+    """
+    definitions = [
+        UILabelDef(
+            label=(
+                "You are saving your workfile into a different folder or task."
+                "\n\n"
+                "Would you like to update some settings to the new context?\n"
+            )
+        ),
+        BoolDef(
+            "resolution",
+            label="Resolution",
+            tooltip="Reset workfile resolution",
+            default=True
+        ),
+        BoolDef(
+            "frame_range_fps",
+            label="Frame Range / FPS",
+            tooltip="Reset workfile start/end frame ranges and fps",
+            default=True
+        ),
+        BoolDef(
+            "colorspace",
+            label="Colorspace",
+            tooltip="Reset workfile colorspace",
+            default=True
+        ),
+        BoolDef(
+            "instances",
+            label="Publish instances",
+            tooltip="Update all publish instance's folder and task to match "
+                    "the new folder and task",
+            default=True
+        ),
+    ]
+
+    dialog = AttributeDefinitionsDialog(definitions)
+    dialog.setWindowTitle("Saving to different context.")
+    if not dialog.exec_():
+        return None
+
+    options = dialog.get_values()
+
+    if options["resolution"]:
+        WorkfileSettings().reset_resolution()
+    if options["frame_range_fps"]:
+        WorkfileSettings().reset_frame_range_handles()
+    if options["colorspace"]:
+        WorkfileSettings().set_colorspace()
+    if options["instances"]:
+        update_content_on_context_change()
+
+    dialog.deleteLater()
 
 
 def start_workfile_template_builder():
