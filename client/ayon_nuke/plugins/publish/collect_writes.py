@@ -199,7 +199,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
                 # Excluding handles to match the logic when
                 # loading timewarps - @splidje
                 int(nuke.root()["first_frame"].getValue()) + handle_start,
-                int(nuke.root()["last_frame"].getValue()) - handle_end + 1,
+                int(nuke.root()["last_frame"].getValue()) - instance.context.data["handleEnd"],
             ):
                 # The format for this lookup list is
                 # the frame offset per frame
@@ -224,7 +224,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "pixelAspect": write_node.pixelAspect(),
         })
 
-        if product_base_type == "render":
+        if product_base_type in ("render", "plate"):
             instance.data.update({
                 "handleStart": handle_start,
                 "handleEnd": handle_end,
