@@ -2174,8 +2174,18 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             log.info("Creating new format: {}".format(format_string))
             nuke.addFormat(format_string)
 
-        nuke.root()["format"].setValue(format_data["name"])
-        log.info("Format is set.")
+        try:
+            nuke.root()["format"].setValue(format_data["name"])
+            log.info("Root format is set.")
+
+        except Exception as error:
+            log.error(
+                "Failed to set root format from %r: %r",
+                format_data,
+                error,
+                exc_info=True,
+            )
+            raise
 
         # update node graph so knobs are updated
         update_node_graph()
