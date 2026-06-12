@@ -1,6 +1,5 @@
 import nuke
 
-import qargparse
 import ayon_api
 
 from ayon_core.pipeline import load
@@ -8,6 +7,7 @@ from ayon_core.pipeline import load
 from ayon_nuke.api.lib import (
     get_imageio_input_colorspace
 )
+from ayon_core.lib import NumberDef
 from ayon_core.pipeline.colorspace import (
     get_imageio_file_rules_colorspace_from_filepath,
     get_current_context_imageio_config_preset,
@@ -53,7 +53,7 @@ class LoadImage(load.LoaderPlugin):
     node_name_template = "{class_name}_{ext}"
 
     options = [
-        qargparse.Integer(
+        NumberDef(
             "frame_number",
             label="Frame Number",
             default=int(nuke.root()["first_frame"].getValue()),
