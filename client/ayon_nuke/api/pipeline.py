@@ -425,7 +425,7 @@ def on_task_changed():
     global _about_to_save
     if not nuke.GUI:
         return
-        
+
     change_context_label()
 
     if _about_to_save:

@@ -2568,24 +2568,58 @@ def _launch_workfile_app():
 
 
 def update_content_on_context_change():
-    """Update all Creator instances to current folder and task"""
+    """Update creator instances when the current folder/task changes."""
+
     host = registered_host()
     context = host.get_current_context()
 
-    folder_path = context["folder_path"]
-    task = context["task_name"]
+    current_folder_path = context["folder_path"]
+    current_task = context["task_name"]
 
     create_context = CreateContext(host, reset=True)
 
-    for instance in create_context.instances:
-        instance_folder_path = instance.get("folderPath")
-        if instance_folder_path and instance_folder_path != folder_path:
-            instance["folderPath"] = folder_path
-        instance_task = instance.get("task")
-        if instance_task and instance_task != task:
-            instance["task"] = task
+    project_entity = create_context.get_current_project_entity()
+    folder_entity = create_context.get_current_folder_entity()
+    task_entity = create_context.get_current_task_entity()
 
-    create_context.save_changes()
+    project_name = project_entity["name"]
+    host_name = create_context.host_name
+
+    _changed = False
+
+    for instance in create_context.instances:
+        if instance.creator_identifier == "workfile":
+            continue
+
+        if (
+            instance.get("folderPath") == current_folder_path
+            and instance.get("task") == current_task
+        ):
+            continue
+
+        creator = create_context.creators.get(
+            instance.creator_identifier
+        )
+        if creator is None:
+            continue
+
+        product_name = creator.get_product_name(
+            project_name=project_name,
+            project_entity=project_entity,
+            folder_entity=folder_entity,
+            task_entity=task_entity,
+            variant=instance.get("variant"),
+            host_name=host_name,
+        )
+
+        instance["folderPath"] = current_folder_path
+        instance["task"] = current_task
+        instance["productName"] = product_name
+
+        _changed = True
+
+    if _changed:
+        create_context.save_changes()
 
 
 def prompt_reset_context():
