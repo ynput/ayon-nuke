@@ -55,6 +55,7 @@ from .lib import (
     set_avalon_knob_data,
     read_avalon_data,
     on_script_load,
+    prompt_reset_context,
     dirmap_file_name_filter,
     add_scripts_menu,
     add_scripts_gizmo,
@@ -91,6 +92,9 @@ WORKFILE_BUILD_PATH = os.path.join(PLUGINS_DIR, "workfile_build")
 # registering pyblish gui regarding settings in presets
 if os.getenv("PYBLISH_GUI", None):
     pyblish.api.register_gui(os.getenv("PYBLISH_GUI", None))
+
+# Track whether the workfile tool is about to save
+_about_to_save = False
 
 
 class NukeHost(
@@ -138,8 +142,10 @@ class NukeHost(
         register_workfile_build_plugin_path(WORKFILE_BUILD_PATH)
 
         # Register AYON event for workfiles loading.
+        register_event_callback("workfile.save.before", before_workfile_save)
+        register_event_callback("workfile.save.after", after_workfile_save)
         register_event_callback("workio.open_file", check_inventory_versions)
-        register_event_callback("taskChanged", change_context_label)
+        register_event_callback("taskChanged", on_task_changed)
 
     def setup_ui_callbacks_and_menu(self):
         """Setup AYON menus."""
@@ -403,6 +409,28 @@ def change_context_label():
 
     log.info("Task label changed from `{}` to `{}`".format(
         old_label, new_label))
+
+
+def after_workfile_save():
+    global _about_to_save
+    _about_to_save = False
+
+
+def before_workfile_save(event):
+    global _about_to_save
+    _about_to_save = True
+
+
+def on_task_changed():
+    global _about_to_save
+    if not nuke.GUI:
+        return
+
+    change_context_label()
+
+    if _about_to_save:
+        # Let's prompt the user to update the context settings or not
+        prompt_reset_context()
 
 
 def add_shortcuts_from_presets(project_settings: dict):
