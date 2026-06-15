@@ -57,8 +57,8 @@ class LoadImage(load.LoaderPlugin):
             "frame_number",
             label="Frame Number",
             default=int(nuke.root()["first_frame"].getValue()),
-            min=1,
-            max=999999,
+            minimum=1,
+            maximum=999999,
             tooltip="What frame is reading from?"
         )
     ]
