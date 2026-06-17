@@ -51,8 +51,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             self._set_existing_files_data(instance, colorspace)
 
         elif render_target == "frames_farm":
-            collected_frames = self._set_existing_files_data(
-                instance, colorspace)
+            collected_frames = self._get_collected_frames(instance)
 
             self._set_expected_files(instance, collected_frames)
 
