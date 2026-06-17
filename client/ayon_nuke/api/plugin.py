@@ -878,7 +878,7 @@ class NukeGroupLoader(LoaderPlugin):
             "source",
             "fps"
         ]:
-            data[k] = version_attributes[k]
+            data[k] = version_attributes.get(k)
 
         for key, value in dict(**data).items():
             if value is None:
