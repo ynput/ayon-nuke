@@ -2594,11 +2594,7 @@ def update_content_on_context_change():
         ):
             continue
 
-        creator = create_context.creators.get(
-            instance.creator_identifier
-        )
-        if creator is None:
-            continue
+        creator = create_context.creators[instance.creator_identifier]
 
         product_name = creator.get_product_name(
             project_name=project_name,
