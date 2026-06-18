@@ -2576,10 +2576,10 @@ def update_content_on_context_change():
     folder_entity = create_context.get_current_folder_entity()
     task_entity = create_context.get_current_task_entity()
 
-    current_folder_path = folder_entity.get("path")
-    current_task = task_entity.get("name")
+    current_folder_path = folder_entity["path"]
+    current_task = task_entity["name"]
 
-    project_name = project_entity.get("name")
+    project_name = project_entity["name"]
     host_name = create_context.host_name
 
     _changed = False
