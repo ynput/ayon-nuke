@@ -2569,20 +2569,17 @@ def _launch_workfile_app():
 
 def update_content_on_context_change():
     """Update creator instances when the current folder/task changes."""
-
     host = registered_host()
-    context = host.get_current_context()
-
-    current_folder_path = context["folder_path"]
-    current_task = context["task_name"]
-
     create_context = CreateContext(host, reset=True)
 
     project_entity = create_context.get_current_project_entity()
     folder_entity = create_context.get_current_folder_entity()
     task_entity = create_context.get_current_task_entity()
 
-    project_name = project_entity["name"]
+    current_folder_path = folder_entity.get("path")
+    current_task = task_entity.get("name")
+
+    project_name = project_entity.get("name")
     host_name = create_context.host_name
 
     _changed = False
