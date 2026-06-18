@@ -8,6 +8,7 @@ import pyblish.api
 
 from ayon_core.host import (
     ApplicationInformation,
+    ContextChangeData,
     HostBase,
     IWorkfileHost,
     ILoadHost,
@@ -145,7 +146,6 @@ class NukeHost(
         register_event_callback("workfile.save.before", before_workfile_save)
         register_event_callback("workfile.save.after", after_workfile_save)
         register_event_callback("workio.open_file", check_inventory_versions)
-        register_event_callback("taskChanged", on_task_changed)
 
     def setup_ui_callbacks_and_menu(self):
         """Setup AYON menus."""
@@ -167,6 +167,26 @@ class NukeHost(
     def update_context_data(self, data, changes):
         root_node = nuke.root()
         set_node_data(root_node, ROOT_DATA_KNOB, data)
+
+    def _after_context_change(self, context_change_data: ContextChangeData):
+        """After context is changed.
+
+        This method is called after the context is changed.
+
+        Args:
+            context_change_data (ContextChangeData): Object with information
+                about context change.
+
+        """
+        print("_after_context_change")
+        if not nuke.GUI:
+            return
+
+        change_context_label()
+
+        if _about_to_save:
+            # Let's prompt the user to update the context settings or not
+            prompt_reset_context()
 
 
 def add_nuke_callbacks(project_settings: dict = None):
@@ -419,18 +439,6 @@ def after_workfile_save():
 def before_workfile_save(event):
     global _about_to_save
     _about_to_save = True
-
-
-def on_task_changed():
-    global _about_to_save
-    if not nuke.GUI:
-        return
-
-    change_context_label()
-
-    if _about_to_save:
-        # Let's prompt the user to update the context settings or not
-        prompt_reset_context()
 
 
 def add_shortcuts_from_presets(project_settings: dict):
