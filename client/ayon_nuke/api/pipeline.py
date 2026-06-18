@@ -178,7 +178,6 @@ class NukeHost(
                 about context change.
 
         """
-        print("_after_context_change")
         if not nuke.GUI:
             return
 
