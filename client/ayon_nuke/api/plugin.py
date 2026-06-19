@@ -382,8 +382,8 @@ class NukeWriteCreator(NukeCreator):
             list[nuke.Node]: node selection.
 
         Raises:
-            NukeCreatorError.
-            When the selection contains more than 1 Write node.
+            NukeCreatorError:
+                When the selection contains more than 1 Write node.
         """
         if not pre_create_data.get("use_selection"):
             return []
