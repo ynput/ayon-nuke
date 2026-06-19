@@ -34,8 +34,12 @@ class ExtractCamera(publish.Extractor):
         ]
 
         publish_settings = get_publish_config()
-        extract_camera_settings = publish_settings.get("ExtractCameraFormat", {})
-        export_camera_settings = extract_camera_settings.get("export_camera_format", "abc")
+        extract_camera_settings = publish_settings.get(
+            "ExtractCameraFormat", {}
+        )
+        export_camera_settings = extract_camera_settings.get(
+            "export_camera_format", "abc"
+        )
 
         if export_camera_settings == "abc":
             write_geo_knobs.insert(0, ("file_type", "abc"))

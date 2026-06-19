@@ -78,7 +78,8 @@ class LoadBackdropNodes(load.LoaderPlugin):
 
         with maintained_selection():
             # Get mouse position
-            reset_selection()  # clear selection first to avoid automatic connections to selection
+            # clear selection first to avoid automatic connections to selection
+            reset_selection()
             n = nuke.createNode("NoOp")
             xcursor, ycursor = (n.xpos(), n.ypos())
             nuke.delete(n)
@@ -254,7 +255,8 @@ class LoadBackdropNodes(load.LoaderPlugin):
             xpos (int): x position
             ypos (int): y position
             object_name (str): name of the object
-            bdn_frame (int, optional): frame size around the backdrop. Defaults to 50.
+            bdn_frame (int, optional): frame size around the backdrop.
+                                       Defaults to 50.
 
         Returns:
             nuke.BackdropNode: the created backdrop node
@@ -301,7 +303,8 @@ def _restore_connection(conn, node_map):
     """Restore a single node connection or expression.
 
     Args:
-        conn (dict): Connection dictionary with serialized node names and metadata.
+        conn (dict): Connection dictionary
+                     with serialized node names and metadata.
         node_map (dict): Mapping of node names to actual node objects.
     """
     if "input_node_name" in conn:
@@ -348,7 +351,8 @@ def _capture_node_connections(backdrop_nodes):
     when nodes are deleted and recreated.
 
     Args:
-        backdrop_nodes (list): List of nodes to capture external connections for.
+        backdrop_nodes (list): List of nodes
+                               to capture external connections for.
 
     Returns:
         list: List of connection dictionaries with serialized node names.

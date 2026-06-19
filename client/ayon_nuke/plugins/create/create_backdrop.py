@@ -42,7 +42,8 @@ class CreateBackdrop(NukeCreator):
             nuke.Node: Newly created instance node.
 
         Raises:
-            NukeCreatorError. When multiple Camera nodes are part of the selection.
+            NukeCreatorError.
+            When multiple Camera nodes are part of the selection.
 
         """
         with maintained_selection():

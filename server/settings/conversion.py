@@ -268,8 +268,9 @@ def _convert_collect_instance_data_model_0_4_0(overrides: dict) -> None:
     )
 
 
-def _convert_collect_sync_workfile_version_model_0_4_5(overrides: dict) -> None:
-    """Convert collect sync workfile version model to include product_base_type."""
+def _convert_collect_sync_workfile_version_model_0_4_5(overrides: dict) -> None:  # noqa: E501
+    """Convert collect sync workfile version model
+    to include product_base_type."""
     publish= (
         overrides
         .get("publish", {})
@@ -288,10 +289,12 @@ def _convert_collect_sync_workfile_version_model_0_4_5(overrides: dict) -> None:
         # Ensure to remove this key if no more content
         del publish["CollectInstanceData"]
 
-    collect_sync_workfile_version = publish.setdefault("CollectSyncWorkfileVersion", {})
-    collect_sync_workfile_version["sync_workfile_version_on_product_base_types"] = (
-        sync_workfile_version_on_product_base_types
+    collect_sync_workfile_version = publish.setdefault(
+        "CollectSyncWorkfileVersion", {}
     )
+    collect_sync_workfile_version[
+        "sync_workfile_version_on_product_base_types"
+    ] = sync_workfile_version_on_product_base_types
 
 
 def convert_settings_overrides(
