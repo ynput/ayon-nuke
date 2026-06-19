@@ -51,7 +51,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             self._set_existing_files_data(instance, colorspace)
 
         elif render_target == "frames_farm":
-            collected_frames = self._get_collected_frames(instance)
+            collected_frames = self._get_collected_frames_with_slate(instance)
 
             self._set_expected_files(instance, collected_frames)
 
@@ -73,7 +73,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         Returns:
             list: collected frames
         """
-        collected_frames = self._get_collected_frames(instance)
+        collected_frames = self._get_collected_frames_with_slate(instance)
 
         representation = self._get_existing_frames_representation(
             instance, collected_frames
@@ -363,7 +363,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         expected_slate_frame = first_frame - 1
         expected_slate_path = write_node["file"].evaluate(expected_slate_frame)
 
-        if not os.path.exists(expected_slate_path):
+        if os.path.exists(expected_slate_path):
             slate_frame = os.path.basename(expected_slate_path)
             collected_frames.insert(0, slate_frame)
 
@@ -428,6 +428,24 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
 
         return collected_frames
 
+    def _get_collected_frames_with_slate(self, instance):
+        """Get collected frames and include slate frame if available.
+
+        Args:
+            instance (pyblish.api.Instance): pyblish instance
+
+        Returns:
+            list: collected frames with slate if available
+        """
+
+        first_frame, _ = self._get_frame_range_data(instance)
+        collected_frames = self._get_collected_frames(instance)
+
+        return self._add_slate_frame_to_collected_frames(
+            instance,
+            collected_frames,
+            first_frame
+        )
 
 def _find_downstream_time_warp_node(start_node):
     # HACK: no idea why calling `dependentNodes` the first time
