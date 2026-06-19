@@ -408,7 +408,7 @@ class NukeWriteCreator(NukeCreator):
             opencue_args = ("publish_attributes" in (changes.changed_keys - changes.removed_keys)
                 and changes.new_value.get(
                     "publish_attributes", {}
-                ).get("CollectOpenCueLayerArgs", {}))
+                ).get("CollectOpenCueLayerArgs")) or {}
             requires_gpu = opencue_args.get("requires_gpu")
             chunk_size = opencue_args.get("chunk_size")
             # Approach to avoiding the infinite loop of this bi-directional
