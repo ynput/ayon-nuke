@@ -60,7 +60,7 @@ class ExtractCamera(publish.Extractor):
             staging_dir = os.path.normpath(
                 os.path.dirname(instance.data["path"]))
             instance.data["stagingDir"] = staging_dir
-        
+
         camera_node = instance.data["transientData"]["node"]
         handle_start = instance.context.data["handleStart"]
         handle_end = instance.context.data["handleEnd"]

@@ -85,7 +85,7 @@ DEFAULT_GIZMO_ITEM = {
         "windows": [],
         "darwin": [],
         "linux": []
-    },    
+    },
     "gizmo_definition": [
         {
             "gizmo_toolbar_path": "",

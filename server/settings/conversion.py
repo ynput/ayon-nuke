@@ -132,24 +132,24 @@ def _convert_extract_intermediate_files_0_2_3(publish_overrides):
 def _convert_gizmo_menu_0_3_1(overrides):
     if "gizmo" not in overrides:
         return
-    
+
     old_gizmos = overrides["gizmo"]
     new_gizmos = []
-    
-    # Gizmo menu settings prior to the Nuke addon version `0.3.1` 
+
+    # Gizmo menu settings prior to the Nuke addon version `0.3.1`
     # included a combined setting for both `Gizmo directory path`
-    # and `Gizmo definitions`. 
+    # and `Gizmo definitions`.
     # In the new, simplified settings, the gizmo menu was split
     # so that each menu item is either `Gizmo directory path` or
     # `Gizmo definitions`, with the `option` reflecting the selection.
-    # This conversion code reconstructs the gizmo menu settings to 
+    # This conversion code reconstructs the gizmo menu settings to
     # achieve that.
 
     for gizmo in old_gizmos:
         # Already new setting
         if "options" in gizmo:
             return
-        
+
         # Check if it has `Gizmo Directory Path`
         if any(gizmo["gizmo_source_dir"].values()):
             tmp_gizmo = deepcopy(gizmo)
@@ -164,9 +164,9 @@ def _convert_gizmo_menu_0_3_1(overrides):
             tmp_gizmo["options"] = "gizmo_definition"
             tmp_gizmo.pop("gizmo_source_dir")
             new_gizmos.append(tmp_gizmo)
-    
+
     # Override using the new gizmo
-    overrides["gizmo"] = new_gizmos          
+    overrides["gizmo"] = new_gizmos
 
 
 def _convert_imageio_subsets_0_3_2(overrides: dict) -> None:
@@ -224,7 +224,7 @@ def _convert_workfile_builder_0_4_0(overrides: dict) -> None:
     for opt in opts:
         if "product_base_types" not in opt and "product_types" in opt:
             opt["product_base_types"] = opt.pop("product_types")
-            
+
 
 def _convert_baking_stream_filter_product_base_type_0_4_0(
         overrides: dict) -> None:
