@@ -1037,18 +1037,16 @@ class ExporterReview(object):
             root_version = int(root_version)
         except (TypeError, IndexError):
             self.log.warning(
-                f"Current file '{current_file}' "
-                "doesn't contain version number. "
-                "No replacement necessary",
+                f"Current file '{current_file}' doesn't contain version "
+                "number. No replacement necessary",
                 exc_info=True)
             return staging_dir
         try:
             staging_dir_version = "v" + get_version_from_path(staging_dir)
         except (TypeError, IndexError):
             self.log.warning(
-                f"Staging directory '{staging_dir}' "
-                "doesn't contain version number. "
-                "No replacement necessary",
+                f"Staging directory '{staging_dir}' doesn't contain version "
+                "number. No replacement necessary",
                 exc_info=True)
             return staging_dir
 
