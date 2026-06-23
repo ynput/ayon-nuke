@@ -330,7 +330,8 @@ class NukeWriteCreator(NukeCreator):
     product_base_type = "write"
     icon = "sign-out"
 
-    temp_rendering_path_template = (  # default to be applied if settings is missing
+    # default to be applied if settings is missing
+    temp_rendering_path_template = (
         "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}")
 
     render_target = "local"  # default to be applied if settings is missing
@@ -381,7 +382,8 @@ class NukeWriteCreator(NukeCreator):
             list[nuke.Node]: node selection.
 
         Raises:
-            NukeCreatorError. When the selection contains more than 1 Write node.
+            NukeCreatorError:
+                When the selection contains more than 1 Write node.
         """
         if not pre_create_data.get("use_selection"):
             return []
@@ -1035,16 +1037,16 @@ class ExporterReview(object):
             root_version = int(root_version)
         except (TypeError, IndexError):
             self.log.warning(
-                f"Current file '{current_file}' doesn't contain version number. "
-                "No replacement necessary",
+                f"Current file '{current_file}' doesn't contain version "
+                "number. No replacement necessary",
                 exc_info=True)
             return staging_dir
         try:
             staging_dir_version = "v" + get_version_from_path(staging_dir)
         except (TypeError, IndexError):
             self.log.warning(
-                f"Staging directory '{staging_dir}' doesn't contain version number. "
-                "No replacement necessary",
+                f"Staging directory '{staging_dir}' doesn't contain version "
+                "number. No replacement necessary",
                 exc_info=True)
             return staging_dir
 
@@ -1369,7 +1371,8 @@ class ExporterReviewMov(ExporterReview):
                     )
                     if not baking_colorspace:
                         raise ValueError(
-                            f"Invalid baking color space: '{baking_colorspace}'"
+                            "Invalid baking color space: "
+                            f"'{baking_colorspace}'"
                         )
                     node = nuke.createNode("OCIOColorSpace")
                     message = "OCIOColorSpace...   '{}'"
