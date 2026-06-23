@@ -1,6 +1,10 @@
 from nukescripts import autoBackdrop
 
-from ayon_nuke.api import NukeCreator, maintained_selection, select_nodes
+from ayon_nuke.api import (
+    NukeCreator,
+    maintained_selection,
+    select_nodes,
+)
 
 
 class CreateBackdrop(NukeCreator):

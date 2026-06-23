@@ -303,8 +303,8 @@ def _restore_connection(conn, node_map):
     """Restore a single node connection or expression.
 
     Args:
-        conn (dict): Connection dictionary
-                     with serialized node names and metadata.
+        conn (dict): Connection dictionary with serialized
+            node names and metadata.
         node_map (dict): Mapping of node names to actual node objects.
     """
     if "input_node_name" in conn:
@@ -351,8 +351,8 @@ def _capture_node_connections(backdrop_nodes):
     when nodes are deleted and recreated.
 
     Args:
-        backdrop_nodes (list): List of nodes
-                               to capture external connections for.
+        backdrop_nodes (list): List of nodes to capture
+            external connections for.
 
     Returns:
         list: List of connection dictionaries with serialized node names.
