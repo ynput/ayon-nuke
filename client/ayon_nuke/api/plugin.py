@@ -1294,6 +1294,9 @@ class ExporterReviewMov(ExporterReview):
         # Read node
         r_node = nuke.createNode("Read")
         r_node["file"].setValue(self.path_in)
+        # do not use the localized files when publishing,
+        # use the original files
+        r_node["localizationPolicy"].setValue(3)
         r_node["first"].setValue(self.first_frame)
         r_node["origfirst"].setValue(self.first_frame)
         r_node["last"].setValue(self.last_frame)
@@ -1308,7 +1311,6 @@ class ExporterReviewMov(ExporterReview):
 
         if read_raw:
             r_node["raw"].setValue(1)
-
         # connect to Read node
         self._shift_to_previous_node_and_temp(
             product_name, r_node, "Read...   `{}`"
