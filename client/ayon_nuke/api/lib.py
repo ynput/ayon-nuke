@@ -428,6 +428,11 @@ def set_avalon_knob_data(node, data=None, prefix="avalon:"):
     data = data or dict()
     create = OrderedDict()
 
+    # remove node key from container data before
+    # setting it into the node's avalon knob
+    if "node" in data:
+        del data["node"]
+
     tab_name = NODE_TAB_NAME
     editable = ["folderPath", "productName", "name", "namespace"]
 
