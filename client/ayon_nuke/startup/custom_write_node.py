@@ -105,8 +105,12 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
         anatomy = Anatomy(get_current_project_name())
 
         project_settings = get_current_project_settings()
-        write_settings = project_settings["nuke"]["create"]["CreateWriteRender"]
-        temp_rendering_path_template = write_settings["temp_rendering_path_template"]
+        write_settings = project_settings["nuke"]["create"][
+            "CreateWriteRender"
+        ]
+        temp_rendering_path_template = write_settings[
+            "temp_rendering_path_template"
+        ]
 
         frame_padding = anatomy.templates_obj.frame_padding
         for write_node in write_selected_nodes:
