@@ -356,9 +356,10 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
             placeholder.data["last_loaded"]
         )
 
-        # Workaround: There are some cases where only the second call to `.dependent()` seems to
-        #  start returning the input dependencies directly after a scene open (reproduced in Nuke 14.1)
-        #  so we just enforce an extra call to be sure this works as intended
+        # Workaround: There are some cases where only the second call
+        # to `.dependent()` seems to start returning the input dependencies
+        # directly after a scene open (reproduced in Nuke 14.1)
+        # so we just enforce an extra call to be sure this works as intended
         placeholder_node.dependent()
 
         for node in placeholder_node.dependent():
