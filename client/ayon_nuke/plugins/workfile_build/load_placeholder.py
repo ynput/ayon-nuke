@@ -348,18 +348,32 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
             refresh_node(node)
 
     def _set_loaded_connections(self, placeholder):
-        """
-        set inputs and outputs of loaded nodes"""
+        """Set inputs and outputs of loaded nodes."""
 
         placeholder_node = nuke.toNode(placeholder.scene_identifier)
         input_node, output_node = get_group_io_nodes(
             placeholder.data["last_loaded"]
         )
 
+        # When multiple clips are loaded and none is named "Input" /
+        # "Output", get_group_io_nodes returns None for both.  Fall back
+        # to the last connectable loaded node so the placeholder's
+        # upstream/downstream connections are preserved.
+        if input_node is None or output_node is None:
+            connectable = [
+                n for n in placeholder.data["last_loaded"]
+                if n.maxInputs() > 0 or n.maxOutputs() > 0
+            ]
+            if connectable:
+                fallback = connectable[-1]
+                if input_node is None:
+                    input_node = fallback
+                if output_node is None:
+                    output_node = fallback
+
         # Workaround: There are some cases where only the second call
-        # to `.dependent()` seems to start returning the input dependencies
-        # directly after a scene open (reproduced in Nuke 14.1)
-        # so we just enforce an extra call to be sure this works as intended
+        # to `.dependent()` seems to start returning the input
+        # dependencies directly after a scene open (Nuke 14.1).
         placeholder_node.dependent()
 
         for node in placeholder_node.dependent():
