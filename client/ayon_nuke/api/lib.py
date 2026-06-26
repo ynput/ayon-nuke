@@ -44,17 +44,14 @@ from ayon_core.pipeline import (
     AVALON_INSTANCE_ID,
     get_current_context,
 )
-from ayon_core.pipeline.load import filter_containers
+from ayon_core.pipeline.load import filter_containers, get_loaders_by_name
 from ayon_core.pipeline.colorspace import (
     get_current_context_imageio_config_preset
 )
 from ayon_core.resources import get_ayon_icon_filepath
 
 from .gizmo_menu import GizmoMenu
-from .constants import (
-    ASSIST,
-    LOADER_CATEGORY_COLORS,
-)
+from .constants import ASSIST
 
 from .utils import get_node_outputs
 
@@ -829,25 +826,45 @@ def on_script_load():
         nuke.tcl('load movWriter')
 
 
-def check_inventory_versions():
+def check_inventory_versions(containers: list[dict] | None = None):
     """Update loaded container nodes' colors based on version state.
 
     This will group containers by their version to outdated, not found,
     invalid or latest and colorize the nodes based on the category.
+
+    Args:
+        containers (list[dict] | None): List of containers to check.
+            If None, all containers will be checked.
+
     """
     try:
         host = registered_host()
-        containers = host.get_containers()
         project_name = get_current_project_name()
+
+        # build lookup for node colors by loader name and category
+        loaders_by_name = get_loaders_by_name()
+        node_colors_by_loader: dict[str, dict[str, int]] = {}
+        for loader_name, loader in loaders_by_name.items():
+            if hasattr(loader, "get_node_colors"):
+                node_colors_by_loader[loader_name] = loader.get_node_colors()
+
+        if containers is None:
+            containers = host.get_containers()
 
         filtered_containers = filter_containers(containers, project_name)
         for category, containers in filtered_containers._asdict().items():
-            if category not in LOADER_CATEGORY_COLORS:
-                continue
-            color = LOADER_CATEGORY_COLORS[category]
-            color = int(color, 16)  # convert hex to nuke tile color int
+
             for container in containers:
-                container["node"]["tile_color"].setValue(color)
+
+                loader_name = container.get("loader")
+                if not loader_name:
+                    continue
+
+                colors = node_colors_by_loader.get(loader_name, {})
+
+                if color := colors.get(category):
+                    container["node"]["tile_color"].setValue(color)
+
     except Exception as error:
         log.warning(error)
 
