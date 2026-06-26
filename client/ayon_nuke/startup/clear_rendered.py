@@ -39,5 +39,5 @@ def clear_rendered_from_node(node: nuke.Node) -> None:
         for child in node.nodes():
             clear_rendered_from_node(child)
         return
-    
+
     log.error(f"Unsupported node class: `{node_class}`")

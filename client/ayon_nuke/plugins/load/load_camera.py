@@ -228,7 +228,7 @@ class FbxCameraLoader(AlembicCameraLoader):
         # https://learn.foundry.com/nuke/11.1/content/comp_environment
         # /3d_compositing/importing_fbx_cameras.html
         # The following ensure the camera node is set to exported camera data.
-        fbx_camera_node.forceValidate() 
+        fbx_camera_node.forceValidate()
 
         try:
             knob = fbx_camera_node["fbx_take_name"]
@@ -239,7 +239,7 @@ class FbxCameraLoader(AlembicCameraLoader):
             # very well when mixing abc + fbx nodes in the same script.
             # They need to reloaded manually.
             #
-            # Hopefully this will be fixed by upcoming Camera4            
+            # Hopefully this will be fixed by upcoming Camera4
             raise RuntimeError(
                 "Could not load incoming FBX camera properly. "
                 "This could be caused by a mix of abc and fbx "
