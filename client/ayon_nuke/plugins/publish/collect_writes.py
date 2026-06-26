@@ -314,13 +314,6 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "tags": []
         }
 
-        # set slate frame
-        collected_frames = self._add_slate_frame_to_collected_frames(
-            instance,
-            collected_frames,
-            first_frame
-        )
-
         if len(collected_frames) == 1:
             representation['files'] = collected_frames.pop()
         else:
@@ -366,7 +359,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         expected_slate_frame = first_frame - 1
         expected_slate_path = write_node["file"].evaluate(expected_slate_frame)
 
-        if not os.path.exists(expected_slate_path):
+        if os.path.exists(expected_slate_path):
             slate_frame = os.path.basename(expected_slate_path)
             collected_frames.insert(0, slate_frame)
 
@@ -429,8 +422,12 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             if filename in expected_filenames
         ]
 
-        return collected_frames
-
+        # set slate frame
+        return self._add_slate_frame_to_collected_frames(
+            instance,
+            collected_frames,
+            first_frame
+        )
 
 def _find_downstream_time_warp_node(start_node):
     # HACK: no idea why calling `dependentNodes` the first time
