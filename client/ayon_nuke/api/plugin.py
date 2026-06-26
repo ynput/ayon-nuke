@@ -51,6 +51,7 @@ from .lib import (
 )
 from .pipeline import (
     list_instances,
+    parse_container,
     remove_instance,
     containerise,
     update_container,
@@ -632,6 +633,7 @@ class NukeLoader(LoaderPlugin):
     node_color_outdated = color_to_int(216, 79, 32)
     node_color_invalid = color_to_int(255, 0, 0)
     node_color_not_found = color_to_int(255, 255, 0)
+    node_color_library = color_to_int(143, 132, 61)
     node_color = node_color_latest  # default color
 
     def reset_container_id(self):
@@ -686,6 +688,41 @@ class NukeLoader(LoaderPlugin):
             nuke.delete(member)
 
         return dependent_nodes
+
+    @classmethod
+    def get_node_colors(cls) -> dict[str, int]:
+        """Get node colors.
+        
+        Returns:
+            dict[str, int]: Dictionary of node colors.
+                keys are the category names, values are the tile_color values.
+
+                Known categories:
+                - latest
+                - outdated
+                - invalid
+                - not_found
+                - library
+        TBD:
+            categories could be an Enum defined in ayon_core
+        
+        """
+        return {
+            "default": cls.node_color,
+            "latest": cls.node_color_latest,
+            "outdated": cls.node_color_outdated,
+            "invalid": cls.node_color_invalid,
+            "not_found": cls.node_color_not_found,
+            "library": cls.node_color_library,
+        }
+
+    def update_node_color(self, node: nuke.Node) -> None:
+        """Update tile_color for the given node.."""
+        container = parse_container(node)
+        if not container:
+            return
+
+        check_inventory_versions([container])
 
 
 class NukeGroupLoader(LoaderPlugin):
