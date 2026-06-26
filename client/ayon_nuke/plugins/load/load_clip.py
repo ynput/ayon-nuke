@@ -18,6 +18,7 @@ from ayon_nuke.api.lib import (
 )
 from ayon_nuke.api import (
     containerise,
+    parse_container,
     update_container,
     colorspace_exists_on_node
 )
@@ -198,6 +199,9 @@ class LoadClip(plugin.NukeLoader):
         if version_name < 0:
             version_name = "hero"
 
+        # update the name of the current undo step
+        nuke.Undo.name(f"{self.__class__.__name__}: {name} v{version_name}")
+
         data_imprint = {
             "version": version_name,
             "option_set_start_frame": set_frame_range
@@ -290,10 +294,19 @@ class LoadClip(plugin.NukeLoader):
 
         version_attributes = version_entity["attrib"]
         version_data = version_entity["data"]
+        version_name = version_entity["version"]
 
         is_sequence = len(repre_entity["files"]) > 1
 
         read_node = container["node"]
+
+        # update undo name
+        old_container = parse_container(read_node) or {}
+        if old_version := old_container.get("version"):
+            name = container.get("name") or read_node.name()
+            name = f"Update: {name} v{old_version} -> v{version_name}"
+            nuke.Undo.name(name)
+
 
         if is_sequence:
             repre_entity = self._representation_with_hash_in_frame(
@@ -353,7 +366,7 @@ class LoadClip(plugin.NukeLoader):
             "representation": repre_entity["id"],
             "frameStart": str(first),
             "frameEnd": str(last),
-            "version": str(version_entity["version"]),
+            "version": str(version_name),
             "source": version_attributes.get("source"),
             "handleStart": str(handle_start),
             "handleEnd": str(handle_end),
@@ -372,9 +385,7 @@ class LoadClip(plugin.NukeLoader):
 
         # Update the imprinted representation
         update_container(read_node, updated_dict)
-        self.log.info(
-            "updated to version: {}".format(version_entity["version"])
-        )
+        self.log.info(f"updated to version: {version_name}")
 
         if add_retime and version_data.get("retime"):
             self._make_retimes(
@@ -423,6 +434,14 @@ class LoadClip(plugin.NukeLoader):
     def remove(self, container):
         read_node = container["node"]
         assert read_node.Class() == "Read", "Must be Read"
+
+        # update undo name
+        name = container.get("name") or read_node.name()
+        if version := container.get("version"):
+            undo_name = f"Remove: {name} v{version}"
+        else:
+            undo_name = f"Remove: {name}"
+        nuke.Undo.name(undo_name)
 
         members = self.get_members(read_node)
         nuke.delete(read_node)
