@@ -34,6 +34,8 @@ from ayon_core.lib.transcoding import (
 from .lib import (
     INSTANCE_DATA_KNOB,
     Knobby,
+    check_inventory_versions,
+    color_to_int,
     create_backdrop,
     deprecated,
     maintained_selection,
@@ -625,6 +627,12 @@ def get_publish_config():
 class NukeLoader(LoaderPlugin):
     container_id_knob = "containerId"
     container_id = None
+
+    node_color_latest = color_to_int(78, 205, 73)
+    node_color_outdated = color_to_int(216, 79, 32)
+    node_color_invalid = color_to_int(255, 0, 0)
+    node_color_not_found = color_to_int(255, 255, 0)
+    node_color = node_color_latest  # default color
 
     def reset_container_id(self):
         self.container_id = "".join(random.choice(
