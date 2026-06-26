@@ -221,8 +221,6 @@ class LoadClip(plugin.NukeLoader):
             if add_retime and version_data.get("retime"):
                 data_imprint["addRetime"] = True
 
-            read_node["tile_color"].setValue(int("0x4ecd25ff", 16))
-
             container = containerise(
                 read_node,
                 name=name,
@@ -230,6 +228,8 @@ class LoadClip(plugin.NukeLoader):
                 context=context,
                 loader=self.__class__.__name__,
                 data=data_imprint)
+
+            self.update_node_color(read_node)  # after containerise
 
         if add_retime and version_data.get("retime"):
             self._make_retimes(
@@ -363,18 +363,9 @@ class LoadClip(plugin.NukeLoader):
                 "fps": str(version_attributes.get("fps"))
             }
 
-            last_version_entity = ayon_api.get_last_version_by_product_id(
-                project_name, version_entity["productId"], fields={"id"}
-            )
-            # change color of read_node
-            if version_entity["id"] == last_version_entity["id"]:
-                color_value = "0x4ecd25ff"
-            else:
-                color_value = "0xd84f20ff"
-            read_node["tile_color"].setValue(int(color_value, 16))
-
             # Update the imprinted representation
             update_container(read_node, updated_dict)
+            self.update_node_color(read_node)
             self.log.info(
                 "updated to version: {}".format(version_entity["version"])
             )

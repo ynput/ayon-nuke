@@ -629,11 +629,11 @@ class NukeLoader(LoaderPlugin):
     container_id_knob = "containerId"
     container_id = None
 
-    node_color_latest = color_to_int(78, 205, 73)
-    node_color_outdated = color_to_int(216, 79, 32)
-    node_color_invalid = color_to_int(255, 0, 0)
-    node_color_not_found = color_to_int(255, 255, 0)
-    node_color_library = color_to_int(143, 132, 61)
+    node_color_latest    = color_to_int(78, 205, 37)  # 0x 4e cd 25 ff
+    node_color_outdated  = color_to_int(216, 79, 32)  # 0x d8 4f 20 ff
+    node_color_invalid   = color_to_int(255, 0, 0)    # 0x ff 00 00 ff
+    node_color_not_found = color_to_int(255, 255, 0)  # 0x ff ff 00 ff
+    node_color_library   = color_to_int(143, 132, 61) # 0x 8f 84 3d ff
     node_color = node_color_latest  # default color
 
     def reset_container_id(self):
