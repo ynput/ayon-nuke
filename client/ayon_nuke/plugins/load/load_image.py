@@ -1,9 +1,5 @@
 import nuke
 
-import ayon_api
-
-from ayon_core.pipeline import load
-
 from ayon_nuke.api.lib import (
     get_imageio_input_colorspace
 )
@@ -70,8 +66,6 @@ class LoadImage(plugin.NukeLoader):
 
     def load(self, context, name, namespace, options):
         project_name = context["project"]["name"]
-        repre_entity = context["representation"]
-        version_entity = context["version"]
 
         self.log.info("__ options: `{}`".format(options))
         frame_number = options.get(
