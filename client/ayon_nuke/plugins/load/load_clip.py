@@ -22,7 +22,7 @@ from ayon_nuke.api import (
     update_container,
     colorspace_exists_on_node
 )
-from ayon_nuke.api.command import undo_step
+from ayon_nuke.api.command import undo_chunk
 
 from ayon_core.lib.transcoding import (
     VIDEO_EXTENSIONS,
@@ -104,7 +104,7 @@ class LoadClip(plugin.NukeLoader):
     def get_representations(cls):
         return cls.representations_include or cls.representations
 
-    @undo_step("Load Clip")
+    @undo_chunk("Load Clip")
     def load(self, context, name, namespace, options):
         """Load asset via database."""
         project_name = context["project"]["name"]
@@ -278,7 +278,7 @@ class LoadClip(plugin.NukeLoader):
         new_repre_entity["context"]["frame"] = hashed_frame
         return new_repre_entity
 
-    @undo_step("Update Clip")
+    @undo_chunk("Update Clip")
     def update(self, container, context):
         """Update the Loader's path
 
@@ -430,7 +430,7 @@ class LoadClip(plugin.NukeLoader):
         else:
             self.log.info("Colorspace not set...")
 
-    @undo_step("Remove Clip")
+    @undo_chunk("Remove Clip")
     def remove(self, container):
         read_node = container["node"]
         assert read_node.Class() == "Read", "Must be Read"
