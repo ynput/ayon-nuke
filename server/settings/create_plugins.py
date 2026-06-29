@@ -283,7 +283,7 @@ DEFAULT_CREATE_SETTINGS = {
     "CreateWriteRender": {
         "enabled": True,
         "order": 100,
-        "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}",
+        "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}",  # noqa: E501
         "default_variants": [
             "Main",
             "Mask"
@@ -317,7 +317,7 @@ DEFAULT_CREATE_SETTINGS = {
     "CreateWritePrerender": {
         "enabled": True,
         "order": 100,
-        "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}",
+        "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}",  # noqa: E501
         "default_variants": [
             "Key01",
             "Bg01",
@@ -336,7 +336,7 @@ DEFAULT_CREATE_SETTINGS = {
     "CreateWriteImage": {
         "enabled": True,
         "order": 100,
-        "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{ext}",
+        "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{ext}",  # noqa: E501
         "default_variants": [
             "StillFrame",
             "MPFrame",

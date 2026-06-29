@@ -76,15 +76,16 @@ class LoadBackdropNodes(load.LoaderPlugin):
         # just in case we are in group lets jump out of it
         nuke.endGroup()
 
-        # Get mouse position
-        n = nuke.createNode("NoOp")
-        xcursor, ycursor = (n.xpos(), n.ypos())
-        reset_selection()
-        nuke.delete(n)
-
-        bdn_frame = 50
-
         with maintained_selection():
+            # Get mouse position
+            # clear selection first to avoid automatic connections to selection
+            reset_selection()
+            n = nuke.createNode("NoOp")
+            xcursor, ycursor = (n.xpos(), n.ypos())
+            nuke.delete(n)
+
+            bdn_frame = 50
+
             # add group from nk
             nuke.nodePaste(file)
             # get all pasted nodes
@@ -121,7 +122,6 @@ class LoadBackdropNodes(load.LoaderPlugin):
                         d.setInput(index, dot)
 
                     # remove Input node
-                    reset_selection()
                     nuke.delete(n)
                     continue
 
@@ -140,7 +140,6 @@ class LoadBackdropNodes(load.LoaderPlugin):
                         dot.setInput(0, dep)
 
                     # remove Input node
-                    reset_selection()
                     nuke.delete(n)
                     continue
                 else:
@@ -256,7 +255,8 @@ class LoadBackdropNodes(load.LoaderPlugin):
             xpos (int): x position
             ypos (int): y position
             object_name (str): name of the object
-            bdn_frame (int, optional): frame size around the backdrop. Defaults to 50.
+            bdn_frame (int, optional): frame size around the backdrop.
+                                       Defaults to 50.
 
         Returns:
             nuke.BackdropNode: the created backdrop node
@@ -303,7 +303,8 @@ def _restore_connection(conn, node_map):
     """Restore a single node connection or expression.
 
     Args:
-        conn (dict): Connection dictionary with serialized node names and metadata.
+        conn (dict): Connection dictionary with serialized
+            node names and metadata.
         node_map (dict): Mapping of node names to actual node objects.
     """
     if "input_node_name" in conn:
@@ -350,7 +351,8 @@ def _capture_node_connections(backdrop_nodes):
     when nodes are deleted and recreated.
 
     Args:
-        backdrop_nodes (list): List of nodes to capture external connections for.
+        backdrop_nodes (list): List of nodes to capture
+            external connections for.
 
     Returns:
         list: List of connection dictionaries with serialized node names.
