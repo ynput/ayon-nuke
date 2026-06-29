@@ -18,7 +18,6 @@ from ayon_nuke.api.lib import (
 )
 from ayon_nuke.api import (
     containerise,
-    parse_container,
     update_container,
     colorspace_exists_on_node
 )
@@ -301,12 +300,9 @@ class LoadClip(plugin.NukeLoader):
         read_node = container["node"]
 
         # update undo name
-        old_container = parse_container(read_node) or {}
-        if old_version := old_container.get("version"):
-            name = container.get("name") or read_node.name()
-            name = f"Update: {name} v{old_version} -> v{version_name}"
-            nuke.Undo.name(name)
-
+        name = container.get("name") or read_node.name()
+        undo_name = f"Update: {name} to v{version_name}"
+        nuke.Undo.name(undo_name)
 
         if is_sequence:
             repre_entity = self._representation_with_hash_in_frame(
@@ -437,10 +433,7 @@ class LoadClip(plugin.NukeLoader):
 
         # update undo name
         name = container.get("name") or read_node.name()
-        if version := container.get("version"):
-            undo_name = f"Remove: {name} v{version}"
-        else:
-            undo_name = f"Remove: {name}"
+        undo_name = f"Remove: {name}"
         nuke.Undo.name(undo_name)
 
         members = self.get_members(read_node)
