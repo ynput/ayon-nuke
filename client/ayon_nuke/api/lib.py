@@ -840,13 +840,7 @@ def check_inventory_versions(containers: list[dict] | None = None):
     try:
         host = registered_host()
         project_name = get_current_project_name()
-
-        # build lookup for node colors by loader name and category
         loaders_by_name = get_loaders_by_name()
-        node_colors_by_loader: dict[str, dict[str, int]] = {}
-        for loader_name, loader in loaders_by_name.items():
-            if hasattr(loader, "get_node_colors"):
-                node_colors_by_loader[loader_name] = loader.get_node_colors()
 
         if containers is None:
             containers = host.get_containers()
@@ -860,9 +854,11 @@ def check_inventory_versions(containers: list[dict] | None = None):
                 if not loader_name:
                     continue
 
-                colors = node_colors_by_loader.get(loader_name, {})
+                loader = loaders_by_name.get(loader_name)
+                if not loader:
+                    continue
 
-                if color := colors.get(category):
+                if color := loader.get_node_color(category, container):
                     container["node"]["tile_color"].setValue(color)
 
     except Exception as error:
