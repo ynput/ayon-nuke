@@ -13,7 +13,7 @@ from ayon_nuke.api.lib import (
     get_avalon_knob_data,
     set_avalon_knob_data
 )
-from ayon_nuke.api.command import viewer_update_and_undo_stop
+from ayon_nuke.api.command import undo_chunk
 from ayon_nuke.api import containerise, update_container
 
 
@@ -34,6 +34,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
     node_color = "0x7533c1ff"
     remove_nodes_from_backdrop = False
 
+    @undo_chunk("Import Backdrop")
     def load(self, context, name, namespace, data):
         """
         Loading function to import .nk file into script and wrap
@@ -159,6 +160,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
                 loader=self.__class__.__name__,
                 data=data_imprint)
 
+    @undo_chunk("Update Backdrop")
     def update(self, container, context):
         """Update the Loader's path
 
@@ -241,13 +243,13 @@ class LoadBackdropNodes(load.LoaderPlugin):
     def switch(self, container, context):
         self.update(container, context)
 
+    @undo_chunk("Remove Backdrop")
     def remove(self, container):
         node = container["node"]
-        with viewer_update_and_undo_stop():
-            if self.remove_nodes_from_backdrop:
-                for child_node in get_backdrop_nodes(node):
-                    nuke.delete(child_node)
-            nuke.delete(node)
+        if self.remove_nodes_from_backdrop:
+            for child_node in get_backdrop_nodes(node):
+                nuke.delete(child_node)
+        nuke.delete(node)
 
     def set_autobackdrop(self, xpos, ypos, object_name, bdn_frame=50):
         """Set auto backdrop around selected nodes
