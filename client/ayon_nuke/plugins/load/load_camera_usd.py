@@ -29,8 +29,8 @@ class UsdCameraLoader(plugin.NukeLoader):
     product_types = product_base_types
     representations = {"*"}
 
-    node_color = color_to_int(52, 105, 255)  # 0x 34 69 ff ff
-    node_color_outdated = color_to_int(216, 132, 103)  # 0x d8 84 67 ff
+    node_color_latest   = color_to_int(52, 105, 255)   # 0x3469ffff
+    node_color_outdated = color_to_int(216, 132, 103)  # 0xd88467ff
 
     settings_category = "nuke"
 

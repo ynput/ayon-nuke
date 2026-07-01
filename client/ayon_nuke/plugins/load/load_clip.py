@@ -1,13 +1,10 @@
 from copy import deepcopy
 
 import nuke
-import ayon_api
 
 from ayon_core.lib import BoolDef, EnumDef
 from ayon_core.lib import Logger
-from ayon_core.pipeline import (
-    get_representation_path,
-)
+from ayon_core.pipeline import get_representation_path
 from ayon_core.pipeline.colorspace import (
     get_imageio_file_rules_colorspace_from_filepath,
     get_current_context_imageio_config_preset,

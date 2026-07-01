@@ -631,12 +631,10 @@ class NukeLoader(LoaderPlugin):
     container_id_knob = "containerId"
     container_id = None
 
-    node_color_invalid          = color_to_int(255, 0, 0)    # 0x ff 00 00 ff
-    node_color_not_found        = color_to_int(255, 255, 0)  # 0x ff ff 00 ff
-    node_color_latest           = color_to_int(78, 205, 37)  # 0x 4e cd 25 ff
-    node_color_outdated         = color_to_int(216, 79, 32)  # 0x d8 4f 20 ff
-
-    node_color = node_color_latest  # default color
+    node_color_invalid    = color_to_int(255, 0, 0)    # 0xff0000ff
+    node_color_not_found  = color_to_int(255, 255, 0)  # 0xffff00ff
+    node_color_latest     = color_to_int(78, 205, 37)  # 0x4ecd25ff
+    node_color_outdated   = color_to_int(216, 79, 32)  # 0xd84f20ff
 
     def reset_container_id(self):
         self.container_id = "".join(random.choice(
@@ -692,7 +690,7 @@ class NukeLoader(LoaderPlugin):
         return dependent_nodes
 
     @classmethod
-    def get_node_color(cls, category: str) -> int:
+    def get_node_color(cls, category: str) -> int | None:
         """Get node color based on category and container.
 
         Args:
@@ -705,7 +703,7 @@ class NukeLoader(LoaderPlugin):
                 - not_found
 
         Returns:
-            int: color of the node
+            int | None: color of the node or None if category is not known
 
         """
         if category == "invalid":
@@ -717,8 +715,8 @@ class NukeLoader(LoaderPlugin):
         if category == "outdated":
             return cls.node_color_outdated
 
-        # fallback
-        return cls.node_color
+        # unknown category
+        return None
 
     def update_node_color(self, node: nuke.Node) -> None:
         """Update tile_color for the given node.."""

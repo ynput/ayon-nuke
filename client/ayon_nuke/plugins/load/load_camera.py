@@ -1,8 +1,6 @@
 import nuke
 
-from ayon_core.pipeline import (
-    get_representation_path,
-)
+from ayon_core.pipeline import get_representation_path
 from ayon_nuke.api import (
     containerise,
     plugin,
@@ -32,8 +30,8 @@ class AlembicCameraLoader(plugin.NukeLoader):
     icon = "camera"
     color = "orange"
 
-    node_color = color_to_int(52, 105, 255)  # 0x 34 69 ff ff
-    node_color_outdated = color_to_int(216, 132, 103)  # 0x d8 84 67 ff
+    node_color_latest   = color_to_int(52, 105, 255)   # 0x3469ffff
+    node_color_outdated = color_to_int(216, 132, 103)  # 0xd88467ff
 
     def load(self, context, name, namespace, data):
         # get main variables

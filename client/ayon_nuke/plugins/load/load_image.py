@@ -1,8 +1,6 @@
 import nuke
 
-from ayon_nuke.api.lib import (
-    get_imageio_input_colorspace
-)
+from ayon_nuke.api.lib import get_imageio_input_colorspace
 from ayon_core.lib import NumberDef
 from ayon_core.pipeline.colorspace import (
     get_imageio_file_rules_colorspace_from_filepath,

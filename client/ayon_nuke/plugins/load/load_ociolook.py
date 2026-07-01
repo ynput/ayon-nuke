@@ -2,20 +2,18 @@ import os
 import json
 
 import nuke
-import ayon_api
 
-from ayon_core.pipeline import (
-    load,
-    get_representation_path,
-)
+from ayon_core.pipeline import get_representation_path
 from ayon_nuke.api import (
     containerise,
+    plugin,
     viewer_update_and_undo_stop,
     update_container,
 )
+from ayon_nuke.api.lib import color_to_int
 
 
-class LoadOcioLookNodes(load.LoaderPlugin):
+class LoadOcioLookNodes(plugin.NukeLoader):
     """Loading Ocio look to the nuke.Node graph"""
 
     product_base_types = {"ociolook"}
@@ -31,9 +29,8 @@ class LoadOcioLookNodes(load.LoaderPlugin):
     color = "white"
     ignore_attr = ["useLifetime"]
 
-    # plugin attributes
-    current_node_color = "0x4ecd91ff"
-    old_node_color = "0xd88467ff"
+    node_color_latest   = color_to_int(78, 205, 145)   # 0x4ecd91ff
+    node_color_outdated = color_to_int(216, 132, 103)  # 0xd88467ff
 
     # json file variables
     schema_version = 1
@@ -63,22 +60,18 @@ class LoadOcioLookNodes(load.LoaderPlugin):
         # renaming group node
         group_node.setName(f"{name}_{namespace}")
 
-        self._node_version_color(
-            context["project"]["name"],
-            context["version"],
-            group_node
-        )
-
         self.log.info(
             "Loaded lut setup: `{}`".format(group_node["name"].value()))
 
-        return containerise(
+        container = containerise(
             node=group_node,
             name=name,
             namespace=namespace,
             context=context,
             loader=self.__class__.__name__
         )
+        self.update_node_color(group_node)  # after containerise
+        return container
 
     def _create_group_node(
         self,
@@ -236,15 +229,13 @@ class LoadOcioLookNodes(load.LoaderPlugin):
             group_node
         )
 
-        self._node_version_color(
-            context["project"]["name"], context["version"], group_node
-        )
-
         self.log.info("Updated lut setup: `{}`".format(
             group_node["name"].value()))
 
-        return update_container(
+        container = update_container(
             group_node, {"representation": repre_entity["id"]})
+        self.update_node_color(group_node)  # after update_container
+        return container
 
     def _load_json_data(self, filepath):
         # getting data from json file with unicode conversion
@@ -289,20 +280,6 @@ class LoadOcioLookNodes(load.LoaderPlugin):
         node = nuke.toNode(container['objectName'])
         with viewer_update_and_undo_stop():
             nuke.delete(node)
-
-    def _node_version_color(self, project_name, version_entity, node):
-        """Coloring a node by correct color by actual version"""
-
-        last_version_entity = ayon_api.get_last_version_by_product_id(
-            project_name, version_entity["productId"], fields={"id"}
-        )
-
-        # change color of node
-        if version_entity["id"] == last_version_entity["id"]:
-            color_value = self.current_node_color
-        else:
-            color_value = self.old_node_color
-        node["tile_color"].setValue(int(color_value, 16))
 
 
 def _colorspace_name_by_type(colorspace_data):
