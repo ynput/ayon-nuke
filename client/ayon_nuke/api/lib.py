@@ -430,8 +430,11 @@ def set_avalon_knob_data(node, data=None, prefix="avalon:"):
 
     # remove node key from container data before
     # setting it into the node's avalon knob
-    if "node" in data:
-        del data["node"]
+    data = {
+        key: value
+        for key, value in data.items()
+        if key not in ("node", "objectName")
+    }
 
     tab_name = NODE_TAB_NAME
     editable = ["folderPath", "productName", "name", "namespace"]
