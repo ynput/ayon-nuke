@@ -249,10 +249,12 @@ class ExtractSlateFrameModel(BaseSettingsModel):
 
 
 class PublishPluginsModel(BaseSettingsModel):
-    CollectSyncWorkfileVersion: CollectSyncWorkfileVersionModel = SettingsField(
-        title="Collect Sync Workfile Version",
-        default_factory=CollectSyncWorkfileVersionModel,
-        section="Collectors"
+    CollectSyncWorkfileVersion: CollectSyncWorkfileVersionModel = (
+        SettingsField(
+            title="Collect Sync Workfile Version",
+            default_factory=CollectSyncWorkfileVersionModel,
+            section="Collectors",
+        )
     )
     ValidateCorrectAssetContext: OptionalPluginModel = SettingsField(
         title="Validate Correct Folder Name",

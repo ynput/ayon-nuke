@@ -85,7 +85,7 @@ DEFAULT_GIZMO_ITEM = {
         "windows": [],
         "darwin": [],
         "linux": []
-    },    
+    },
     "gizmo_definition": [
         {
             "gizmo_toolbar_path": "",
@@ -93,7 +93,7 @@ DEFAULT_GIZMO_ITEM = {
                 {
                     "sourcetype": "python",
                     "title": "Gizmo Note",
-                    "command": "nuke.nodes.StickyNote(label='You can create your own toolbar menu in the Nuke GizmoMenu of AYON.')",
+                    "command": "nuke.nodes.StickyNote(label='You can create your own toolbar menu in the Nuke GizmoMenu of AYON.')",  # noqa: E501
                     "icon": "",
                     "shortcut": ""
                 }

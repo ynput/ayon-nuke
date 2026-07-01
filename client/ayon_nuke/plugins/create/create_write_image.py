@@ -46,7 +46,12 @@ class CreateWriteImage(napi.NukeWriteCreator):
         return super()._get_render_target_enum()
 
     def create_instance_node(
-            self, product_name, instance_data, staging_dir=None, node_selection=None):
+        self,
+        product_name,
+        instance_data,
+        staging_dir=None,
+        node_selection=None,
+    ):
         settings = self.project_settings["nuke"]["create"]["CreateWriteImage"]
 
         # add fpath_template

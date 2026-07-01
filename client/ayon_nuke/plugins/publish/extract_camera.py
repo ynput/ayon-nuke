@@ -34,8 +34,12 @@ class ExtractCamera(publish.Extractor):
         ]
 
         publish_settings = get_publish_config()
-        extract_camera_settings = publish_settings.get("ExtractCameraFormat", {})
-        export_camera_settings = extract_camera_settings.get("export_camera_format", "abc")
+        extract_camera_settings = publish_settings.get(
+            "ExtractCameraFormat", {}
+        )
+        export_camera_settings = extract_camera_settings.get(
+            "export_camera_format", "abc"
+        )
 
         if export_camera_settings == "abc":
             write_geo_knobs.insert(0, ("file_type", "abc"))
@@ -60,7 +64,7 @@ class ExtractCamera(publish.Extractor):
             staging_dir = os.path.normpath(
                 os.path.dirname(instance.data["path"]))
             instance.data["stagingDir"] = staging_dir
-        
+
         camera_node = instance.data["transientData"]["node"]
         handle_start = instance.context.data["handleStart"]
         handle_end = instance.context.data["handleEnd"]

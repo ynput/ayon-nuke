@@ -979,7 +979,11 @@ def get_work_default_directory(data):
         "frame": "#" * frame_padding,
     })
 
-    work_default_dir_template = anatomy.get_template_item("work", "default", "directory")
+    work_default_dir_template = anatomy.get_template_item(
+        "work",
+        "default",
+        "directory"
+    )
     normalized_dir = work_default_dir_template.format_strict(data).normalized()
     return str(normalized_dir).replace("\\", "/")
 
@@ -1963,7 +1967,9 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             # This ensures that any values overwritten by the user is
             # not changed by the colorspace knobs set.
             colorspace_knobs = nuke_imageio_writes["knobs"]
-            all_create_settings =  get_project_settings(Context.project_name)["nuke"]["create"]
+            all_create_settings = get_project_settings(
+                Context.project_name,
+            )["nuke"]["create"]
             plugin_names_mapping = {
                 "create_write_image": "CreateWriteImage",
                 "create_write_prerender": "CreateWritePrerender",
@@ -1971,7 +1977,9 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             }
             node_data = get_node_data(node, INSTANCE_DATA_KNOB)
             identifier = node_data["creator_identifier"]
-            creator_settings = all_create_settings[plugin_names_mapping[identifier]]
+            creator_settings = all_create_settings[
+                plugin_names_mapping[identifier]
+            ]
             exposed_knobs = creator_settings.get("exposed_knobs")
 
             colorspace_knobs = [
@@ -2174,8 +2182,18 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             log.info("Creating new format: {}".format(format_string))
             nuke.addFormat(format_string)
 
-        nuke.root()["format"].setValue(format_data["name"])
-        log.info("Format is set.")
+        try:
+            nuke.root()["format"].setValue(format_data["name"])
+            log.info("Root format is set.")
+
+        except Exception as error:
+            log.error(
+                "Failed to set root format from %r: %r",
+                format_data,
+                error,
+                exc_info=True,
+            )
+            raise
 
         # update node graph so knobs are updated
         update_node_graph()

@@ -330,7 +330,8 @@ class NukeWriteCreator(NukeCreator):
     product_base_type = "write"
     icon = "sign-out"
 
-    temp_rendering_path_template = (  # default to be applied if settings is missing
+    # default to be applied if settings is missing
+    temp_rendering_path_template = (
         "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}")
 
     render_target = "local"  # default to be applied if settings is missing
@@ -381,7 +382,8 @@ class NukeWriteCreator(NukeCreator):
             list[nuke.Node]: node selection.
 
         Raises:
-            NukeCreatorError. When the selection contains more than 1 Write node.
+            NukeCreatorError:
+                When the selection contains more than 1 Write node.
         """
         if not pre_create_data.get("use_selection"):
             return []
@@ -880,7 +882,7 @@ class NukeGroupLoader(LoaderPlugin):
             "source",
             "fps"
         ]:
-            data[k] = version_attributes[k]
+            data[k] = version_attributes.get(k)
 
         for key, value in dict(**data).items():
             if value is None:
@@ -1037,16 +1039,16 @@ class ExporterReview(object):
             root_version = int(root_version)
         except (TypeError, IndexError):
             self.log.warning(
-                f"Current file '{current_file}' doesn't contain version number. "
-                "No replacement necessary",
+                f"Current file '{current_file}' doesn't contain version "
+                "number. No replacement necessary",
                 exc_info=True)
             return staging_dir
         try:
             staging_dir_version = "v" + get_version_from_path(staging_dir)
         except (TypeError, IndexError):
             self.log.warning(
-                f"Staging directory '{staging_dir}' doesn't contain version number. "
-                "No replacement necessary",
+                f"Staging directory '{staging_dir}' doesn't contain version "
+                "number. No replacement necessary",
                 exc_info=True)
             return staging_dir
 
@@ -1296,6 +1298,10 @@ class ExporterReviewMov(ExporterReview):
         # Read node
         r_node = nuke.createNode("Read")
         r_node["file"].setValue(self.path_in)
+        # do not use the localized files when publishing,
+        # use the original files, because Nuke may think the
+        # cached localized files are still up-to-date and use them
+        r_node["localizationPolicy"].setValue(3)
         r_node["first"].setValue(self.first_frame)
         r_node["origfirst"].setValue(self.first_frame)
         r_node["last"].setValue(self.last_frame)
@@ -1310,7 +1316,6 @@ class ExporterReviewMov(ExporterReview):
 
         if read_raw:
             r_node["raw"].setValue(1)
-
         # connect to Read node
         self._shift_to_previous_node_and_temp(
             product_name, r_node, "Read...   `{}`"
@@ -1371,7 +1376,8 @@ class ExporterReviewMov(ExporterReview):
                     )
                     if not baking_colorspace:
                         raise ValueError(
-                            f"Invalid baking color space: '{baking_colorspace}'"
+                            "Invalid baking color space: "
+                            f"'{baking_colorspace}'"
                         )
                     node = nuke.createNode("OCIOColorSpace")
                     message = "OCIOColorSpace...   '{}'"
