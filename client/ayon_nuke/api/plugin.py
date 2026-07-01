@@ -1,4 +1,3 @@
-import functools
 import nuke
 import re
 import os
@@ -6,12 +5,10 @@ import copy
 import pathlib
 import random
 import string
-import typing
 from collections import defaultdict
 
 import ayon_api
 from ayon_core.settings import get_current_project_settings
-from ayon_core.pipeline.context_tools import get_current_project_name
 from ayon_core.lib import (
     BoolDef,
     EnumDef
@@ -64,27 +61,6 @@ from .colorspace import (
     get_formatted_display_and_view_as_dict,
     get_formatted_colorspace
 )
-
-if typing.TYPE_CHECKING:
-    from collections.abc import Generator
-
-    from ayon_api.typing import ProjectDict
-
-
-def _get_library_projects() -> Generator[ProjectDict, None, None]:
-    """Get library projects."""
-    return ayon_api.get_projects(library=True, fields={"id", "name"})
-
-
-@functools.cache
-def _get_library_project_names() -> list[str]:
-    """Get library project names."""
-    return [project["name"] for project in _get_library_projects()]
-
-
-def _is_library_project(project_name: str) -> bool:
-    """Check if project is library project."""
-    return project_name in _get_library_project_names()
 
 
 def _collect_and_cache_nodes(creator):
@@ -657,18 +633,8 @@ class NukeLoader(LoaderPlugin):
 
     node_color_invalid          = color_to_int(255, 0, 0)    # 0x ff 00 00 ff
     node_color_not_found        = color_to_int(255, 255, 0)  # 0x ff ff 00 ff
-
-    # current project
     node_color_latest           = color_to_int(78, 205, 37)  # 0x 4e cd 25 ff
     node_color_outdated         = color_to_int(216, 79, 32)  # 0x d8 4f 20 ff
-
-    # library project
-    node_color_library_latest   = color_to_int(143, 132, 61) # 0x 8f 84 3d ff
-    node_color_library_outdated = color_to_int(120, 110, 50)
-
-    # other projects
-    node_color_other_project_latest = color_to_int(200, 32, 32)
-    node_color_other_project_outdated = color_to_int(180, 28, 28)
 
     node_color = node_color_latest  # default color
 
@@ -726,7 +692,7 @@ class NukeLoader(LoaderPlugin):
         return dependent_nodes
 
     @classmethod
-    def get_node_color(cls, category: str, container: dict) -> int:
+    def get_node_color(cls, category: str) -> int:
         """Get node color based on category and container.
 
         Args:
@@ -737,7 +703,6 @@ class NukeLoader(LoaderPlugin):
                 - outdated
                 - invalid
                 - not_found
-            container (dict): container of the node
 
         Returns:
             int: color of the node
@@ -747,25 +712,6 @@ class NukeLoader(LoaderPlugin):
             return cls.node_color_invalid
         if category == "not_found":
             return cls.node_color_not_found
-
-        # library project
-        project_name = container.get("project")
-        if project_name and _is_library_project(project_name):
-            if category == "latest":
-                return cls.node_color_other_project_latest
-            if category == "outdated":
-                return cls.node_color_other_project_outdated
-
-        # other project
-        current_project_name = get_current_project_name()
-        is_other_project = project_name and project_name != current_project_name  # noqa: E501
-        if is_other_project:
-            if category == "latest":
-                return cls.node_color_other_project_latest
-            if category == "outdated":
-                return cls.node_color_other_project_outdated
-
-        # current project
         if category == "latest":
             return cls.node_color_latest
         if category == "outdated":

@@ -858,7 +858,7 @@ def check_inventory_versions(containers: list[dict] | None = None):
                 if not loader:
                     continue
 
-                if color := loader.get_node_color(category, container):
+                if color := loader.get_node_color(category):
                     container["node"]["tile_color"].setValue(color)
 
     except Exception as error:
