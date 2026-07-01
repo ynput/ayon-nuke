@@ -1,18 +1,17 @@
 import nuke
-import ayon_api
 
-from ayon_core.pipeline import load
 from ayon_nuke.api import (
     containerise,
     update_container,
+    plugin,
     viewer_update_and_undo_stop,
 )
-from ayon_nuke.api.lib import maintained_selection
+from ayon_nuke.api.lib import color_to_int, maintained_selection
 
 from pxr import Usd, UsdGeom
 
 
-class UsdCameraLoader(load.LoaderPlugin):
+class UsdCameraLoader(plugin.NukeLoader):
     """
     This will load usd camera into script.
     """
@@ -30,7 +29,9 @@ class UsdCameraLoader(load.LoaderPlugin):
     product_types = product_base_types
     representations = {"*"}
 
-    node_color = "0x3469ffff"
+    node_color = color_to_int(52, 105, 255)  # 0x 34 69 ff ff
+    node_color_outdated = color_to_int(216, 132, 103)  # 0x d8 84 67 ff
+
     settings_category = "nuke"
 
     def load(self, context, name, namespace, data):
@@ -54,20 +55,15 @@ class UsdCameraLoader(load.LoaderPlugin):
             camera_node.forceValidate()
             camera_node["frame_rate"].setValue(float(fps))
 
-        # color node by correct color by actual version
-        self.node_version_color(
-            context["project"]["name"], version_entity, camera_node
-        )
-
-        self.set_usd_camera_prim_path(camera_node)
-
-        return containerise(
+        container = containerise(
             node=camera_node,
             name=name,
             namespace=namespace,
             context=context,
             loader=self.__class__.__name__,
         )
+        self.update_node_color(camera_node)  # after containerise
+        return container
 
     def update(self, container, context):
         version_entity = context["version"]
@@ -83,32 +79,15 @@ class UsdCameraLoader(load.LoaderPlugin):
 
         self.set_usd_camera_prim_path(camera_node)
 
-        # color node by correct color by actual version
-        self.node_version_color(
-            context["project"]["name"], version_entity, camera_node
-        )
-
         self.log.info(
             "updated to version: {}".format(version_entity["version"])
         )
 
-        return update_container(camera_node, {
+        container = update_container(camera_node, {
             "representation": context["representation"]["id"]
         })
-
-    def node_version_color(self, project_name, version_entity, node):
-        """Coloring a node by correct color by actual version"""
-        # get all versions in list
-        last_version_entity = ayon_api.get_last_version_by_product_id(
-            project_name, version_entity["productId"], fields={"id"}
-        )
-
-        # change color of node
-        if version_entity["id"] == last_version_entity["id"]:
-            color_value = self.node_color
-        else:
-            color_value = "0xd88467ff"
-        node["tile_color"].setValue(int(color_value, 16))
+        self.update_node_color(camera_node)  # after update_container
+        return container
 
     def switch(self, container, context):
         self.update(container, context)
