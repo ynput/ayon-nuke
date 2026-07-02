@@ -2665,21 +2665,23 @@ def prompt_reset_context():
 
     dialog = AttributeDefinitionsDialog(definitions)
     dialog.setWindowTitle("Saving to different context.")
-    if not dialog.exec_():
-        return None
+    try:
+        if not dialog.exec_():
+            return None
 
-    options = dialog.get_values()
+        options = dialog.get_values()
 
-    if options["resolution"]:
-        WorkfileSettings().reset_resolution()
-    if options["frame_range_fps"]:
-        WorkfileSettings().reset_frame_range_handles()
-    if options["colorspace"]:
-        WorkfileSettings().set_colorspace()
-    if options["instances"]:
-        update_content_on_context_change()
-
-    dialog.deleteLater()
+        settings = WorkfileSettings()
+        if options.get("resolution"):
+            settings.reset_resolution()
+        if options.get("frame_range_fps"):
+            settings.reset_frame_range_handles()
+        if options.get("colorspace"):
+            settings.set_colorspace()
+        if options.get("instances"):
+            update_content_on_context_change()
+    finally:
+        dialog.deleteLater()
 
 
 def start_workfile_template_builder():
