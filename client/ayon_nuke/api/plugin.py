@@ -35,7 +35,6 @@ from .lib import (
     INSTANCE_DATA_KNOB,
     Knobby,
     create_backdrop,
-    deprecated,
     maintained_selection,
     get_avalon_knob_data,
     set_node_knobs_from_settings,
