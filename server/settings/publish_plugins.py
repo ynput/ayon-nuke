@@ -273,6 +273,10 @@ class PublishPluginsModel(BaseSettingsModel):
         title="Validate Exposed Knobs",
         default_factory=OptionalPluginModel
     )
+    ValidateProxyMode: OptionalPluginModel = SettingsField(
+        title="Validate Proxy Mode",
+        default_factory=OptionalPluginModel
+    )
     ValidateGizmo: OptionalPluginModel = SettingsField(
         title="Validate Gizmo",
         default_factory=OptionalPluginModel
@@ -358,6 +362,11 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
         "active": True
     },
     "ValidateExposedKnobs": {
+        "enabled": True,
+        "optional": True,
+        "active": True
+    },
+    "ValidateProxyMode": {
         "enabled": True,
         "optional": True,
         "active": True
