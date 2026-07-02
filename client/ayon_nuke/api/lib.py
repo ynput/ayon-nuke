@@ -1420,16 +1420,16 @@ def convert_knob_value_to_correct_type(knob_type, knob_value):
 
 def color_to_int(r, g, b, a=255):
     """Convert a rgb(a) to color to a nuke compatible int color.
-    
+
     Args:
         r (int): red value (0-255)
         g (int): green value (0-255)
         b (int): blue value (0-255)
         a (int): alpha value (0-255)
-    
+
     Returns:
         int: nuke compatible int color
-    
+
     """
     hex_value = f"{r:0>2x}{g:0>2x}{b:0>2x}{a:0>2x}"
     return int(hex_value, 16)
