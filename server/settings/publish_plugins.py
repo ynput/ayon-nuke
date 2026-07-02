@@ -277,6 +277,10 @@ class PublishPluginsModel(BaseSettingsModel):
         title="Validate Proxy Mode",
         default_factory=OptionalPluginModel
     )
+    ValidateRenderedFrames: OptionalPluginModel = SettingsField(
+        title="Validate Rendered Frames",
+        default_factory=OptionalPluginModel
+    )
     ValidateGizmo: OptionalPluginModel = SettingsField(
         title="Validate Gizmo",
         default_factory=OptionalPluginModel
@@ -367,6 +371,11 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
         "active": True
     },
     "ValidateProxyMode": {
+        "enabled": True,
+        "optional": True,
+        "active": True
+    },
+    "ValidateRenderedFrames": {
         "enabled": True,
         "optional": True,
         "active": True
