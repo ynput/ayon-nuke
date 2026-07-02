@@ -2,7 +2,7 @@ import pyblish
 import nuke
 from ayon_core.pipeline import (
     PublishXmlValidationError,
-    OptionalPyblishPluginMixin
+    OptionalPyblishPluginMixin,
 )
 
 

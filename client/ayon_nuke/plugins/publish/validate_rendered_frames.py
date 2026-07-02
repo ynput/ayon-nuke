@@ -3,7 +3,7 @@ import clique
 
 from ayon_core.pipeline import (
     PublishXmlValidationError,
-    OptionalPyblishPluginMixin
+    OptionalPyblishPluginMixin,
 )
 from ayon_core.pipeline.publish import get_errored_instances_from_context
 
