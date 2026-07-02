@@ -22,6 +22,12 @@ from ayon_core.lib import (
     env_value_to_bool,
     Logger,
     StringTemplate,
+    BoolDef,
+    UILabelDef,
+)
+
+from ayon_core.tools.attribute_defs.dialog import (
+    AttributeDefinitionsDialog
 )
 
 from ayon_core.settings import (
@@ -44,6 +50,7 @@ from ayon_core.pipeline import (
     AVALON_INSTANCE_ID,
     get_current_context,
 )
+from ayon_core.pipeline.create import CreateContext
 from ayon_core.pipeline.load import filter_containers
 from ayon_core.pipeline.colorspace import (
     get_current_context_imageio_config_preset
@@ -979,7 +986,11 @@ def get_work_default_directory(data):
         "frame": "#" * frame_padding,
     })
 
-    work_default_dir_template = anatomy.get_template_item("work", "default", "directory")
+    work_default_dir_template = anatomy.get_template_item(
+        "work",
+        "default",
+        "directory"
+    )
     normalized_dir = work_default_dir_template.format_strict(data).normalized()
     return str(normalized_dir).replace("\\", "/")
 
@@ -1963,7 +1974,9 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             # This ensures that any values overwritten by the user is
             # not changed by the colorspace knobs set.
             colorspace_knobs = nuke_imageio_writes["knobs"]
-            all_create_settings =  get_project_settings(Context.project_name)["nuke"]["create"]
+            all_create_settings = get_project_settings(
+                Context.project_name,
+            )["nuke"]["create"]
             plugin_names_mapping = {
                 "create_write_image": "CreateWriteImage",
                 "create_write_prerender": "CreateWritePrerender",
@@ -1971,7 +1984,9 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             }
             node_data = get_node_data(node, INSTANCE_DATA_KNOB)
             identifier = node_data["creator_identifier"]
-            creator_settings = all_create_settings[plugin_names_mapping[identifier]]
+            creator_settings = all_create_settings[
+                plugin_names_mapping[identifier]
+            ]
             exposed_knobs = creator_settings.get("exposed_knobs")
 
             colorspace_knobs = [
@@ -2174,8 +2189,18 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             log.info("Creating new format: {}".format(format_string))
             nuke.addFormat(format_string)
 
-        nuke.root()["format"].setValue(format_data["name"])
-        log.info("Format is set.")
+        try:
+            nuke.root()["format"].setValue(format_data["name"])
+            log.info("Root format is set.")
+
+        except Exception as error:
+            log.error(
+                "Failed to set root format from %r: %r",
+                format_data,
+                error,
+                exc_info=True,
+            )
+            raise
 
         # update node graph so knobs are updated
         update_node_graph()
@@ -2548,6 +2573,115 @@ def _launch_workfile_app():
     #       which moves workfiles tool under it
     from ayon_core.tools.utils import host_tools
     host_tools.show_workfiles(parent=None, on_top=True)
+
+
+def update_content_on_context_change():
+    """Update creator instances when the current folder/task changes."""
+    host = registered_host()
+    create_context = CreateContext(host, discover_publish_plugins=False)
+
+    project_entity = create_context.get_current_project_entity()
+    folder_entity = create_context.get_current_folder_entity()
+    task_entity = create_context.get_current_task_entity()
+
+    current_folder_path = folder_entity["path"]
+    current_task = task_entity["name"]
+
+    project_name = project_entity["name"]
+    host_name = create_context.host_name
+
+    _changed = False
+
+    for instance in create_context.instances:
+        if instance.creator_identifier == "workfile":
+            continue
+
+        if (
+            instance.get("folderPath") == current_folder_path
+            and instance.get("task") == current_task
+        ):
+            continue
+
+        creator = create_context.creators[instance.creator_identifier]
+
+        product_name = creator.get_product_name(
+            project_name=project_name,
+            project_entity=project_entity,
+            folder_entity=folder_entity,
+            task_entity=task_entity,
+            variant=instance.get("variant"),
+            host_name=host_name,
+        )
+
+        instance["folderPath"] = current_folder_path
+        instance["task"] = current_task
+        instance["productName"] = product_name
+
+        _changed = True
+
+    if _changed:
+        create_context.save_changes()
+
+
+def prompt_reset_context():
+    """Prompt the user what context settings to reset.
+    This prompt is used on saving to a different task to allow the scene to
+    get matched to the new context.
+    """
+    definitions = [
+        UILabelDef(
+            label=(
+                "You are saving your workfile into a different folder or task."
+                "\n\n"
+                "Would you like to update some settings to the new context?\n"
+            )
+        ),
+        BoolDef(
+            "resolution",
+            label="Resolution",
+            tooltip="Reset workfile resolution",
+            default=True
+        ),
+        BoolDef(
+            "frame_range_fps",
+            label="Frame Range / FPS",
+            tooltip="Reset workfile start/end frame ranges and fps",
+            default=True
+        ),
+        BoolDef(
+            "colorspace",
+            label="Colorspace",
+            tooltip="Reset workfile colorspace",
+            default=True
+        ),
+        BoolDef(
+            "instances",
+            label="Publish instances",
+            tooltip="Update all publish instance's folder and task to match "
+                    "the new folder and task",
+            default=True
+        ),
+    ]
+
+    dialog = AttributeDefinitionsDialog(definitions)
+    dialog.setWindowTitle("Saving to different context.")
+    try:
+        if not dialog.exec_():
+            return None
+
+        options = dialog.get_values()
+
+        settings = WorkfileSettings()
+        if options.get("resolution"):
+            settings.reset_resolution()
+        if options.get("frame_range_fps"):
+            settings.reset_frame_range_handles()
+        if options.get("colorspace"):
+            settings.set_colorspace()
+        if options.get("instances"):
+            update_content_on_context_change()
+    finally:
+        dialog.deleteLater()
 
 
 def start_workfile_template_builder():

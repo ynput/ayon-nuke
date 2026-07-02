@@ -114,7 +114,10 @@ class LoadClip(plugin.NukeLoader):
         self.reset_container_id()
 
         # Calculate the node type before frame in path is replaced with hashes.
-        node_type = options.get("node_type", self.options_defaults["node_type"])
+        node_type = options.get(
+            "node_type",
+            self.options_defaults["node_type"],
+        )
         if node_type == "auto":
             original_filepath = self.filepath_from_context(context)
             node_type = nuke.tcl("node_for_sequence", original_filepath)
