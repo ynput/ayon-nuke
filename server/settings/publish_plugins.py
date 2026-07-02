@@ -281,6 +281,10 @@ class PublishPluginsModel(BaseSettingsModel):
         title="Validate Rendered Frames",
         default_factory=OptionalPluginModel
     )
+    ValidateNukeWriteNode: OptionalPluginModel = SettingsField(
+        title="Validate Nuke Write Node",
+        default_factory=OptionalPluginModel
+    )
     ValidateGizmo: OptionalPluginModel = SettingsField(
         title="Validate Gizmo",
         default_factory=OptionalPluginModel
@@ -376,6 +380,11 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
         "active": True
     },
     "ValidateRenderedFrames": {
+        "enabled": True,
+        "optional": True,
+        "active": True
+    },
+    "ValidateNukeWriteNode": {
         "enabled": True,
         "optional": True,
         "active": True
