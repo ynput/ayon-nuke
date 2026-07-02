@@ -14,6 +14,9 @@ from ayon_core.host import (
     ILoadHost,
     IPublishHost
 )
+
+from ayon_core.host.interfaces import SaveWorkfileContext
+
 from ayon_core.lib import register_event_callback, Logger
 from ayon_core.pipeline import (
     register_loader_plugin_path,
@@ -94,14 +97,12 @@ WORKFILE_BUILD_PATH = os.path.join(PLUGINS_DIR, "workfile_build")
 if os.getenv("PYBLISH_GUI", None):
     pyblish.api.register_gui(os.getenv("PYBLISH_GUI", None))
 
-# Track whether the workfile tool is about to save
-_about_to_save = False
-
 
 class NukeHost(
     HostBase, IWorkfileHost, ILoadHost, IPublishHost
 ):
     name = "nuke"
+    about_to_save = False
 
     def get_app_information(self):
         return ApplicationInformation(
@@ -143,8 +144,6 @@ class NukeHost(
         register_workfile_build_plugin_path(WORKFILE_BUILD_PATH)
 
         # Register AYON event for workfiles loading.
-        register_event_callback("workfile.save.before", before_workfile_save)
-        register_event_callback("workfile.save.after", after_workfile_save)
         register_event_callback("workio.open_file", check_inventory_versions)
 
     def setup_ui_callbacks_and_menu(self):
@@ -168,6 +167,39 @@ class NukeHost(
         root_node = nuke.root()
         set_node_data(root_node, ROOT_DATA_KNOB, data)
 
+
+    def _before_workfile_save(
+        self, save_workfile_context: SaveWorkfileContext
+    ) -> None:
+        """Before workfile is saved.
+
+        This method is called before the workfile is saved in the host.
+
+        Args:
+            save_workfile_context (SaveWorkfileContext): Workfile path with
+                target folder and task context.
+
+        """
+        super()._before_workfile_save(save_workfile_context)
+        self.about_to_save = True
+
+
+    def _after_workfile_save(
+        self, save_workfile_context: SaveWorkfileContext
+    ) -> None:
+        """After workfile is saved.
+
+        This method is called after the workfile is saved in the host.
+
+        Args:
+            save_workfile_context (SaveWorkfileContext): Workfile path with
+                target folder and task context.
+
+        """
+        super()._after_workfile_save(save_workfile_context)
+        self.about_to_save = False
+
+
     def _after_context_change(self, context_change_data: ContextChangeData):
         """After context is changed.
 
@@ -178,12 +210,14 @@ class NukeHost(
                 about context change.
 
         """
+        super()._after_context_change(context_change_data)
+
         if not nuke.GUI:
             return
 
         change_context_label()
 
-        if _about_to_save:
+        if self.about_to_save:
             # Let's prompt the user to update the context settings or not
             prompt_reset_context()
 
@@ -428,16 +462,6 @@ def change_context_label():
 
     log.info("Task label changed from `{}` to `{}`".format(
         old_label, new_label))
-
-
-def after_workfile_save():
-    global _about_to_save
-    _about_to_save = False
-
-
-def before_workfile_save(event):
-    global _about_to_save
-    _about_to_save = True
 
 
 def add_shortcuts_from_presets(project_settings: dict):
