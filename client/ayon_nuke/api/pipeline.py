@@ -183,7 +183,6 @@ class NukeHost(
         super()._before_workfile_save(save_workfile_context)
         self.about_to_save = True
 
-
     def _after_workfile_save(
         self, save_workfile_context: SaveWorkfileContext
     ) -> None:
@@ -198,7 +197,6 @@ class NukeHost(
         """
         super()._after_workfile_save(save_workfile_context)
         self.about_to_save = False
-
 
     def _after_context_change(self, context_change_data: ContextChangeData):
         """After context is changed.
