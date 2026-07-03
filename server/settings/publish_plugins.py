@@ -371,22 +371,22 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
     },
     "ValidateExposedKnobs": {
         "enabled": True,
-        "optional": True,
+        "optional": False,  # match how it was before it was made optional
         "active": True
     },
     "ValidateProxyMode": {
         "enabled": True,
-        "optional": True,
+        "optional": False,  # match how it was before it was made optional
         "active": True
     },
     "ValidateRenderedFrames": {
         "enabled": True,
-        "optional": True,
+        "optional": False,  # match how it was before it was made optional
         "active": True
     },
     "ValidateNukeWriteNode": {
         "enabled": True,
-        "optional": True,
+        "optional": False,  # match how it was before it was made optional
         "active": True
     },
     "ValidateGizmo": {
