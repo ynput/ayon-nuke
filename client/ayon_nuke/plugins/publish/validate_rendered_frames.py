@@ -54,7 +54,7 @@ class ValidateRenderedFrames(
     """Validates file output."""
 
     order = pyblish.api.ValidatorOrder + 0.1
-    optional = True
+    optional = False
     families = ["render", "prerender", "still"]
 
     label = "Validate rendered frame"

@@ -27,7 +27,7 @@ class ValidateProxyMode(
     """Validate active proxy mode"""
 
     order = pyblish.api.ValidatorOrder
-    optional = True
+    optional = False
     label = "Validate Proxy Mode"
     hosts = ["nuke"]
     actions = [FixProxyMode]
