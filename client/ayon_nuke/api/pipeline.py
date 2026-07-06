@@ -372,13 +372,6 @@ def _install_menu(project_settings: dict):
     )
     menu.addSeparator()
     menu.addCommand(
-        "Library...",
-        lambda: host_tools.show_library_loader(
-            parent=main_window
-        )
-    )
-    menu.addSeparator()
-    menu.addCommand(
         "Set Resolution",
         lambda: WorkfileSettings().reset_resolution()
     )
