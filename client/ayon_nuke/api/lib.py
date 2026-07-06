@@ -2036,13 +2036,43 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                     }
 
         if changes:
-            msg = "Read nodes are not set to correct colorspace:\n\n"
-            for node_name, knobs in changes.items():
-                msg += (
-                    " - node: '{0}' is now '{1}' but should be '{2}'\n"
-                ).format(node_name, knobs["from"], knobs["to"])
+            # Limit items shown in the UI
+            # to avoid display issues with long lists.
+            MAX_ITEMS = 10
 
-            msg += "\nWould you like to change it?"
+            items = list(changes.items())
+            details = []
+
+            msg = (
+                "Read node is not set to the correct colorspace:\n\n"
+                if len(items) == 1
+                else "Read nodes are not set to the correct colorspace:\n\n"
+            )
+
+            for i, (node_name, knobs) in enumerate(items):
+                line = (
+                    f" - node: '{node_name}' is now '{knobs['from']}' "
+                    f"but should be '{knobs['to']}'"
+                )
+                details.append(line)
+
+                if i < MAX_ITEMS:
+                    msg += line + "\n"
+
+            remaining = len(items) - MAX_ITEMS
+            if remaining > 0:
+                print("\n".join(details))
+                msg += (
+                    f"\n...and {remaining} more "
+                    f"{'node' if remaining == 1 else 'nodes'}.\n"
+                    "\nA detailed list has been printed to the Script Editor."
+                )
+
+            msg += (
+                "\n\nWould you like to change it?"
+                if len(items) == 1
+                else "\n\nWould you like to change them?"
+            )
 
             if nuke.ask(msg):
                 for node_name, knobs in changes.items():
