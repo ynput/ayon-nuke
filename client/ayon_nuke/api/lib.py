@@ -2040,15 +2040,19 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             # to avoid display issues with long lists.
             MAX_ITEMS = 10
 
-            msg = "Read nodes are not set to the correct colorspace:\n\n"
-
             items = list(changes.items())
             details = []
 
+            msg = (
+                "Read node is not set to the correct colorspace:\n\n"
+                if len(items) == 1
+                else "Read nodes are not set to the correct colorspace:\n\n"
+            )
+
             for i, (node_name, knobs) in enumerate(items):
                 line = (
-                    " - node: '{0}' is now '{1}' but should be '{2}'"
-                    .format(node_name, knobs["from"], knobs["to"])
+                    f" - node: '{node_name}' is now '{knobs['from']}' "
+                    f"but should be '{knobs['to']}'"
                 )
                 details.append(line)
 
@@ -2059,12 +2063,16 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             if remaining > 0:
                 print("\n".join(details))
                 msg += (
-                    "\n...and {} more nodes.\n"
+                    f"\n...and {remaining} more "
+                    f"{'node' if remaining == 1 else 'nodes'}.\n"
                     "\nA detailed list has been printed to the Script Editor."
-                ).format(remaining)
+                )
 
-            msg += "\n\n\nChange all of them?"
-
+            msg += (
+                "\n\nWould you like to change it?"
+                if len(items) == 1
+                else "\n\nWould you like to change them?"
+            )
 
             if nuke.ask(msg):
                 for node_name, knobs in changes.items():
