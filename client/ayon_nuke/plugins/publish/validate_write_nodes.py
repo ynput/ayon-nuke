@@ -53,7 +53,7 @@ class ValidateNukeWriteNode(
     """
 
     order = pyblish.api.ValidatorOrder
-    optional = True
+    optional = False
     families = ["render"]
     label = "Validate write node"
     actions = [RepairNukeWriteNodeAction]
