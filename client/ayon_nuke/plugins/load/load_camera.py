@@ -75,22 +75,8 @@ class AlembicCameraLoader(load.LoaderPlugin):
                     inpanel=False,
                 )
 
-            # get the actual name of the camera node
-            # might be different if a the desired name is already in use
-            object_name = camera_node.name()
-
-            camera_node.forceValidate()
-            camera_node["frame_rate"].setValue(float(fps))
-
-            # workaround because nuke's bug is not adding
-            # animation keys properly
-            xpos = camera_node.xpos()
-            ypos = camera_node.ypos()
-            nuke.nodeCopy("%clipboard%")
-            nuke.delete(camera_node)
-            nuke.nodePaste("%clipboard%")
-            camera_node = nuke.toNode(object_name)
-            camera_node.setXYpos(xpos, ypos)
+        camera_node.forceValidate()
+        camera_node["frame_rate"].setValue(float(fps))
 
         # color node by correct color by actual version
         self.node_version_color(
@@ -146,37 +132,9 @@ class AlembicCameraLoader(load.LoaderPlugin):
         # getting file path
         file = get_representation_path(repre_entity).replace("\\", "/")
 
-        with maintained_selection():
-            camera_node = container["node"]
-            camera_node['selected'].setValue(True)
-
-            # collect input output dependencies
-            dependencies = camera_node.dependencies()
-            dependent = camera_node.dependent()
-
-            camera_node["frame_rate"].setValue(float(fps))
-            camera_node["file"].setValue(file)
-
-            # workaround because nuke's bug is
-            # not adding animation keys properly
-            xpos = camera_node.xpos()
-            ypos = camera_node.ypos()
-            nuke.nodeCopy("%clipboard%")
-            camera_name = camera_node.name()
-            nuke.delete(camera_node)
-            nuke.nodePaste("%clipboard%")
-            camera_node = nuke.toNode(camera_name)
-            camera_node.setXYpos(xpos, ypos)
-
-            # link to original input nodes
-            for i, input in enumerate(dependencies):
-                camera_node.setInput(i, input)
-            # link to original output nodes
-            for d in dependent:
-                index = next((i for i, dpcy in enumerate(
-                              d.dependencies())
-                              if camera_node is dpcy), 0)
-                d.setInput(index, camera_node)
+        camera_node = container["node"]
+        camera_node["frame_rate"].setValue(float(fps))
+        camera_node["file"].setValue(file)
 
         # color node by correct color by actual version
         self.node_version_color(
