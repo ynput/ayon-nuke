@@ -167,10 +167,10 @@ class AlembicCameraLoader(load.LoaderPlugin):
             ypos = camera_node.ypos()
             camera_node.selectOnly()
             nuke.nodeCopy("%clipboard%")
-            camera_name = camera_node.name()
             nuke.delete(camera_node)
-            nuke.nodePaste("%clipboard%")
-            camera_node = nuke.toNode(camera_name)
+            camera_node = nuke.nodePaste("%clipboard%")
+            if not camera_node:
+                raise RuntimeError("Failed to paste camera node")
             camera_node.setXYpos(xpos, ypos)
 
             # link to original input nodes
