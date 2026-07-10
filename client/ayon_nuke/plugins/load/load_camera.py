@@ -51,9 +51,9 @@ class AlembicCameraLoader(load.LoaderPlugin):
             "frameStart": first,
             "frameEnd": last,
             "version": version_entity["version"],
+            "source": version_attributes["source"],
+            "fps": version_attributes["fps"]
         }
-        for k in ["source", "fps"]:
-            data_imprint[k] = version_attributes[k]
 
         # getting file path
         file = self.filepath_from_context(context).replace("\\", "/")
@@ -63,19 +63,18 @@ class AlembicCameraLoader(load.LoaderPlugin):
             try:
                 camera_node = nuke.createNode(
                     "Camera3",
-                    "name {} file {} read_from_file True".format(
-                        object_name, file),
+                    f"name {object_name}",
                     inpanel=False,
                 )
             except RuntimeError: # older nuke version
                 camera_node = nuke.createNode(
                     "Camera2",
-                    "name {} file {} read_from_file True".format(
-                        object_name, file),
+                    f"name {object_name}",
                     inpanel=False,
                 )
 
-        camera_node.forceValidate()
+        camera_node["read_from_file"].setValue(True)
+        camera_node["file"].setValue(file)  # set file after making sure "read_from_file" is True  # noqa: E501
         camera_node["frame_rate"].setValue(float(fps))
 
         # color node by correct color by actual version
@@ -122,18 +121,17 @@ class AlembicCameraLoader(load.LoaderPlugin):
             "representation": repre_entity["id"],
             "frameStart": first,
             "frameEnd": last,
-            "version": version_entity["version"]
+            "version": version_entity["version"],
+            "source": version_attributes["source"],
+            "fps": version_attributes["fps"]
         }
-
-        # add attributes from the version to imprint to metadata knob
-        for k in ["source", "fps"]:
-            data_imprint[k] = version_attributes[k]
 
         # getting file path
         file = get_representation_path(repre_entity).replace("\\", "/")
 
         camera_node = container["node"]
         camera_node["frame_rate"].setValue(float(fps))
+        camera_node["read_from_file"].setValue(True)
         camera_node["file"].setValue(file)
 
         # color node by correct color by actual version
