@@ -1,7 +1,10 @@
 import pyblish.api
 import clique
 
-from ayon_core.pipeline import PublishXmlValidationError
+from ayon_core.pipeline import (
+    PublishXmlValidationError,
+    OptionalPyblishPluginMixin,
+)
 from ayon_core.pipeline.publish import get_errored_instances_from_context
 
 
@@ -44,10 +47,14 @@ class RepairCollectionActionToFarm(RepairActionBase):
         self.repair_knob(context, instances, "farm")
 
 
-class ValidateRenderedFrames(pyblish.api.InstancePlugin):
+class ValidateRenderedFrames(
+    OptionalPyblishPluginMixin,
+    pyblish.api.InstancePlugin
+):
     """Validates file output."""
 
     order = pyblish.api.ValidatorOrder + 0.1
+    optional = False
     families = ["render", "prerender", "still"]
 
     label = "Validate rendered frame"
@@ -57,6 +64,9 @@ class ValidateRenderedFrames(pyblish.api.InstancePlugin):
     settings_category = "nuke"
 
     def process(self, instance):
+        if not self.is_active(instance.data):
+            return
+
         node = instance.data["transientData"]["node"]
 
         f_data = {

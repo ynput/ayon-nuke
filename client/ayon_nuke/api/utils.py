@@ -8,7 +8,6 @@ from qtpy import QtWidgets
 
 from ayon_core import resources
 from ayon_core.pipeline import registered_host
-from ayon_core.tools.utils import show_message_dialog
 from ayon_core.pipeline.create import CreateContext
 
 
@@ -109,7 +108,7 @@ def submit_render_on_farm(node):
             _submit_render_on_farm(node)
 
 
-def _submit_render_on_farm(node):
+def _submit_render_on_farm(node) -> bool:
     """Render on farm submission
 
     This function prepares the context for farm submission, validates it,
@@ -118,17 +117,23 @@ def _submit_render_on_farm(node):
 
     Args:
         node (Node): The node for which the farm submission is being made.
+
+    Returns:
+        bool: Did the submission succeed?
     """
 
     host = registered_host()
     create_context = CreateContext(host)
 
-    # Ensure CreateInstance is enabled.
+    # Ensure CreateInstance is enabled and renders on farm.
     for instance in create_context.instances:
-        if node.name() != instance.transient_data["node"].name():
-            continue
+        is_current_node = node is instance.transient_data["node"]
 
-        instance.data["active"] = True
+        if not instance.is_mandatory:
+            instance.data["active"] = is_current_node
+
+        if is_current_node:
+            instance.data["creator_attributes"]["render_target"] = "farm"
 
     context = pyblish.api.Context()
     context.data["create_context"] = create_context
@@ -161,12 +166,17 @@ def _submit_render_on_farm(node):
         error_message += "\n"
         error_message += err.formatted_traceback
 
-    if not success:
-        show_message_dialog(
-            "Publish Errors", error_message, level="critical"
-        )
-        return
+    if nuke.GUI:
+        from ayon_core.tools.utils import show_message_dialog
+        if success:
+            show_message_dialog(
+                "Submission Successful",
+                "Submission to the farm was successful."
+            )
+        else:
+            show_message_dialog(
+                 "Publish Errors",
+                 error_message, level="critical"
+            )
 
-    show_message_dialog(
-        "Submission Successful", "Submission to the farm was successful."
-    )
+    return success

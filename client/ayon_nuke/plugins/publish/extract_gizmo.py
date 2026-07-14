@@ -8,7 +8,8 @@ from ayon_nuke.api import utils as pnutils
 from ayon_nuke.api.lib import (
     maintained_selection,
     reset_selection,
-    select_nodes
+    select_nodes,
+    INSTANCE_DATA_KNOB
 )
 
 
@@ -53,6 +54,13 @@ class ExtractGizmo(publish.Extractor):
             # assign pasted node
             copy_grpn = nuke.selectedNode()
             copy_grpn.setXYpos((orig_grpn.xpos() + 120), orig_grpn.ypos())
+
+            # remove instance attributes so loading it back won't directly
+            # make it a publishable instance again
+            data_knob = copy_grpn.knob(INSTANCE_DATA_KNOB)
+            if data_knob is not None:
+                self.log.debug("Stripping instance data knob...")
+                copy_grpn.removeKnob(data_knob)
 
             # convert gizmos to groups
             pnutils.bake_gizmos_recursively(copy_grpn)

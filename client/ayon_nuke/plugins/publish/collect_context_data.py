@@ -1,15 +1,14 @@
-import os
 import nuke
 import pyblish.api
 
 import ayon_nuke.api as napi
-from ayon_core.pipeline import KnownPublishError
+from ayon_core.pipeline import registered_host
 
 
 class CollectContextData(pyblish.api.ContextPlugin):
     """Collect current context publish."""
 
-    order = pyblish.api.CollectorOrder - 0.499
+    order = pyblish.api.CollectorOrder - 0.5
     label = "Collect context data"
     hosts = ['nuke']
 
@@ -18,13 +17,7 @@ class CollectContextData(pyblish.api.ContextPlugin):
     def process(self, context):  # sourcery skip: avoid-builtin-shadow
         root_node = nuke.root()
 
-        current_file = os.path.normpath(root_node.name())
-
-        if current_file.lower() == "root":
-            raise KnownPublishError(
-                "Workfile is not correct file name. \n"
-                "Use workfile tool to manage the name correctly."
-            )
+        current_file = registered_host().get_current_workfile()
 
         # Get frame range
         first_frame = int(root_node["first_frame"].getValue())

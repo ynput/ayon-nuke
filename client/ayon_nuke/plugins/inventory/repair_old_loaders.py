@@ -31,6 +31,6 @@ class RepairOldLoaders(InventoryAction):
                 "loader": new_loader,
                 "objectName": new_name
             })
-            node["name"].setValue(new_name)
+            node.setName(new_name)
             # get data from avalon knob
             set_avalon_knob_data(node, cdata)

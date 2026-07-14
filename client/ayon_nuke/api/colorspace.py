@@ -201,6 +201,7 @@ def get_formatted_display_and_view(
         # making sure formatted colorspace exists in running session
         if dv_item_resolved in get_display_and_view_colorspaces(root_node):
             return dv_item_resolved
+    return ""
 
 
 def get_formatted_display_and_view_as_dict(
@@ -218,7 +219,7 @@ def get_formatted_display_and_view_as_dict(
     available in currently run nuke session ocio config.
 
     Example:
-        >>> from ayon_nuke.api.colorspace import get_formatted_display_and_view_as_dict  # noqa
+        >>> from ayon_nuke.api.colorspace import get_formatted_display_and_view_as_dict
         >>> view_profile = {
         ...     "view": "{context};sRGB",
         ...     "display": "{project_code};ACES"
@@ -241,7 +242,7 @@ def get_formatted_display_and_view_as_dict(
     Returns:
         dict: formatted display and view profile in dict
             ex: {"view": "sRGB", "display": "ACES"}
-    """
+    """  # noqa: E501
     if not root_node:
         root_node = nuke.root()
 

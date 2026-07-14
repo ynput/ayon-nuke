@@ -51,8 +51,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             self._set_existing_files_data(instance, colorspace)
 
         elif render_target == "frames_farm":
-            collected_frames = self._set_existing_files_data(
-                instance, colorspace)
+            collected_frames = self._get_collected_frames(instance)
 
             self._set_expected_files(instance, collected_frames)
 
@@ -161,7 +160,10 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
 
         write_node = self._write_node_helper(instance)
         if instance.data.get("stagingDir_is_custom", False):
-            self.log.info("Custom staging dir detected. Syncing write nodes output path.")
+            self.log.info(
+                "Custom staging dir detected. "
+                "Syncing write nodes output path."
+            )
             napi.lib.writes_version_sync(write_node, self.log)
 
         # Determine defined file type
@@ -185,13 +187,43 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "colorspace": colorspace
         }
 
+        time_warp_node = _find_downstream_time_warp_node(
+            instance.data["transientData"]["node"]
+        )
+        if time_warp_node:
+            time_warp_dict = {
+                "Class": time_warp_node.Class(),
+                "name": time_warp_node["name"].value(),
+                "lookup": [],
+            }
+            lookup_knob = time_warp_node["lookup"]
+            for frame_number in range(
+                # Excluding handles to match the logic when
+                # loading timewarps - @splidje
+                int(nuke.root()["first_frame"].getValue()) + handle_start,
+                int(nuke.root()["last_frame"].getValue()) - handle_end + 1,
+            ):
+                # The format for this lookup list is
+                # the frame offset per frame
+                # - rather than the absolute input frame number.
+                time_warp_dict["lookup"].append(
+                    lookup_knob.valueAt(frame_number) - frame_number
+                )
+            version_data.update({
+                "retime": True,
+                "timewarps": [time_warp_dict],
+            })
+
         instance.data.update({
             "versionData": version_data,
             "path": write_file_path,
             "outputDir": output_dir,
             "ext": ext,
             "colorspace": colorspace,
-            "color_channels": color_channels
+            "color_channels": color_channels,
+            "resolutionWidth": write_node.width(),
+            "resolutionHeight": write_node.height(),
+            "pixelAspect": write_node.pixelAspect(),
         })
 
         if product_base_type == "render":
@@ -282,13 +314,6 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "tags": []
         }
 
-        # set slate frame
-        collected_frames = self._add_slate_frame_to_collected_frames(
-            instance,
-            collected_frames,
-            first_frame
-        )
-
         if len(collected_frames) == 1:
             representation['files'] = collected_frames.pop()
         else:
@@ -334,7 +359,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         expected_slate_frame = first_frame - 1
         expected_slate_path = write_node["file"].evaluate(expected_slate_frame)
 
-        if not os.path.exists(expected_slate_path):
+        if os.path.exists(expected_slate_path):
             slate_frame = os.path.basename(expected_slate_path)
             collected_frames.insert(0, slate_frame)
 
@@ -397,4 +422,17 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             if filename in expected_filenames
         ]
 
-        return collected_frames
+        # set slate frame
+        return self._add_slate_frame_to_collected_frames(
+            instance,
+            collected_frames,
+            first_frame
+        )
+
+def _find_downstream_time_warp_node(start_node):
+    # HACK: no idea why calling `dependentNodes` the first time
+    # seems to always return nothing.
+    nuke.dependentNodes(nuke.INPUTS, [start_node])
+    for node in nuke.dependentNodes(nuke.INPUTS, [start_node]):
+        if node.Class() == "TimeWarp":
+            return node

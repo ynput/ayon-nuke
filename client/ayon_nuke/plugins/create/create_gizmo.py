@@ -43,7 +43,8 @@ class CreateGizmo(NukeCreator):
             nuke.Node: Newly created instance node.
 
         Raises:
-            NukeCreatorError. When multiple Camera nodes are part of the selection.
+            NukeCreatorError:
+                When multiple Camera nodes are part of the selection.
 
         """
         with maintained_selection():
@@ -61,6 +62,6 @@ class CreateGizmo(NukeCreator):
             created_node["tile_color"].setValue(
                 int(self.node_color, 16))
 
-            created_node["name"].setValue(node_name)
+            created_node.setName(node_name)
 
             return created_node
