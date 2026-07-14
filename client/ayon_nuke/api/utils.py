@@ -89,14 +89,6 @@ def bake_gizmos_recursively(in_group=None):
                     bake_gizmos_recursively(node)
 
 
-def is_headless() -> bool:
-    """
-    Returns:
-        bool: headless
-    """
-    return QtWidgets.QApplication.instance() is None
-
-
 def submit_render_on_farm(node):
     # Ensure code is executed in root context.
     if nuke.root() == nuke.thisNode():
