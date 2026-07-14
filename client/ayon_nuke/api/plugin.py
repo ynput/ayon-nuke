@@ -35,7 +35,6 @@ from .lib import (
     INSTANCE_DATA_KNOB,
     Knobby,
     create_backdrop,
-    deprecated,
     maintained_selection,
     get_avalon_knob_data,
     set_node_knobs_from_settings,
@@ -584,12 +583,6 @@ def get_instance_group_node_children(instance):
         return []
 
     return node.nodes()
-
-
-# alias for backwards compatibility
-@deprecated("ayon_nuke.api.plugin.get_instance_group_node_children")
-def get_instance_group_node_childs(instance):
-    return get_instance_group_node_children(instance)
 
 
 def get_colorspace_from_node(node):
