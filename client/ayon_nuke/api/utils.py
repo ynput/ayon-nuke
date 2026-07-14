@@ -4,7 +4,6 @@ import nuke
 
 import pyblish.util
 import pyblish.api
-from qtpy import QtWidgets
 
 from ayon_core import resources
 from ayon_core.pipeline import registered_host
