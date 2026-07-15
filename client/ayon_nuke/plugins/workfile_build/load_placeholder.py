@@ -357,19 +357,24 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
 
         # When multiple clips are loaded and none is named "Input" /
         # "Output", get_group_io_nodes returns None for both.  Fall back
-        # to the last connectable loaded node so the placeholder's
-        # upstream/downstream connections are preserved.
+        # to connectable loaded nodes so the placeholder's upstream/
+        # downstream connections are preserved.
         if input_node is None or output_node is None:
-            connectable = [
-                n for n in placeholder.data["last_loaded"]
-                if n.maxInputs() > 0 or n.maxOutputs() > 0
-            ]
-            if connectable:
-                fallback = connectable[-1]
-                if input_node is None:
-                    input_node = fallback
-                if output_node is None:
-                    output_node = fallback
+            connectable = sorted(
+                (
+                    n for n in placeholder.data["last_loaded"]
+                    if n.maxInputs() > 0 or n.maxOutputs() > 0
+                ),
+                key=lambda n: n.name(),
+            )
+
+            if input_node is None:
+                input_candidates = [n for n in connectable if n.maxInputs() > 0]
+                input_node = input_candidates[-1] if input_candidates else None
+
+            if output_node is None:
+                output_candidates = [n for n in connectable if n.maxOutputs() > 0]
+                output_node = output_candidates[-1] if output_candidates else None
 
         # Workaround: There are some cases where only the second call
         # to `.dependent()` seems to start returning the input
