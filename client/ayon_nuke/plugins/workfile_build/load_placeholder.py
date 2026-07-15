@@ -369,12 +369,16 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
             )
 
             if input_node is None:
-                input_candidates = [n for n in connectable if n.maxInputs() > 0]
-                input_node = input_candidates[-1] if input_candidates else None
+                input_candidates = [
+                    n for n in connectable if n.maxInputs() > 0]
+                input_node = (
+                    input_candidates[-1] if input_candidates else None)
 
             if output_node is None:
-                output_candidates = [n for n in connectable if n.maxOutputs() > 0]
-                output_node = output_candidates[-1] if output_candidates else None
+                output_candidates = [
+                    n for n in connectable if n.maxOutputs() > 0]
+                output_node = (
+                    output_candidates[-1] if output_candidates else None)
 
         # Workaround: There are some cases where only the second call
         # to `.dependent()` seems to start returning the input
