@@ -81,6 +81,14 @@ class CollectSyncWorkfileVersionModel(BaseSettingsModel):
     )
 
 
+class CollectFramesFixDefNukeModel(BaseSettingsModel):
+    enabled: bool = SettingsField(True)
+    rewrite_version_enable: bool = SettingsField(
+        True,
+        title="Show 'Rewrite latest version' toggle"
+    )
+
+
 class OptionalPluginModel(BaseSettingsModel):
     enabled: bool = SettingsField(True)
     optional: bool = SettingsField(title="Optional")
@@ -255,6 +263,10 @@ class PublishPluginsModel(BaseSettingsModel):
             default_factory=CollectSyncWorkfileVersionModel,
             section="Collectors",
         )
+    )
+    CollectFramesFixDefNuke: CollectFramesFixDefNukeModel = SettingsField(
+        default_factory=CollectFramesFixDefNukeModel,
+        title="Collect Frames to Fix",
     )
     ValidateCorrectAssetContext: OptionalPluginModel = SettingsField(
         title="Validate Correct Folder Name",
