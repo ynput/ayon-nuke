@@ -20,7 +20,7 @@ class CollectBackdrops(pyblish.api.InstancePlugin):
         backdrop_node: nuke.BackdropNode = transient_data["node"]
 
         child_nodes: list[nuke.Node] = [
-            node for node in backdrop_node.getNodes()
+            node for node in lib.get_backdrop_nodes(backdrop_node)
             # exclude viewer
             if node.Class() != "Viewer"
         ]

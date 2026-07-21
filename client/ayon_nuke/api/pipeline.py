@@ -8,11 +8,15 @@ import pyblish.api
 
 from ayon_core.host import (
     ApplicationInformation,
+    ContextChangeData,
     HostBase,
     IWorkfileHost,
     ILoadHost,
     IPublishHost
 )
+
+from ayon_core.host.interfaces import SaveWorkfileContext
+
 from ayon_core.lib import register_event_callback, Logger
 from ayon_core.pipeline import (
     register_loader_plugin_path,
@@ -55,6 +59,7 @@ from .lib import (
     set_avalon_knob_data,
     read_avalon_data,
     on_script_load,
+    prompt_reset_context,
     dirmap_file_name_filter,
     add_scripts_menu,
     add_scripts_gizmo,
@@ -97,6 +102,7 @@ class NukeHost(
     HostBase, IWorkfileHost, ILoadHost, IPublishHost
 ):
     name = "nuke"
+    about_to_save = False
 
     def get_app_information(self):
         return ApplicationInformation(
@@ -139,7 +145,6 @@ class NukeHost(
 
         # Register AYON event for workfiles loading.
         register_event_callback("workio.open_file", check_inventory_versions)
-        register_event_callback("taskChanged", change_context_label)
 
     def setup_ui_callbacks_and_menu(self):
         """Setup AYON menus."""
@@ -161,6 +166,58 @@ class NukeHost(
     def update_context_data(self, data, changes):
         root_node = nuke.root()
         set_node_data(root_node, ROOT_DATA_KNOB, data)
+
+
+    def _before_workfile_save(
+        self, save_workfile_context: SaveWorkfileContext
+    ) -> None:
+        """Before workfile is saved.
+
+        This method is called before the workfile is saved in the host.
+
+        Args:
+            save_workfile_context (SaveWorkfileContext): Workfile path with
+                target folder and task context.
+
+        """
+        super()._before_workfile_save(save_workfile_context)
+        self.about_to_save = True
+
+    def _after_workfile_save(
+        self, save_workfile_context: SaveWorkfileContext
+    ) -> None:
+        """After workfile is saved.
+
+        This method is called after the workfile is saved in the host.
+
+        Args:
+            save_workfile_context (SaveWorkfileContext): Workfile path with
+                target folder and task context.
+
+        """
+        super()._after_workfile_save(save_workfile_context)
+        self.about_to_save = False
+
+    def _after_context_change(self, context_change_data: ContextChangeData):
+        """After context is changed.
+
+        This method is called after the context is changed.
+
+        Args:
+            context_change_data (ContextChangeData): Object with information
+                about context change.
+
+        """
+        super()._after_context_change(context_change_data)
+
+        if not nuke.GUI:
+            return
+
+        change_context_label()
+
+        if self.about_to_save:
+            # Let's prompt the user to update the context settings or not
+            prompt_reset_context()
 
 
 def add_nuke_callbacks(project_settings: dict = None):
@@ -312,13 +369,6 @@ def _install_menu(project_settings: dict):
     menu.addCommand(
         "Manage...",
         lambda: host_tools.show_scene_inventory(parent=main_window)
-    )
-    menu.addSeparator()
-    menu.addCommand(
-        "Library...",
-        lambda: host_tools.show_library_loader(
-            parent=main_window
-        )
     )
     menu.addSeparator()
     menu.addCommand(

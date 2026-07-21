@@ -1,6 +1,5 @@
 import os
 import json
-import secrets
 
 import nuke
 import ayon_api
@@ -53,9 +52,6 @@ class LoadOcioLookNodes(load.LoaderPlugin):
             nuke.Node: containerized nuke.Node object
         """
         namespace = namespace or context["folder"]["name"]
-        suffix = secrets.token_hex(nbytes=4)
-        node_name = "{}_{}_{}".format(
-            name, namespace, suffix)
 
         # getting file path
         filepath = self.filepath_from_context(context)
@@ -65,7 +61,7 @@ class LoadOcioLookNodes(load.LoaderPlugin):
         group_node = self._create_group_node(
             filepath, json_f["data"])
         # renaming group node
-        group_node["name"].setValue(node_name)
+        group_node.setName(f"{name}_{namespace}")
 
         self._node_version_color(
             context["project"]["name"],
@@ -180,7 +176,7 @@ class LoadOcioLookNodes(load.LoaderPlugin):
                     (
                         file for file in all_files
                         if file.endswith(extension)
-                        and os.path.basename(file).endswith(lut_suffix)
+                        and os.path.splitext(file)[0].endswith(lut_suffix)
                     ),
                     None
                 )

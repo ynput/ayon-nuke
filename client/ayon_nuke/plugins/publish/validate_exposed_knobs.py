@@ -47,7 +47,7 @@ class ValidateExposedKnobs(
     """
 
     order = pyblish.api.ValidatorOrder
-    optional = True
+    optional = False
     families = ["render", "prerender", "image", "plate"]
     label = "Validate Exposed Knobs"
     actions = [RepairExposedKnobs]

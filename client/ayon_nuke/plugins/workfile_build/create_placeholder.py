@@ -1,3 +1,4 @@
+from __future__ import annotations
 import nuke
 
 from ayon_core.pipeline.workfile.workfile_template_builder import (
@@ -6,6 +7,7 @@ from ayon_core.pipeline.workfile.workfile_template_builder import (
 )
 from ayon_nuke.api.lib import (
     find_free_space_to_paste_nodes,
+    get_backdrop_nodes,
     get_extreme_positions,
     get_group_io_nodes,
     imprint,
@@ -268,14 +270,14 @@ class NukePlaceholderCreatePlugin(
         min_x, min_y, max_x, max_y = get_extreme_positions(considered_nodes)
 
         diff_x = diff_y = 0
-        contained_nodes = []  # for backdrops
+        contained_nodes: set[nuke.Node] = set()  # for backdrops
 
         if offset_y is None:
             width_ph = placeholder_node.screenWidth()
             height_ph = placeholder_node.screenHeight()
             diff_y = max_y - min_y - height_ph
             diff_x = max_x - min_x - width_ph
-            contained_nodes = [placeholder_node]
+            contained_nodes = {placeholder_node}
             min_x = placeholder_node.xpos()
             min_y = placeholder_node.ypos()
         else:
@@ -283,7 +285,7 @@ class NukePlaceholderCreatePlugin(
             minX, _, maxX, _ = get_extreme_positions(siblings)
             diff_y = max_y - min_y + 20
             diff_x = abs(max_x - min_x - maxX + minX)
-            contained_nodes = considered_nodes
+            contained_nodes = set(considered_nodes)
 
         if diff_y <= 0 and diff_x <= 0:
             return
@@ -301,7 +303,7 @@ class NukePlaceholderCreatePlugin(
                 not isinstance(node, nuke.BackdropNode)
                 or (
                     isinstance(node, nuke.BackdropNode)
-                    and not set(contained_nodes) <= set(node.getNodes())
+                    and not contained_nodes <= set(get_backdrop_nodes(node))
                 )
             ):
                 if offset_y is None and node.xpos() >= min_x:
