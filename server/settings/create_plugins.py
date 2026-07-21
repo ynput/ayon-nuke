@@ -8,7 +8,6 @@ from .common import KnobModel
 
 INSTANCE_ATTRIBUTES_DESCRIPTION: str = (
     """Allows to enable or disable certain features for the instance:
-
     - Reviewable: Mark the output as reviewable, allowing transcoding and
         e.g. uploading as reviewable to production tracker (depending on
         what tags are sets for reviewables)
@@ -41,10 +40,8 @@ def instance_attributes_enum():
         {"value": "reviewable", "label": "Reviewable"},
         {"value": "farm_rendering", "label": "Farm rendering"},
         {"value": "use_range_limit", "label": "Use range limit"},
-        {
-            "value": "render_on_farm",
-            "label": "Render On Farm"
-        }
+        {"value": "render_on_farm", "label": "Render On Farm"},
+        {"value": "slate_gen", "label": "Slate Generation"}
     ]
 
 
