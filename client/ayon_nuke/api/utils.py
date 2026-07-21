@@ -4,7 +4,6 @@ import nuke
 
 import pyblish.util
 import pyblish.api
-from qtpy import QtWidgets
 
 from ayon_core import resources
 from ayon_core.pipeline import registered_host
@@ -89,14 +88,6 @@ def bake_gizmos_recursively(in_group=None):
                     bake_gizmos_recursively(node)
 
 
-def is_headless() -> bool:
-    """
-    Returns:
-        bool: headless
-    """
-    return QtWidgets.QApplication.instance() is None
-
-
 def submit_render_on_farm(node):
     # Ensure code is executed in root context.
     if nuke.root() == nuke.thisNode():
@@ -125,9 +116,15 @@ def _submit_render_on_farm(node) -> bool:
     host = registered_host()
     create_context = CreateContext(host)
 
-    # Ensure CreateInstance is enabled.
+    # Ensure CreateInstance is enabled and renders on farm.
     for instance in create_context.instances:
-        instance.data["active"] = node is instance.transient_data["node"]
+        is_current_node = node is instance.transient_data["node"]
+
+        if not instance.is_mandatory:
+            instance.data["active"] = is_current_node
+
+        if is_current_node:
+            instance.data["creator_attributes"]["render_target"] = "farm"
 
     context = pyblish.api.Context()
     context.data["create_context"] = create_context
