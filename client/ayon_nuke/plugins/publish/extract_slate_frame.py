@@ -49,6 +49,9 @@ class ExtractSlateFrame(publish.Extractor):
         self._create_staging_dir(instance)
 
         with maintained_selection():
+            slate_node = instance.data.get("slateNode")
+            if not slate_node:
+                return
             self.log.debug("instance: {}".format(instance))
             self.log.debug("instance.data[families]: {}".format(
                 instance.data["families"]))
