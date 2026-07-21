@@ -1,10 +1,10 @@
 import os
-import nuke
+
 import pyblish.api
-
 from ayon_core.pipeline import publish
-
 from ayon_nuke import api as napi
+
+import nuke  # noqa
 
 
 class CollectNukeWrites(pyblish.api.InstancePlugin,
@@ -23,12 +23,18 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
     _frame_ranges = {}
 
     def process(self, instance):
-
         # compatibility. This is mainly focused on `renders`folders which
         # were previously not cleaned up (and could be used in read notes)
         # this logic should be removed and replaced with custom staging dir
         if instance.data.get("stagingDir_persistent") is None:
             instance.data["stagingDir_persistent"] = True
+
+        # add slate family to instance.data["families"]
+        if instance.data.get("slate_gen"):
+            if instance.data.get("families") is None:
+                instance.data["families"] = []
+            instance.data["families"] = list(
+                set(instance.data["families"] + ["slate"]))
 
         group_node = instance.data["transientData"]["node"]
 
@@ -314,6 +320,9 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "tags": []
         }
 
+        if instance.data.get("slate_gen"):
+            representation["tags"].append("slate-frame")
+
         if len(collected_frames) == 1:
             representation['files'] = collected_frames.pop()
         else:
@@ -353,6 +362,8 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             list: collected frames
         """
         if "slate" not in instance.data["families"]:
+            return collected_frames
+        if instance.data.get("slate_gen"):
             return collected_frames
 
         write_node = self._write_node_helper(instance)
