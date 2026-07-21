@@ -2,7 +2,6 @@
 import os
 import nuke
 import shutil
-from .utils import is_headless
 from .constants import ASSIST
 
 
@@ -41,7 +40,7 @@ def open_file(filepath):
     # Nuke Preferences can be read after the script is read.
     read_script(filepath)
 
-    if not is_headless():
+    if nuke.GUI:
         autosave = nuke.toNode("preferences")["AutoSaveName"].evaluate()
         autosave_prmpt = "Autosave detected.\n" \
                          "Would you like to load the autosave file?"  # noqa
