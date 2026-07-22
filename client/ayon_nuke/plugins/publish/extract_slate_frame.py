@@ -42,6 +42,10 @@ class ExtractSlateFrame(publish.Extractor):
     }
 
     def process(self, instance):
+        # Farm instances are rendered on the farm and slate generation
+        # will be handled server-side; skip local extraction.
+        if instance.data.get("farm"):
+            return
 
         if "representations" not in instance.data:
             instance.data["representations"] = []
@@ -249,6 +253,7 @@ class ExtractSlateFrame(publish.Extractor):
         first_frame = instance.data["frameStartHandle"]
         last_frame = instance.data["frameEndHandle"]
         slate_first_frame = first_frame - 1
+        render_target = instance.data.get("render_target", "local")
 
         # - get write node
         write_node = instance.data["transientData"]["writeNode"]
@@ -262,12 +267,40 @@ class ExtractSlateFrame(publish.Extractor):
                 write_node["use_limit"].setValue(0)
                 self.log.debug("__Setting render node limit")
 
+        # For 'existing frames' mode, the main sequence is already on disk.
+        # Connect the slate node's input to a Read node that reads the
+        # existing files so the slate is composited against already-rendered
+        # content rather than the live upstream graph.
+        temporary_nodes = []
+        original_slate_input = None
+        slate_node = None
+        if render_target == "frames":
+            fpath = instance.data["path"]
+            slate_node = instance.data.get("slateNode")
+            if slate_node:
+                original_slate_input = slate_node.input(0)
+                r_node = nuke.createNode("Read")
+                r_node["file"].setValue(fpath)
+                r_node["first"].setValue(first_frame)
+                r_node["origfirst"].setValue(first_frame)
+                r_node["last"].setValue(last_frame)
+                r_node["origlast"].setValue(last_frame)
+                r_node["colorspace"].setValue(instance.data["colorspace"])
+                slate_node.setInput(0, r_node)
+                temporary_nodes.append(r_node)
+
         # render slate as sequence frame
         nuke.execute(
             instance.data["name"],
             int(slate_first_frame),
             int(slate_first_frame)
         )
+
+        # Restore original slate node connections and remove temporary nodes
+        if slate_node and original_slate_input is not None:
+            slate_node.setInput(0, original_slate_input)
+        for node in temporary_nodes:
+            nuke.delete(node)
 
         # turn the frame range limit back on
         if limit_on:

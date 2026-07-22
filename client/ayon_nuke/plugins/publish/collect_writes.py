@@ -107,10 +107,21 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         write_file_path = nuke.filename(write_node)
         output_dir = os.path.dirname(write_file_path)
 
-        instance.data["expectedFiles"] = [
+        expected_files = [
             os.path.join(output_dir, source_file)
             for source_file in collected_frames
         ]
+
+        # When slate generation is enabled, include the expected slate frame
+        # path so the farm integration knows to expect it.
+        if instance.data.get("slate_gen"):
+            first_frame, _ = self._get_frame_range_data(instance)
+            slate_first_frame = first_frame - 1
+            expected_slate_path = write_node["file"].evaluate(slate_first_frame)
+            if expected_slate_path not in expected_files:
+                expected_files.insert(0, expected_slate_path)
+
+        instance.data["expectedFiles"] = expected_files
 
     def _get_frame_range_data(self, instance):
         """Get frame range data from instance.
