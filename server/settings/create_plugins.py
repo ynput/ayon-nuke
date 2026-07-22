@@ -21,7 +21,8 @@ INSTANCE_ATTRIBUTES_DESCRIPTION: str = (
         render of the write node to the farm **without** triggering the
         regular publish logic. This is useful for quick test renders.
     - Slate Generation: When enabled, a slate frame is generated and
-        prepended to the rendered sequence before publishing.
+        prepended to the rendered sequence before publishing. 
+        Slater addon is required
     """
 )
 
