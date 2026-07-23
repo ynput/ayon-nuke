@@ -187,16 +187,10 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "colorspace": colorspace
         }
 
-        time_warp_node = next(
-            (
-                dependent_node
-                for dependent_node in instance.data["transientData"][
-                    "node"
-                ].dependent(nuke.INPUTS, forceEvaluate=False)
-                if dependent_node.Class() == "TimeWarp"
-            ),
-            None,
+        time_warp_node = _find_downstream_time_warp_node(
+            instance.data["transientData"]["node"]
         )
+
         if time_warp_node:
             time_warp_dict = {
                 "Class": time_warp_node.Class(),
@@ -435,3 +429,8 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             collected_frames,
             first_frame
         )
+
+def _find_downstream_time_warp_node(start_node):
+    for node in start_node.dependent(nuke.INPUTS, forceEvaluate=False):
+        if node.Class() == "TimeWarp":
+            return node
