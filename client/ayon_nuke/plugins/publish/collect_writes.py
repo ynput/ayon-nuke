@@ -406,6 +406,13 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         })
         self.log.info("Farm rendering ON ...")
 
+        if instance.data.get("slate_gen"):
+            write_node = self._write_node_helper(instance)
+            slate_representation_ext = instance.data.setdefault(
+                "slateRepresentationExt", [])
+            slate_representation_ext.append(
+                write_node["file_type"].value())
+
     def _get_collected_frames(self, instance):
         """Get collected frames.
 
