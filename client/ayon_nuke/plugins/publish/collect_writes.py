@@ -190,7 +190,6 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         time_warp_node = _find_downstream_time_warp_node(
             instance.data["transientData"]["node"]
         )
-
         if time_warp_node:
             time_warp_dict = {
                 "Class": time_warp_node.Class(),
