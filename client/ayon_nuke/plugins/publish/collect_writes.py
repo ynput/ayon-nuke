@@ -187,8 +187,15 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "colorspace": colorspace
         }
 
-        time_warp_node = _find_downstream_time_warp_node(
-            instance.data["transientData"]["node"]
+        time_warp_node = next(
+            (
+                dependent_node
+                for dependent_node in instance.data["transientData"][
+                    "node"
+                ].dependent(nuke.INPUTS, forceEvaluate=False)
+                if dependent_node.Class() == "TimeWarp"
+            ),
+            None,
         )
         if time_warp_node:
             time_warp_dict = {
@@ -428,11 +435,3 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             collected_frames,
             first_frame
         )
-
-def _find_downstream_time_warp_node(start_node):
-    # HACK: no idea why calling `dependentNodes` the first time
-    # seems to always return nothing.
-    nuke.dependentNodes(nuke.INPUTS, [start_node])
-    for node in nuke.dependentNodes(nuke.INPUTS, [start_node]):
-        if node.Class() == "TimeWarp":
-            return node
