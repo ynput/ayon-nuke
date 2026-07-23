@@ -11,10 +11,6 @@ class SettingsToApply(BaseSettingsModel):
         default=True,
         title="Apply context settings on script open",
     )
-    context_settings: bool = SettingsField(
-        default=True,
-        title="Apply context settings",
-    )
     frame_range_settings: bool = SettingsField(
         default=True,
         title="Apply frame range settings",
@@ -68,7 +64,6 @@ DEFAULT_GENERAL_SETTINGS = {
     "settings_to_apply": {
         "context_settings_on_script_create": True,
         "context_settings_on_script_open": True,
-        "context_settings": True,
         "frame_range_settings": True,
         "resolution_settings": True,
         "colorspace_settings": True,
