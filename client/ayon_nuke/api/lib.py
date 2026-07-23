@@ -1562,6 +1562,10 @@ class WorkfileSettings(object):
             project_name, self._folder_path, self._task_name, "nuke"
         )
         self.formatting_data = context_data
+        self._settings_to_apply = (
+            get_project_settings(project_name)["nuke"]["general"].get(
+                "settings_to_apply", {})
+        )
 
     def get_nodes(self, nodes=None, nodes_filter=None):
 
@@ -2089,6 +2093,9 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
     def set_colorspace(self):
         """Setting colorspace following presets
         """
+        if not self._settings_to_apply.get("colorspace_settings", True):
+            log.info("Colorspace settings are disabled in project settings.")
+            return
         # get imageio
         nuke_colorspace = get_nuke_imageio_settings()
 
@@ -2120,6 +2127,9 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
 
     def reset_frame_range_handles(self):
         """Set frame range to current folder."""
+        if not self._settings_to_apply.get("frame_range_settings", True):
+            log.info("Frame range settings are disabled in project settings.")
+            return
 
         if "attrib" not in self._task_entity:
             msg = "Task {} doesn't have set any 'attrib'".format(
@@ -2191,6 +2201,9 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
 
     def reset_resolution(self):
         """Set resolution to project resolution."""
+        if not self._settings_to_apply.get("resolution_settings", True):
+            log.info("Resolution settings are disabled in project settings.")
+            return
         log.info("Resetting resolution")
         project_name = get_current_project_name()
         task_attributes = self._task_entity["attrib"]
@@ -2263,7 +2276,14 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                 "{name}".format(**kwargs)
             )
 
-    def set_context_settings(self):
+    def set_context_settings(self, enabled_on_callback=True):
+        """Apply context-related settings for script creation/load events."""
+        if not (
+            self._settings_to_apply.get("context_settings", True)
+            or enabled_on_callback
+        ):
+            log.info("Context settings are disabled in project settings.")
+            return
         self.reset_resolution()
         self.reset_frame_range_handles()
         # add colorspace menu item
