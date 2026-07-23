@@ -1562,10 +1562,6 @@ class WorkfileSettings(object):
             project_name, self._folder_path, self._task_name, "nuke"
         )
         self.formatting_data = context_data
-        self._settings_to_apply = (
-            get_project_settings(project_name)["nuke"]["general"].get(
-                "settings_to_apply", {})
-        )
 
     def get_nodes(self, nodes=None, nodes_filter=None):
 
@@ -2278,10 +2274,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
 
     def set_context_settings(self, enabled_on_callback=True):
         """Apply context-related settings for script creation/load events."""
-        if not (
-            self._settings_to_apply.get("context_settings", True)
-            or enabled_on_callback
-        ):
+        if not enabled_on_callback:
             log.info("Context settings are disabled in project settings.")
             return
         self.reset_resolution()
