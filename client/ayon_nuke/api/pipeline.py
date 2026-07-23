@@ -226,11 +226,17 @@ def add_nuke_callbacks(project_settings: dict = None):
         project_settings = get_current_project_settings()
 
     nuke_settings = project_settings["nuke"]
+    settings_to_apply = nuke_settings["general"].get("settings_to_apply", {})
+
     workfile_settings = WorkfileSettings()
 
     # Set context settings.
     nuke.addOnCreate(
-        workfile_settings.set_context_settings, nodeClass="Root")
+        lambda: workfile_settings.set_context_settings(
+            enabled_on_callback=settings_to_apply.get(
+                "context_settings_on_script_create", True
+        )), nodeClass="Root"
+    )
 
     # adding favorites to file browser
     nuke.addOnCreate(workfile_settings.set_favorites, nodeClass="Root")
@@ -246,7 +252,13 @@ def add_nuke_callbacks(project_settings: dict = None):
     nuke.addOnScriptSave(check_inventory_versions)
 
     # set apply all workfile settings on script load and save
-    nuke.addOnScriptLoad(WorkfileSettings().set_context_settings)
+    nuke.addOnScriptLoad(
+        lambda: workfile_settings.set_context_settings(
+            enabled_on_callback=settings_to_apply.get(
+                "context_settings_on_script_open", True
+            )
+        )
+    )
 
     if nuke_settings["dirmap"]["enabled"]:
         log.info("Added Nuke's dir-mapping callback ...")
