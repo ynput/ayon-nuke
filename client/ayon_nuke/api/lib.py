@@ -2120,6 +2120,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
 
     def reset_frame_range_handles(self):
         """Set frame range to current folder."""
+
         if "attrib" not in self._task_entity:
             msg = "Task {} doesn't have set any 'attrib'".format(
                 self._context_label
@@ -2263,7 +2264,6 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             )
 
     def set_context_settings(self):
-        """Apply context-related settings for script creation/load events."""
         self.reset_resolution()
         self.reset_frame_range_handles()
         # add colorspace menu item
