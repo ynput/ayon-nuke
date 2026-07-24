@@ -11,18 +11,6 @@ class SettingsToApply(BaseSettingsModel):
         default=True,
         title="Apply context settings on script open",
     )
-    frame_range_settings: bool = SettingsField(
-        default=True,
-        title="Apply frame range settings",
-    )
-    resolution_settings: bool = SettingsField(
-        default=True,
-        title="Apply resolution settings",
-    )
-    colorspace_settings: bool = SettingsField(
-        default=True,
-        title="Apply colorspace settings",
-    )
 
 
 class MenuShortcut(BaseSettingsModel):
@@ -64,9 +52,6 @@ DEFAULT_GENERAL_SETTINGS = {
     "settings_to_apply": {
         "context_settings_on_script_create": True,
         "context_settings_on_script_open": True,
-        "frame_range_settings": True,
-        "resolution_settings": True,
-        "colorspace_settings": True,
     },
     "menu": {
         "create": "ctrl+alt+c",
