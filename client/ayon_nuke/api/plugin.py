@@ -1440,7 +1440,11 @@ class ExporterReviewMov(ExporterReview):
 
         # ---------- render or save to nk
         if self.publish_on_farm:
-            nuke.scriptSave()
+            # Force the save: a bare scriptSave() is modified-flag dependent
+            # and can no-op under `nuke -t`, leaving the bake .nk without its
+            # Write node. Same path, so save_file() still copies, not renames.
+            nuke.scriptSaveAs(
+                self.instance.context.data["currentFile"], overwrite=1)
             path_nk = self.save_file()
             self.data.update({
                 "bakeScriptPath": path_nk,
@@ -1466,7 +1470,10 @@ class ExporterReviewMov(ExporterReview):
         self.log.debug(f"Representation...   `{self.data}`")
 
         self.clean_nodes(product_name)
-        nuke.scriptSave()
+        # Forced as above, so the removed bake Write node does not persist
+        # in the artist's workfile.
+        nuke.scriptSaveAs(
+            self.instance.context.data["currentFile"], overwrite=1)
 
         return self.data
 
