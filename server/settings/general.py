@@ -1,18 +1,6 @@
 from ayon_server.settings import BaseSettingsModel, SettingsField
 
 
-class SettingsToApply(BaseSettingsModel):
-    """Settings to apply in Nuke."""
-    context_settings_on_script_create: bool = SettingsField(
-        default=True,
-        title="Apply context settings on script create",
-    )
-    context_settings_on_script_open: bool = SettingsField(
-        default=True,
-        title="Apply context settings on script open",
-    )
-
-
 class MenuShortcut(BaseSettingsModel):
     """Nuke general project settings."""
 
@@ -38,10 +26,6 @@ class MenuShortcut(BaseSettingsModel):
 
 class GeneralSettings(BaseSettingsModel):
     """Nuke general project settings."""
-    settings_to_apply: SettingsToApply = SettingsField(
-        default_factory=SettingsToApply,
-        title="Settings to apply",
-    )
     menu: MenuShortcut = SettingsField(
         default_factory=MenuShortcut,
         title="Menu Shortcuts",
@@ -49,10 +33,6 @@ class GeneralSettings(BaseSettingsModel):
 
 
 DEFAULT_GENERAL_SETTINGS = {
-    "settings_to_apply": {
-        "context_settings_on_script_create": True,
-        "context_settings_on_script_open": True,
-    },
     "menu": {
         "create": "ctrl+alt+c",
         "publish": "ctrl+alt+p",
