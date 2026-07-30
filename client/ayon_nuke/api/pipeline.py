@@ -226,15 +226,19 @@ def add_nuke_callbacks(project_settings: dict = None):
         project_settings = get_current_project_settings()
 
     nuke_settings = project_settings["nuke"]
-    settings_to_apply = nuke_settings["general"].get("settings_to_apply", {})
+    workfile_callback_settings = nuke_settings.get("workfile_callbacks", {})
 
     workfile_settings = WorkfileSettings()
 
-    # Set context settings.
-    if settings_to_apply.get("context_settings_on_script_create", True):
-        nuke.addOnCreate(
-            workfile_settings.set_context_settings, nodeClass="Root"
-        )
+    # Set all workfile settings.
+    on_script_create_settings = workfile_callback_settings["on_script_create"]
+    for setting_key, func in (
+        ("resolution_from_context", workfile_settings.reset_resolution),
+        ("range_from_context", workfile_settings.reset_frame_range_handles),
+        ("colorspace_from_context", workfile_settings.set_colorspace),
+    ):
+        if on_script_create_settings.get(setting_key, True):
+            nuke.addOnCreate(func, nodeClass="Root")
 
     # adding favorites to file browser
     nuke.addOnCreate(workfile_settings.set_favorites, nodeClass="Root")
@@ -250,8 +254,14 @@ def add_nuke_callbacks(project_settings: dict = None):
     nuke.addOnScriptSave(check_inventory_versions)
 
     # set apply all workfile settings on script load and save
-    if settings_to_apply.get("context_settings_on_script_open", True):
-        nuke.addOnScriptLoad(workfile_settings.set_context_settings)
+    if workfile_callback_settings.get("on_script_open", True):
+        for setting_key, func in (
+            ("resolution_from_context", workfile_settings.reset_resolution),
+            ("range_from_context", workfile_settings.reset_frame_range_handles),
+            ("colorspace_from_context", workfile_settings.set_colorspace),
+        ):
+            if on_script_create_settings.get(setting_key, True):
+                nuke.addOnScriptLoad(func)
 
     if nuke_settings["dirmap"]["enabled"]:
         log.info("Added Nuke's dir-mapping callback ...")
