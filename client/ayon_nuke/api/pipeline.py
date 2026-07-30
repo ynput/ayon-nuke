@@ -257,7 +257,7 @@ def add_nuke_callbacks(project_settings: dict = None):
     if workfile_callback_settings.get("on_script_open", True):
         for setting_key, func in (
             ("resolution_from_context", workfile_settings.reset_resolution),
-            ("range_from_context", workfile_settings.reset_frame_range_handles),
+            ("range_from_context", workfile_settings.reset_frame_range_handles),  # noqa: E501
             ("colorspace_from_context", workfile_settings.set_colorspace),
         ):
             if on_script_create_settings.get(setting_key, True):
