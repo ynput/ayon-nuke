@@ -226,42 +226,14 @@ def add_nuke_callbacks(project_settings: dict = None):
         project_settings = get_current_project_settings()
 
     nuke_settings = project_settings["nuke"]
-    workfile_callback_settings = nuke_settings.get("workfile_callbacks", {})
-
-    workfile_settings = WorkfileSettings()
 
     # Set all workfile settings.
-    on_script_create_settings = workfile_callback_settings["on_script_create"]
-    for setting_key, func in (
-        ("resolution_from_context", workfile_settings.reset_resolution),
-        ("range_from_context", workfile_settings.reset_frame_range_handles),
-        ("colorspace_from_context", workfile_settings.set_colorspace),
-    ):
-        if on_script_create_settings.get(setting_key, True):
-            nuke.addOnCreate(func, nodeClass="Root")
-
-    # adding favorites to file browser
-    nuke.addOnCreate(workfile_settings.set_favorites, nodeClass="Root")
-
-    # template builder callbacks
-    nuke.addOnCreate(start_workfile_template_builder, nodeClass="Root")
-
+    nuke.addOnCreate(on_root_create, nodeClass="Root")
     # fix ffmpeg settings on script
-    nuke.addOnScriptLoad(on_script_load)
+    nuke.addOnScriptLoad(on_root_load)
 
     # set checker for last versions on loaded containers
-    nuke.addOnScriptLoad(check_inventory_versions)
     nuke.addOnScriptSave(check_inventory_versions)
-
-    # set apply all workfile settings on script load and save
-    if workfile_callback_settings.get("on_script_open", True):
-        for setting_key, func in (
-            ("resolution_from_context", workfile_settings.reset_resolution),
-            ("range_from_context", workfile_settings.reset_frame_range_handles),  # noqa: E501
-            ("colorspace_from_context", workfile_settings.set_colorspace),
-        ):
-            if on_script_create_settings.get(setting_key, True):
-                nuke.addOnScriptLoad(func)
 
     if nuke_settings["dirmap"]["enabled"]:
         log.info("Added Nuke's dir-mapping callback ...")
@@ -269,6 +241,54 @@ def add_nuke_callbacks(project_settings: dict = None):
         nuke.addFilenameFilter(dirmap_file_name_filter)
 
     log.info("Added Nuke callbacks ...")
+
+
+def on_root_create() -> None:
+    """Callback function for on script create."""
+    # set apply all workfile settings on script load and save
+    project_settings = get_current_project_settings()
+    on_script_create_settings = (
+        project_settings["nuke"]
+                        ["workfile_callbacks"]
+                        ["on_script_create"]
+    )
+
+    if any(on_script_create_settings.values()):
+        workfile_settings = WorkfileSettings(project_settings=project_settings)
+        if on_script_create_settings.get("resolution_from_context", True):
+            workfile_settings.reset_resolution()
+        if on_script_create_settings.get("frame_range_from_context", True):
+            workfile_settings.reset_frame_range_handles()
+        if on_script_create_settings.get("colorspace_from_context", True):
+            workfile_settings.set_colorspace()
+    # adding favorites to file browser
+    workfile_settings.set_favorites()
+    # template builder callbacks
+    start_workfile_template_builder()
+
+
+def on_root_load() -> None:
+    """Callback function for on script load."""
+    # fix ffmpeg settings on script
+    on_script_load()
+    # set checker for last versions on loaded containers
+    check_inventory_versions()
+    # set apply all workfile settings on script load and save
+    project_settings = get_current_project_settings()
+    on_script_load_settings = (
+        project_settings["nuke"]
+                        ["workfile_callbacks"]
+                        ["on_script_load"]
+    )
+
+    if any(on_script_load_settings.values()):
+        workfile_settings = WorkfileSettings(project_settings=project_settings)
+        if on_script_load_settings.get("resolution_from_context", True):
+            workfile_settings.reset_resolution()
+        if on_script_load_settings.get("frame_range_from_context", True):
+            workfile_settings.reset_frame_range_handles()
+        if on_script_load_settings.get("colorspace_from_context", True):
+            workfile_settings.set_colorspace()
 
 
 def reload_config():
