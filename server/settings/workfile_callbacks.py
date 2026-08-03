@@ -1,5 +1,6 @@
 from ayon_server.settings import BaseSettingsModel, SettingsField
 
+
 class ContextSettings(BaseSettingsModel):
     """Nuke context settings."""
 
