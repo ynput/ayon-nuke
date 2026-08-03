@@ -256,11 +256,11 @@ def on_root_create() -> None:
 
     if any(on_script_create_settings.values()):
         workfile_settings = WorkfileSettings(project_settings=project_settings)
-        if on_script_create_settings.get("resolution_from_context", True):
+        if on_script_create_settings.get("set_resolution", True):
             workfile_settings.reset_resolution()
-        if on_script_create_settings.get("frame_range_from_context", True):
+        if on_script_create_settings.get("set_frame_range", True):
             workfile_settings.reset_frame_range_handles()
-        if on_script_create_settings.get("colorspace_from_context", True):
+        if on_script_create_settings.get("set_colorspace", True):
             workfile_settings.set_colorspace()
     # adding favorites to file browser
     workfile_settings.set_favorites()
@@ -288,11 +288,11 @@ def on_root_load() -> None:
 
     if any(on_script_load_settings.values()):
         workfile_settings = WorkfileSettings(project_settings=project_settings)
-        if on_script_load_settings.get("resolution_from_context", True):
+        if on_script_load_settings.get("set_resolution", True):
             workfile_settings.reset_resolution()
-        if on_script_load_settings.get("frame_range_from_context", True):
+        if on_script_load_settings.get("set_frame_range", True):
             workfile_settings.reset_frame_range_handles()
-        if on_script_load_settings.get("colorspace_from_context", True):
+        if on_script_load_settings.get("set_colorspace", True):
             workfile_settings.set_colorspace()
 
 

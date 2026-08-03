@@ -3,17 +3,17 @@ from ayon_server.settings import BaseSettingsModel, SettingsField
 class ContextSettings(BaseSettingsModel):
     """Nuke context settings."""
 
-    resolution_from_context: bool = SettingsField(
+    set_resolution: bool = SettingsField(
         default=True,
         title="Resolution from Context",
         description="Set resolution from context on new workfile.",
     )
-    frame_range_from_context: bool = SettingsField(
+    set_frame_range: bool = SettingsField(
         default=True,
         title="Frame Range from Context",
         description="Set frame range from context on new workfile.",
     )
-    colorspace_from_context: bool = SettingsField(
+    set_colorspace: bool = SettingsField(
         default=True,
         title="Colorspace from Context",
         description="Set colorspace from context on new workfile.",
@@ -36,13 +36,13 @@ class WorkfileCallbacks(BaseSettingsModel):
 
 DEFAULT_WORKFILE_CALLBACKS_SETTINGS = {
     "on_script_create": {
-        "resolution_from_context": True,
-        "frame_range_from_context": True,
-        "colorspace_from_context": True,
+        "set_resolution": True,
+        "set_frame_range": True,
+        "set_colorspace": True,
     },
     "on_script_open": {
-        "resolution_from_context": True,
-        "frame_range_from_context": True,
-        "colorspace_from_context": True,
+        "set_resolution": True,
+        "set_frame_range": True,
+        "set_colorspace": True,
     },
 }
