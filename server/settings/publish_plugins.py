@@ -146,6 +146,18 @@ class ReformatNodesConfigModel(BaseSettingsModel):
     )
 
 
+def _intermediate_preset_output_types() -> list:
+    return [
+        {
+            "value": "extension",
+            "label": "Defined by extension"
+        },
+        {
+            "value": "custom_write_knobs",
+            "label": "Defined by custom write knobs"
+        }
+    ]
+
 class IntermediateOutputModel(BaseSettingsModel):
     name: str = SettingsField(title="Output name")
     publish: bool = SettingsField(
@@ -176,12 +188,27 @@ class IntermediateOutputModel(BaseSettingsModel):
     reformat_nodes_config: ReformatNodesConfigModel = SettingsField(
         default_factory=ReformatNodesConfigModel,
         title="Reformat Nodes")
+
+    output_type: str = SettingsField(
+        title="Output type",
+        default="extension",
+        enum_resolver=_intermediate_preset_output_types,
+        conditional_enum=True,
+        section="Output definition",
+    )
+    custom_write_knobs: list[KnobModel] = SettingsField(
+        default_factory=list,
+        title="Custom Write Knobs",
+    )
     extension: str = SettingsField(
         "mov",
         title="File extension"
     )
     add_custom_tags: list[str] = SettingsField(
-        title="Custom tags", default_factory=list)
+        title="Custom tags",
+        default_factory=list,
+        section="Representation definition",
+    )
 
     fill_missing_frames:str = SettingsField(
         title="Handle missing frames",
@@ -190,6 +217,12 @@ class IntermediateOutputModel(BaseSettingsModel):
                     "Used for filling gaps for Custom Frames",
         enum_resolver=_handle_missing_frames_enum
     )
+
+    @validator("custom_write_knobs")
+    def ensure_unique_names(cls, value):
+        """Ensure name fields within the lists have unique names."""
+        ensure_unique_names(value)
+        return value
 
 
 class ExtractReviewIntermediatesModel(BaseSettingsModel):
@@ -466,7 +499,11 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
                         }
                     ]
                 },
+                "output_type": "extension",
                 "extension": "mov",
+                "custom_write_knobs": [
+                    {"type": "text", "name": "file_type", "text": "mov"},
+                ],
                 "add_custom_tags": [],
                 "fill_missing_frames": "0"
             }
