@@ -58,7 +58,6 @@ from .lib import (
     check_inventory_versions,
     set_avalon_knob_data,
     read_avalon_data,
-    on_script_load,
     prompt_reset_context,
     dirmap_file_name_filter,
     add_scripts_menu,
@@ -227,8 +226,10 @@ def add_nuke_callbacks(project_settings: dict = None):
 
     nuke_settings = project_settings["nuke"]
 
-    # Set all workfile settings.
+    # Set all workfile settings.'
     nuke.addOnCreate(on_root_create, nodeClass="Root")
+    # set checker for last versions on loaded containers
+    nuke.addOnScriptLoad(check_inventory_versions)
     # fix ffmpeg settings on script
     nuke.addOnScriptLoad(on_root_load)
 
@@ -270,9 +271,13 @@ def on_root_create() -> None:
 def on_root_load() -> None:
     """Callback function for on script load."""
     # fix ffmpeg settings on script
-    on_script_load()
-    # set checker for last versions on loaded containers
-    check_inventory_versions()
+    if nuke.env["LINUX"]:
+        nuke.tcl('load ffmpegReader')
+        nuke.tcl('load ffmpegWriter')
+    else:
+        nuke.tcl('load movReader')
+        nuke.tcl('load movWriter')
+
     # set apply all workfile settings on script load and save
     project_settings = get_current_project_settings()
     on_script_load_settings = (

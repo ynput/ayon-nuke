@@ -834,16 +834,6 @@ def get_view_process_node():
         return duplicate_node(ipn_node)
 
 
-def on_script_load():
-    """Callback for ffmpeg support"""
-    if nuke.env["LINUX"]:
-        nuke.tcl('load ffmpegReader')
-        nuke.tcl('load ffmpegWriter')
-    else:
-        nuke.tcl('load movReader')
-        nuke.tcl('load movWriter')
-
-
 def check_inventory_versions():
     """Update loaded container nodes' colors based on version state.
 
