@@ -1,21 +1,19 @@
 import nuke
-import ayon_api
 
-from ayon_core.pipeline import (
-    load,
-    get_representation_path,
-)
+from ayon_core.pipeline import get_representation_path
 from ayon_nuke.api import (
     containerise,
+    plugin,
     update_container,
     viewer_update_and_undo_stop
 )
 from ayon_nuke.api.lib import (
+    color_to_int,
     maintained_selection
 )
 
 
-class AlembicCameraLoader(load.LoaderPlugin):
+class AlembicCameraLoader(plugin.NukeLoader):
     """
     This will load a camera into script.
     """
@@ -31,7 +29,9 @@ class AlembicCameraLoader(load.LoaderPlugin):
 
     icon = "camera"
     color = "orange"
-    node_color = "0x3469ffff"
+
+    node_color_latest   = color_to_int(52, 105, 255)   # 0x3469ffff
+    node_color_outdated = color_to_int(216, 132, 103)  # 0xd88467ff
 
     def load(self, context, name, namespace, data):
         # get main variables
@@ -92,18 +92,15 @@ class AlembicCameraLoader(load.LoaderPlugin):
             camera_node = nuke.toNode(object_name)
             camera_node.setXYpos(xpos, ypos)
 
-        # color node by correct color by actual version
-        self.node_version_color(
-            context["project"]["name"], version_entity, camera_node
-        )
-
-        return containerise(
+        container = containerise(
             node=camera_node,
             name=name,
             namespace=namespace,
             context=context,
             loader=self.__class__.__name__,
             data=data_imprint)
+        self.update_node_color(camera_node)  # after containerise
+        return container
 
     def update(self, container, context):
         """
@@ -178,31 +175,13 @@ class AlembicCameraLoader(load.LoaderPlugin):
                               if camera_node is dpcy), 0)
                 d.setInput(index, camera_node)
 
-        # color node by correct color by actual version
-        self.node_version_color(
-            context["project"]["name"], version_entity, camera_node
-        )
-
         self.log.info(
             "updated to version: {}".format(version_entity["version"])
         )
 
-        return update_container(camera_node, data_imprint)
-
-    def node_version_color(self, project_name, version_entity, node):
-        """Coloring a node by correct color by actual version
-        """
-        # get all versions in list
-        last_version_entity = ayon_api.get_last_version_by_product_id(
-            project_name, version_entity["productId"], fields={"id"}
-        )
-
-        # change color of node
-        if version_entity["id"] == last_version_entity["id"]:
-            color_value = self.node_color
-        else:
-            color_value = "0xd88467ff"
-        node["tile_color"].setValue(int(color_value, 16))
+        container = update_container(camera_node, data_imprint)
+        self.update_node_color(camera_node)  # after update_container
+        return container
 
     def switch(self, container, context):
         self.update(container, context)

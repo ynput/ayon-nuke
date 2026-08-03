@@ -34,6 +34,8 @@ from ayon_core.lib.transcoding import (
 from .lib import (
     INSTANCE_DATA_KNOB,
     Knobby,
+    check_inventory_versions,
+    color_to_int,
     create_backdrop,
     maintained_selection,
     get_avalon_knob_data,
@@ -48,6 +50,7 @@ from .lib import (
 )
 from .pipeline import (
     list_instances,
+    parse_container,
     remove_instance,
     containerise,
     update_container,
@@ -621,6 +624,11 @@ class NukeLoader(LoaderPlugin):
     container_id_knob = "containerId"
     container_id = None
 
+    node_color_invalid    = color_to_int(255, 0, 0)    # 0xff0000ff
+    node_color_not_found  = color_to_int(255, 255, 0)  # 0xffff00ff
+    node_color_latest     = color_to_int(78, 205, 37)  # 0x4ecd25ff
+    node_color_outdated   = color_to_int(216, 79, 32)  # 0xd84f20ff
+
     def reset_container_id(self):
         self.container_id = "".join(random.choice(
             string.ascii_uppercase + string.digits) for _ in range(10))
@@ -673,6 +681,43 @@ class NukeLoader(LoaderPlugin):
             nuke.delete(member)
 
         return dependent_nodes
+
+    @classmethod
+    def get_node_color(cls, category: str) -> int | None:
+        """Get node color based on category and container.
+
+        Args:
+            category (str): category of the node, as returned from
+                `ayon_core.filter_containers`
+                Known categories:
+                - latest
+                - outdated
+                - invalid
+                - not_found
+
+        Returns:
+            int | None: color of the node or None if category is not known
+
+        """
+        if category == "invalid":
+            return cls.node_color_invalid
+        if category == "not_found":
+            return cls.node_color_not_found
+        if category == "latest":
+            return cls.node_color_latest
+        if category == "outdated":
+            return cls.node_color_outdated
+
+        # unknown category
+        return None
+
+    def update_node_color(self, node: nuke.Node) -> None:
+        """Update tile_color for the given node.."""
+        container = parse_container(node)
+        if not container:
+            return
+
+        check_inventory_versions([container])
 
 
 class NukeGroupLoader(LoaderPlugin):

@@ -51,17 +51,14 @@ from ayon_core.pipeline import (
     get_current_context,
 )
 from ayon_core.pipeline.create import CreateContext
-from ayon_core.pipeline.load import filter_containers
+from ayon_core.pipeline.load import filter_containers, get_loaders_by_name
 from ayon_core.pipeline.colorspace import (
     get_current_context_imageio_config_preset
 )
 from ayon_core.resources import get_ayon_icon_filepath
 
 from .gizmo_menu import GizmoMenu
-from .constants import (
-    ASSIST,
-    LOADER_CATEGORY_COLORS,
-)
+from .constants import ASSIST
 
 from .utils import get_node_outputs
 
@@ -844,25 +841,41 @@ def on_script_load():
         nuke.tcl('load movWriter')
 
 
-def check_inventory_versions():
+def check_inventory_versions(containers: list[dict] | None = None):
     """Update loaded container nodes' colors based on version state.
 
     This will group containers by their version to outdated, not found,
     invalid or latest and colorize the nodes based on the category.
+
+    Args:
+        containers (list[dict] | None): List of containers to check.
+            If None, all containers will be checked.
+
     """
     try:
         host = registered_host()
-        containers = host.get_containers()
         project_name = get_current_project_name()
+        loaders_by_name = get_loaders_by_name()
+
+        if containers is None:
+            containers = host.get_containers()
 
         filtered_containers = filter_containers(containers, project_name)
         for category, containers in filtered_containers._asdict().items():
-            if category not in LOADER_CATEGORY_COLORS:
-                continue
-            color = LOADER_CATEGORY_COLORS[category]
-            color = int(color, 16)  # convert hex to nuke tile color int
+
             for container in containers:
-                container["node"]["tile_color"].setValue(color)
+
+                loader_name = container.get("loader")
+                if not loader_name:
+                    continue
+
+                loader = loaders_by_name.get(loader_name)
+                if not loader:
+                    continue
+
+                if color := loader.get_node_color(category):
+                    container["node"]["tile_color"].setValue(color)
+
     except Exception as error:
         log.warning(error)
 
@@ -1413,13 +1426,25 @@ def convert_knob_value_to_correct_type(knob_type, knob_value):
     return knob_value
 
 
-def color_gui_to_int(color_gui):
-    # Append alpha channel if not present
-    if len(color_gui) == 3:
-        color_gui = list(color_gui) + [255]
-    hex_value = (
-        "0x{0:0>2x}{1:0>2x}{2:0>2x}{3:0>2x}").format(*color_gui)
+def color_to_int(r, g, b, a=255):
+    """Convert a rgb(a) to color to a nuke compatible int color.
+
+    Args:
+        r (int): red value (0-255)
+        g (int): green value (0-255)
+        b (int): blue value (0-255)
+        a (int): alpha value (0-255)
+
+    Returns:
+        int: nuke compatible int color
+
+    """
+    hex_value = f"{r:0>2x}{g:0>2x}{b:0>2x}{a:0>2x}"
     return int(hex_value, 16)
+
+
+def color_gui_to_int(color_gui):
+    return color_to_int(*color_gui)
 
 
 def get_backdrop_nodes(backdrop_node):

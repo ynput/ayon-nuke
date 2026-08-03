@@ -1,16 +1,15 @@
 import nuke
-import ayon_api
 
-from ayon_core.pipeline import load
-from ayon_nuke.api.lib import maintained_selection
+from ayon_nuke.api.lib import color_to_int, maintained_selection
 from ayon_nuke.api import (
     containerise,
+    plugin,
     update_container,
     viewer_update_and_undo_stop,
 )
 
 
-class GeoImportLoader(load.LoaderPlugin):
+class GeoImportLoader(plugin.NukeLoader):
     """This will load files to GeoImport node."""
 
     product_base_types = {"*"}
@@ -24,7 +23,9 @@ class GeoImportLoader(load.LoaderPlugin):
     label = "Load GeoImport"
     icon = "cube"
     color = "orange"
-    node_color = "0x4ecd91ff"
+
+    node_color_latest   = color_to_int(78, 205, 145)   # 0x4ecd91ff
+    node_color_outdated = color_to_int(216, 132, 103)  # 0xd88467ff
 
     node_class = "GeoImport"
     node_file_knob = "file"
@@ -44,40 +45,30 @@ class GeoImportLoader(load.LoaderPlugin):
             )
             node.forceValidate()
 
-        # color node by correct color by actual version
-        self.set_node_version_color(node, context)
-
-        return containerise(
+        container = containerise(
             node=node,
             name=name,
             namespace=namespace,
             context=context,
             loader=self.__class__.__name__,
         )
+        self.update_node_color(node)  # after containerise
+        return container
 
     def update(self, container, context):
         node: nuke.Node = container["node"]
         file = self.filepath_from_context(context).replace("\\", "/")
         node[self.node_file_knob].setValue(file)
 
-        # color node by correct color by actual version
-        self.set_node_version_color(node, context)
-
         # update representation id
-        return update_container(
+        container = update_container(
             node,
             {
                 "representation": context["representation"]["id"],
             },
         )
-
-    def set_node_version_color(self, node: nuke.Node, context: dict):
-        """Coloring a node by correct color by actual version"""
-        is_latest_version = ayon_api.version_is_latest(
-            context["project"]["name"], context["version"]["id"]
-        )
-        color_value = self.node_color if is_latest_version else "0xd88467ff"
-        node["tile_color"].setValue(int(color_value, 16))
+        self.update_node_color(node)  # after update_container
+        return container
 
     def switch(self, container, context):
         self.update(container, context)
