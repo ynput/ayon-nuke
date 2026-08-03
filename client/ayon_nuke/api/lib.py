@@ -2332,7 +2332,7 @@ def get_dependent_nodes(nodes):
 
     Looking for connections outside the nodes in incoming argument.
     This only checks for direct connections (nuke.INPUTS). It ignores others,
-    like hidden links (nuke.HIDDEN_INPUT) and expressions (nuke.EXPRESSIONS).
+    like hidden links (nuke.HIDDEN_INPUTS) and expressions (nuke.EXPRESSIONS).
 
     Arguments:
         nodes (list): list of nuke.Node objects
