@@ -254,7 +254,7 @@ def on_root_create() -> None:
         ["workfile_callbacks"]
         ["on_script_create"]
     )
-    
+
     if on_script_create_settings["set_resolution"]:
         workfile_settings.reset_resolution()
 
