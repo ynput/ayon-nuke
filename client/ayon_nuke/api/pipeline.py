@@ -279,21 +279,22 @@ def on_root_load() -> None:
         nuke.tcl('load movWriter')
 
     # set apply all workfile settings on script load and save
-    project_settings = get_current_project_settings()
+    workfile_settings = WorkfileSettings()
     on_script_load_settings = (
-        project_settings["nuke"]
-                        ["workfile_callbacks"]
-                        ["on_script_load"]
+        workfile_settings.project_settings
+        ["nuke"]
+        ["workfile_callbacks"]
+        ["on_script_load"]
     )
 
-    if any(on_script_load_settings.values()):
-        workfile_settings = WorkfileSettings(project_settings=project_settings)
-        if on_script_load_settings.get("set_resolution", True):
-            workfile_settings.reset_resolution()
-        if on_script_load_settings.get("set_frame_range", True):
-            workfile_settings.reset_frame_range_handles()
-        if on_script_load_settings.get("set_colorspace", True):
-            workfile_settings.set_colorspace()
+    if on_script_load_settings["set_resolution"]:
+        workfile_settings.reset_resolution()
+
+    if on_script_load_settings["set_frame_range"]:
+        workfile_settings.reset_frame_range_handles()
+
+    if on_script_load_settings["set_colorspace"]:
+        workfile_settings.set_colorspace()
 
 
 def reload_config():
