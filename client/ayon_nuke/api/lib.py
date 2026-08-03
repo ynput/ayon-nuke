@@ -1523,7 +1523,12 @@ class WorkfileSettings(object):
 
     """
 
-    def __init__(self, root_node=None, nodes=None, **kwargs):
+    def __init__(
+            self,
+            root_node=None,
+            nodes=None,
+            project_settings=None,
+            **kwargs):
         project_entity = kwargs.get("project")
         if project_entity is None:
             project_name = get_current_project_name()
@@ -1552,6 +1557,18 @@ class WorkfileSettings(object):
             project_name, self._folder_path, self._task_name, "nuke"
         )
         self.formatting_data = context_data
+        self._project_setting = project_settings
+
+    @property
+    def project_settings(self) -> dict:
+        """Get project settings
+
+        Returns:
+            dict: project settings for the current project
+        """
+        if not self._project_setting:
+            self._project_setting = get_project_settings(self._project_name)
+        return self._project_setting
 
     def get_nodes(self, nodes=None, nodes_filter=None):
 
@@ -1645,7 +1662,9 @@ class WorkfileSettings(object):
             imageio_host (dict): host colorspace configurations
 
         """
-        config_data = get_current_context_imageio_config_preset()
+        config_data = get_current_context_imageio_config_preset(
+            project_settings=self.project_settings
+        )
 
         workfile_settings = imageio_host["workfile"]
         color_management = workfile_settings["color_management"]
@@ -1972,9 +1991,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             # This ensures that any values overwritten by the user is
             # not changed by the colorspace knobs set.
             colorspace_knobs = nuke_imageio_writes["knobs"]
-            all_create_settings = get_project_settings(
-                Context.project_name,
-            )["nuke"]["create"]
+            all_create_settings = self.project_settings["nuke"]["create"]
             plugin_names_mapping = {
                 "create_write_image": "CreateWriteImage",
                 "create_write_prerender": "CreateWritePrerender",
