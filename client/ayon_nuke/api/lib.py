@@ -2347,7 +2347,7 @@ def get_dependent_nodes(nodes):
     node_names: set[str] = {n.name() for n in nodes}
     for node in nodes:
         # collect all inputs outside
-        inputs = node.dependencies()
+        inputs = node.dependencies(nuke.INPUTS)
         test_in = [
             (i, input_) for i, input_ in enumerate(inputs)
             if input_.name() not in node_names
