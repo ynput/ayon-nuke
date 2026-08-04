@@ -2338,6 +2338,8 @@ def get_dependent_nodes(nodes):
     """Get all dependent nodes connected to the list of nodes.
 
     Looking for connections outside the nodes in incoming argument.
+    This only checks for direct connections (nuke.INPUTS). It ignores others,
+    like hidden links (nuke.HIDDEN_INPUTS) and expressions (nuke.EXPRESSIONS).
 
     Arguments:
         nodes (list): list of nuke.Node objects
@@ -2349,24 +2351,28 @@ def get_dependent_nodes(nodes):
 
     connections_in = dict()
     connections_out = dict()
-    node_names = [n.name() for n in nodes]
+    node_names: set[str] = {n.name() for n in nodes}
     for node in nodes:
-        inputs = node.dependencies()
-        outputs = node.dependent()
         # collect all inputs outside
-        test_in = [(i, n) for i, n in enumerate(inputs)
-                   if n.name() not in node_names]
+        inputs = node.dependencies(nuke.INPUTS)
+        test_in = [
+            (i, input_) for i, input_ in enumerate(inputs)
+            if input_.name() not in node_names
+        ]
         if test_in:
-            connections_in.update({
-                node: test_in
-            })
-        # collect all outputs outside
-        test_out = [i for i in outputs if i.name() not in node_names]
+            connections_in[node] = test_in
+
+        # collect last connected output; only one dependent node is allowed
+        outputs = node.dependent(nuke.INPUTS, forceEvaluate=False)
+        test_out = next(
+            (
+                output for output in reversed(outputs)
+                if output.name() not in node_names
+            ),
+            None
+        )
         if test_out:
-            # only one dependent node is allowed
-            connections_out.update({
-                node: test_out[-1]
-            })
+            connections_out[node] = test_out
 
     return connections_in, connections_out
 
