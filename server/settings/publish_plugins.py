@@ -199,6 +199,7 @@ class IntermediateOutputModel(BaseSettingsModel):
     custom_write_knobs: list[KnobModel] = SettingsField(
         default_factory=list,
         title="Custom Write Knobs",
+        section="Output definition",
     )
     extension: str = SettingsField(
         "mov",
