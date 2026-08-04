@@ -1183,7 +1183,7 @@ class ExporterReviewMov(ExporterReview):
                  klass,
                  instance,
                  name=None,
-                 ext=None,
+                 settings=None,
                  multiple_presets=True
                  ):
         # initialize parent class
@@ -1197,9 +1197,21 @@ class ExporterReviewMov(ExporterReview):
         self.write_colorspace = instance.data["colorspace"]
         self.color_channels = instance.data["color_channels"]
         self.formatting_data = instance.data["anatomyData"]
+        self.settings = settings or {}
 
         self.name = name or "baked"
-        self.ext = ext or "mov"
+        if settings["output_type"] == "extension":
+            self.ext = settings["extension"] or "mov"
+
+        elif settings["output_type"] == "custom_write_knobs":
+            for knob in settings["custom_write_knobs"]:
+                if knob["name"] == "file_type":
+                    self.ext = knob["value"]
+                    break
+            else:
+                self.ext = "mov"
+        else:
+            self.ext = "mov"
 
         # set frame start / end and file name to self
         self.get_file_info()
@@ -1409,28 +1421,43 @@ class ExporterReviewMov(ExporterReview):
         self.log.debug(f"Path: {self.path}")
 
         write_node["file"].setValue(str(self.path))
-        write_node["file_type"].setValue(str(self.ext))
-        write_node["channels"].setValue(str(self.color_channels))
 
-        # Knobs `meta_codec` and `mov64_codec` are not available on centos.
-        # TODO shouldn't this come from settings on outputs?
-        try:
-            write_node["meta_codec"].setValue("ap4h")
-        except Exception:
-            self.log.info("`meta_codec` knob was not found")
+        if self.settings["output_type"] == "extension":
+            write_node["file_type"].setValue(str(self.ext))
+            write_node["channels"].setValue(str(self.color_channels))
 
-        try:
-            write_node["mov64_codec"].setValue("ap4h")
-            write_node["mov64_fps"].setValue(float(fps))
-        except Exception:
-            self.log.info("`mov64_codec` knob was not found")
+            # Knobs `meta_codec` and `mov64_codec` are not available on centos.
+            # TODO shouldn't this come from settings on outputs?
+            try:
+                write_node["meta_codec"].setValue("ap4h")
+            except Exception:
+                self.log.info("`meta_codec` knob was not found")
 
-        try:
-            write_node["mov64_write_timecode"].setValue(1)
-        except Exception:
-            self.log.info("`mov64_write_timecode` knob was not found")
+            try:
+                write_node["mov64_codec"].setValue("ap4h")
+                write_node["mov64_fps"].setValue(float(fps))
+            except Exception:
+                self.log.info("`mov64_codec` knob was not found")
 
-        write_node["raw"].setValue(1)
+            try:
+                write_node["mov64_write_timecode"].setValue(1)
+            except Exception:
+                self.log.info("`mov64_write_timecode` knob was not found")
+
+            write_node["raw"].setValue(1)
+
+        elif self.settings["output_type"] == "custom_write_knobs":
+            write_node["file_type"].setValue(str(self.ext))
+            write_node["channels"].setValue(str(self.color_channels))
+            write_node["raw"].setValue(1)
+
+            for knob in self.settings["custom_write_knobs"]:
+                try:
+                    write_node[knob["name"]].setValue(knob["value"])
+                except Exception:
+                    self.log.info(
+                        f"`{knob['name']}` knob was not found on Write node"
+                    )
 
         # connect
         write_node.setInput(0, self.previous_node)
