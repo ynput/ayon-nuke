@@ -1,3 +1,5 @@
+from typing import Literal
+
 import nuke
 import re
 import os
@@ -1201,7 +1203,7 @@ class ExporterReviewMov(ExporterReview):
         self.settings = settings or {}
         self.name = name or "baked"
 
-        output_type = self.settings.get("output_type", "extension")
+        output_type = self._get_output_type()
         if output_type == "custom_write_knobs":
             for knob in self.settings.get("custom_write_knobs") or []:
                 if knob["name"] == "file_type":
@@ -1233,6 +1235,14 @@ class ExporterReviewMov(ExporterReview):
                 self.fhead, self.name, after_head, self.ext)
         self.path = os.path.join(
             self.staging_dir, self.file).replace("\\", "/")
+
+    def _get_output_type(self) -> Literal["extension", "custom_write_knobs"]:
+        """Get the output type from settings.
+
+        Returns:
+            Literal["extension", "custom_write_knobs"]: output type
+        """
+        return self.settings.get("output_type", "extension")
 
     def clean_nodes(self, node_name):
         for node in self._temp_nodes[node_name]:
@@ -1420,7 +1430,7 @@ class ExporterReviewMov(ExporterReview):
         self.log.debug(f"Path: {self.path}")
         write_node["file"].setValue(str(self.path))
 
-        output_type = self.settings.get("output_type", "extension")
+        output_type = self._get_output_type()
         if output_type == "extension":
             self._configure_write_node(write_node, fps)
 
