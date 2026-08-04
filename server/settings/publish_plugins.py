@@ -199,7 +199,11 @@ class IntermediateOutputModel(BaseSettingsModel):
     custom_write_knobs: list[KnobModel] = SettingsField(
         default_factory=list,
         title="Custom Write Knobs",
-        section="Output definition",
+        description=(
+            "Define custom write knobs to override default write node "
+            "settings. This is useful for user customization of write node "
+            "settings for their pipeline."
+        )
     )
     extension: str = SettingsField(
         "mov",
