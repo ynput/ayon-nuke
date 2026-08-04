@@ -286,7 +286,7 @@ def on_script_load() -> None:
         workfile_settings.project_settings
         ["nuke"]
         ["workfile_callbacks"]
-        ["on_script_load"]
+        ["on_script_open"]
     )
 
     if on_script_load_settings["set_resolution"]:
