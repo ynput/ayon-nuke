@@ -26,7 +26,6 @@ class MenuShortcut(BaseSettingsModel):
 
 class GeneralSettings(BaseSettingsModel):
     """Nuke general project settings."""
-
     menu: MenuShortcut = SettingsField(
         default_factory=MenuShortcut,
         title="Menu Shortcuts",
