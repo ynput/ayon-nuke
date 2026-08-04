@@ -231,7 +231,7 @@ def add_nuke_callbacks(project_settings: dict = None):
     # set checker for last versions on loaded containers
     nuke.addOnScriptLoad(check_inventory_versions)
     # fix ffmpeg settings on script
-    nuke.addOnScriptLoad(on_root_load)
+    nuke.addOnScriptLoad(on_script_load)
 
     # set checker for last versions on loaded containers
     nuke.addOnScriptSave(check_inventory_versions)
@@ -270,7 +270,7 @@ def on_root_create() -> None:
     start_workfile_template_builder()
 
 
-def on_root_load() -> None:
+def on_script_load() -> None:
     """Callback function for on script load."""
     # fix ffmpeg settings on script
     if nuke.env["LINUX"]:
