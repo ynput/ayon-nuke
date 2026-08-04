@@ -1206,7 +1206,7 @@ class ExporterReviewMov(ExporterReview):
         elif settings["output_type"] == "custom_write_knobs":
             for knob in settings["custom_write_knobs"]:
                 if knob["name"] == "file_type":
-                    self.ext = knob["value"]
+                    self.ext = knob["text"] or "mov"
                     break
             else:
                 self.ext = "mov"
@@ -1450,10 +1450,24 @@ class ExporterReviewMov(ExporterReview):
             write_node["file_type"].setValue(str(self.ext))
             write_node["channels"].setValue(str(self.color_channels))
             write_node["raw"].setValue(1)
+            if "mov64_fps" in write_node.knobs():
+                write_node["mov64_fps"].setValue(float(fps))
 
             for knob in self.settings["custom_write_knobs"]:
                 try:
-                    write_node[knob["name"]].setValue(knob["value"])
+                    if knob["type"] == "text":
+                        write_node[knob["name"]].setValue(str(knob["text"]))
+                    elif knob["type"] == "number":
+                        write_node[knob["name"]].setValue(int(knob["number"]))
+                    elif knob["type"] == "decimal_number":
+                        write_node[knob["name"]].setValue(float(knob["decimal_number"]))
+                    elif knob["type"] == "boolean":
+                        write_node[knob["name"]].setValue(bool(knob["boolean"]))
+                    else:
+                        self.log.warning(
+                            f"Knob type `{knob['type']}` is not supported"
+                        )
+
                 except Exception:
                     self.log.info(
                         f"`{knob['name']}` knob was not found on Write node"
