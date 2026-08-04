@@ -1441,8 +1441,10 @@ class ExporterReviewMov(ExporterReview):
                     "channels", "raw", "mov64_fps"
                 }:
                     continue
-
-                value = convert_knob_value_to_correct_type(write_node, knob)
+                to_type = knob["type"]
+                value = convert_knob_value_to_correct_type(
+                    to_type, knob[to_type]
+                )
                 write_node[knob["name"]].setValue(value)
 
             self._set_write_node_defaults(write_node)
