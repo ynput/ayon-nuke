@@ -41,7 +41,7 @@ DEFAULT_WORKFILE_CALLBACKS_SETTINGS = {
         "set_frame_range": True,
         "set_colorspace": True,
     },
-    "on_script_load": {
+    "on_script_open": {
         "set_resolution": True,
         "set_frame_range": True,
         "set_colorspace": True,
