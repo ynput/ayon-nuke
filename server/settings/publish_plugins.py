@@ -503,6 +503,8 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
                 "extension": "mov",
                 "custom_write_knobs": [
                     {"type": "text", "name": "file_type", "text": "mov"},
+                    {"type": "text", "name": "mov64_codec", "text": "ap4h"},
+                    {"type": "boolean", "name": "mov64_write_timecode", "boolean": True}  # noqa: E501
                 ],
                 "add_custom_tags": [],
                 "fill_missing_frames": "0"
