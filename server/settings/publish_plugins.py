@@ -203,7 +203,8 @@ class IntermediateOutputModel(BaseSettingsModel):
     )
     extension: str = SettingsField(
         "mov",
-        title="File extension"
+        title="File extension",
+        section="Representation definition",
     )
     add_custom_tags: list[str] = SettingsField(
         title="Custom tags",
