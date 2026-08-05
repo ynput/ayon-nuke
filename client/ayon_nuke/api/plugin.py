@@ -1020,6 +1020,7 @@ class ExporterReview(object):
                 "display": display,
                 "view": view,
             })
+
         self.data["representations"].append(repre)
 
     def get_imageio_baking_profile(self):
@@ -1471,6 +1472,15 @@ class ExporterReviewMov(ExporterReview):
 
         if delete:
             tags.append("delete")
+
+        if not display:
+            # backward compatibility: convert display and view to colorspace
+            # just in case older nuke_default ocio config
+            colorspace = get_display_view_colorspace_name(
+                config_path=config_data["path"],
+                display=display,
+                view=view
+            )
 
         self.get_representation_data(
             tags=tags + add_tags,
