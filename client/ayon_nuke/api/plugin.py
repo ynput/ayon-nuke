@@ -1205,14 +1205,23 @@ class ExporterReviewMov(ExporterReview):
 
         output_type = self._get_output_type()
         if output_type == "custom_write_knobs":
+            file_type = None
             for knob in self.settings.get("custom_write_knobs") or []:
-                if knob["name"] == "file_type":
-                    self.ext = knob["text"] or "mov"
+                if knob.get("name") == "file_type":
+                    file_type = knob.get("text")
                     break
-            else:
-                self.ext = "mov"
+
+            if not file_type:
+                raise ValueError(
+                    "Invalid custom_write_knobs settings: "
+                    "expected a non-empty 'file_type' "
+                    "knob text value when output_type is "
+                    "'custom_write_knobs'."
+                )
+
+            self.ext = file_type
         else:
-            self.ext = self.settings.get("extension") or "mov"
+            self.ext = self.settings.get("extension", "mov")
 
         # set frame start / end and file name to self
         self.get_file_info()
@@ -1451,7 +1460,10 @@ class ExporterReviewMov(ExporterReview):
             if "mov64_fps" in write_node.knobs():
                 write_node["mov64_fps"].setValue(float(fps))
         else:
-            self._configure_write_node(write_node, fps)
+            raise ValueError(
+                f"Invalid output type: {output_type}. "
+                "Expected 'extension' or 'custom_write_knobs'."
+            )
 
         # connect
         write_node.setInput(0, self.previous_node)
