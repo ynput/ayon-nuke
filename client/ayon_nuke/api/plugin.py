@@ -947,18 +947,24 @@ class ExporterReview(object):
         range=False,
         custom_tags=None,
         colorspace=None,
+        display=None,
+        view=None,
     ):
-        """Add representation data to self.data
+        """Add representation data to self.data.
 
         Args:
             tags (list[str], optional): list of defined tags.
-                                        Defaults to None.
+                Defaults to None.
             range (bool, optional): flag for adding ranges.
-                                    Defaults to False.
+                Defaults to False.
             custom_tags (list[str], optional): user inputted custom tags.
-                                               Defaults to None.
+                Defaults to None.
             colorspace (str, optional): colorspace name.
-                                        Defaults to None.
+                Defaults to None.
+            display (str, optional): display name.
+                Defaults to None.
+            view (str, optional): view name.
+                Defaults to None.
         """
         add_tags = tags or []
         repre = {
@@ -1001,6 +1007,19 @@ class ExporterReview(object):
                 colorspace=colorspace,
                 log=self.log
             )
+        elif display and view:
+            set_colorspace_data_to_representation(
+                repre,
+                self.instance.context.data,
+                colorspace=display,
+                log=self.log
+            )
+            # remove colorspace key from colorspaceData
+            repre["colorspaceData"].pop("colorspace", None)
+            repre["colorspaceData"].update({
+                "display": display,
+                "view": view,
+            })
         self.data["representations"].append(repre)
 
     def get_imageio_baking_profile(self):
@@ -1256,6 +1275,8 @@ class ExporterReviewMov(ExporterReview):
     def generate_mov(self, farm=False, delete=True, **kwargs):
         # colorspace data
         colorspace = self.write_colorspace
+        display = None
+        view = None
 
         # get colorspace settings
         # get colorspace data from context
@@ -1351,12 +1372,7 @@ class ExporterReviewMov(ExporterReview):
 
                     node["view"].setValue(view)
 
-                    if config_data:
-                        # convert display and view to colorspace
-                        colorspace = get_display_view_colorspace_name(
-                            config_path=config_data["path"],
-                            display=display, view=view
-                        )
+                    colorspace = None
 
                 # OCIOColorSpace
                 elif baking_colorspace["type"] == "colorspace":
@@ -1461,6 +1477,8 @@ class ExporterReviewMov(ExporterReview):
             custom_tags=add_custom_tags,
             range=True,
             colorspace=colorspace,
+            display=display,
+            view=view,
         )
 
         self.log.debug(f"Representation...   `{self.data}`")
