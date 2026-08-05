@@ -1473,7 +1473,7 @@ class ExporterReviewMov(ExporterReview):
         if delete:
             tags.append("delete")
 
-        if config_data and not display:
+        if config_data and (not colorspace and not display):
             # backward compatibility: convert display and view to colorspace
             # just in case older nuke_default ocio config
             colorspace = get_display_view_colorspace_name(
