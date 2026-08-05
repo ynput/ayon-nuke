@@ -111,7 +111,11 @@ class ExtractReviewIntermediates(publish.Extractor):
 
                 # create exporter instance
                 exporter = plugin.ExporterReviewMov(
-                    self, instance, o_name, o_data,
+                    self,
+                    instance,
+                    name=o_name,
+                    settings=o_data,
+                    multiple_presets=multiple_presets,
                     multiple_presets)
 
                 delete = not o_data.get("publish", False)
