@@ -505,7 +505,7 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
                         }
                     ]
                 },
-                "output_type": "extension",
+                "output_type": "custom_write_knobs",
                 "extension": "mov",
                 "custom_write_knobs": [
                     {"type": "text", "name": "file_type", "text": "mov"},
