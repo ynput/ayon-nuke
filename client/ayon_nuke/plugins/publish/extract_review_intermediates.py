@@ -115,8 +115,8 @@ class ExtractReviewIntermediates(publish.Extractor):
                     instance,
                     name=o_name,
                     settings=o_data,
-                    multiple_presets=multiple_presets,
-                    multiple_presets)
+                    multiple_presets=multiple_presets
+                )
 
                 delete = not o_data.get("publish", False)
 
