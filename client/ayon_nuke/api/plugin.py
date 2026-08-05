@@ -1441,7 +1441,7 @@ class ExporterReviewMov(ExporterReview):
 
         output_type = self._get_output_type()
         if output_type == "extension":
-            self._configure_write_node(write_node, fps)
+            self._set_write_node_defaults(write_node, fps)
 
         elif output_type == "custom_write_knobs":
             for knob in self.settings.get("custom_write_knobs") or []:
@@ -1456,9 +1456,7 @@ class ExporterReviewMov(ExporterReview):
                 )
                 write_node[knob["name"]].setValue(value)
 
-            self._set_write_node_defaults(write_node)
-            if "mov64_fps" in write_node.knobs():
-                write_node["mov64_fps"].setValue(float(fps))
+            self._set_write_node_defaults(write_node, fps)
         else:
             raise ValueError(
                 f"Invalid output type: {output_type}. "
@@ -1512,42 +1510,18 @@ class ExporterReviewMov(ExporterReview):
         node.setInput(0, self.previous_node)
         self._shift_to_previous_node_and_temp(product_name, node, message)
 
-    def _configure_write_node(self, write_node, fps) -> None:
-        """Set write node configuration.
+    def _set_write_node_defaults(self, write_node, fps) -> None:
+        """Set default write node configuration.
 
         Args:
             write_node: The write node to configure.
             fps: Frames per second for the write node.
         """
-        self._set_write_node_defaults(write_node)
-
-        # Knobs `meta_codec` and `mov64_codec` are not available on centos.
-        # TODO shouldn't this come from settings on outputs?
-        try:
-            write_node["meta_codec"].setValue("ap4h")
-        except Exception:
-            self.log.info("`meta_codec` knob was not found")
-
-        try:
-            write_node["mov64_codec"].setValue("ap4h")
-            write_node["mov64_fps"].setValue(float(fps))
-        except Exception:
-            self.log.info("`mov64_codec` knob was not found")
-
-        try:
-            write_node["mov64_write_timecode"].setValue(1)
-        except Exception:
-            self.log.info("`mov64_write_timecode` knob was not found")
-
-    def _set_write_node_defaults(self, write_node) -> None:
-        """Set default write node configuration.
-
-        Args:
-            write_node: The write node to configure.
-        """
         write_node["file_type"].setValue(str(self.ext))
         write_node["channels"].setValue(str(self.color_channels))
         write_node["raw"].setValue(1)
+        if "mov64_fps" in write_node.knobs():
+            write_node["mov64_fps"].setValue(float(fps))
 
 
 def convert_to_valid_instaces():
