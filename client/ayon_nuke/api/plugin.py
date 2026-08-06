@@ -1203,10 +1203,10 @@ class ExporterReviewMov(ExporterReview):
         self.settings = settings or {}
         self.name = name or "baked"
 
-        output_type = self._get_output_type()
-        if output_type == "custom_write_knobs":
+        custom_write_knobs = self.settings.get("custom_write_knobs", [])
+        if custom_write_knobs:
             file_type = None
-            for knob in self.settings.get("custom_write_knobs") or []:
+            for knob in custom_write_knobs:
                 if knob.get("name") == "file_type":
                     file_type = knob.get("text")
                     break
@@ -1221,6 +1221,8 @@ class ExporterReviewMov(ExporterReview):
 
             self.ext = file_type
         else:
+            # backwards compatibility for old settings to
+            # get extension
             self.ext = self.settings.get("extension", "mov")
 
         # set frame start / end and file name to self
@@ -1244,14 +1246,6 @@ class ExporterReviewMov(ExporterReview):
                 self.fhead, self.name, after_head, self.ext)
         self.path = os.path.join(
             self.staging_dir, self.file).replace("\\", "/")
-
-    def _get_output_type(self) -> Literal["extension", "custom_write_knobs"]:
-        """Get the output type from settings.
-
-        Returns:
-            Literal["extension", "custom_write_knobs"]: output type
-        """
-        return self.settings.get("output_type", "extension")
 
     def clean_nodes(self, node_name):
         for node in self._temp_nodes[node_name]:
@@ -1439,12 +1433,9 @@ class ExporterReviewMov(ExporterReview):
         self.log.debug(f"Path: {self.path}")
         write_node["file"].setValue(str(self.path))
 
-        output_type = self._get_output_type()
-        if output_type == "extension":
-            self._set_write_node_defaults(write_node, fps)
-
-        elif output_type == "custom_write_knobs":
-            for knob in self.settings.get("custom_write_knobs") or []:
+        custom_write_knobs = self.settings.get("custom_write_knobs") or []
+        if custom_write_knobs:
+            for knob in custom_write_knobs:
                 if knob["name"] in {
                     "file", "file_type",
                     "channels", "raw", "mov64_fps"
@@ -1458,10 +1449,9 @@ class ExporterReviewMov(ExporterReview):
 
             self._set_write_node_defaults(write_node, fps)
         else:
-            raise ValueError(
-                f"Invalid output type: {output_type}. "
-                "Expected 'extension' or 'custom_write_knobs'."
-            )
+            # backward compatibility for old settings
+            # with only extension defined
+            self._set_write_node_defaults(write_node, fps)
 
         # connect
         write_node.setInput(0, self.previous_node)
