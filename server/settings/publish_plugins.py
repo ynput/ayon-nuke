@@ -146,6 +146,19 @@ class ReformatNodesConfigModel(BaseSettingsModel):
     )
 
 
+class WriteKnobsModel(BaseSettingsModel):
+    file_type: str = SettingsField(False)
+    custom: list[KnobModel] = SettingsField(
+        default_factory=list,
+        title="Additional Knobs"
+    )
+    @validator("custom")
+    def ensure_unique_names(cls, value):
+        """Ensure name fields within the lists have unique names."""
+        ensure_unique_names(value)
+        return value
+
+
 class IntermediateOutputModel(BaseSettingsModel):
     name: str = SettingsField(title="Output name")
     publish: bool = SettingsField(
@@ -157,6 +170,13 @@ class IntermediateOutputModel(BaseSettingsModel):
     read_raw: bool = SettingsField(
         False,
         title="Input read node RAW switch"
+    )
+    write_knobs: WriteKnobsModel = SettingsField(
+        default_factory=WriteKnobsModel,
+        title="Write Knobs",
+        description=(
+            "Configure knobs on the output write node"
+        )
     )
     bake_viewer_process: bool = SettingsField(
         True,
@@ -177,16 +197,6 @@ class IntermediateOutputModel(BaseSettingsModel):
         default_factory=ReformatNodesConfigModel,
         title="Reformat Nodes")
 
-    custom_write_knobs: list[KnobModel] = SettingsField(
-        default_factory=list,
-        title="Custom Write Knobs",
-        description=(
-            "Define custom write knobs to override default write node "
-            "settings. This is useful for user customization of write node "
-            "settings for their pipeline."
-        )
-    )
-
     add_custom_tags: list[str] = SettingsField(
         title="Custom tags",
         default_factory=list,
@@ -201,12 +211,6 @@ class IntermediateOutputModel(BaseSettingsModel):
         enum_resolver=_handle_missing_frames_enum,
         section="Representation definition",
     )
-
-    @validator("custom_write_knobs")
-    def ensure_unique_names(cls, value):
-        """Ensure name fields within the lists have unique names."""
-        ensure_unique_names(value)
-        return value
 
 
 class ExtractReviewIntermediatesModel(BaseSettingsModel):
@@ -483,11 +487,21 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
                         }
                     ]
                 },
-                "custom_write_knobs": [
-                    {"type": "text", "name": "file_type", "text": "mov"},
-                    {"type": "text", "name": "mov64_codec", "text": "ap4h"},
-                    {"type": "boolean", "name": "mov64_write_timecode", "boolean": True}  # noqa: E501
-                ],
+                "write_knobs": {
+                    "file_type": "mov",
+                    "custom": [
+                        {
+                            "type": "text",
+                            "name": "mov64_codec",
+                            "text": "ap4h",
+                        },
+                        {
+                            "type": "boolean",
+                            "name": "mov64_write_timecode",
+                            "boolean": True,
+                        },
+                    ],
+                },
                 "add_custom_tags": [],
                 "fill_missing_frames": "0"
             }
