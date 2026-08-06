@@ -209,7 +209,6 @@ class IntermediateOutputModel(BaseSettingsModel):
         description="What to do about missing frames from entity frame range."
                     "Used for filling gaps for Custom Frames",
         enum_resolver=_handle_missing_frames_enum,
-        section="Representation definition",
     )
 
 
