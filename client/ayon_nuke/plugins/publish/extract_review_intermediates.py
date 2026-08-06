@@ -114,7 +114,7 @@ class ExtractReviewIntermediates(publish.Extractor):
                     self,
                     instance,
                     name=o_name,
-                    settings=o_data,
+                    write_knobs=o_data["write_knobs"],
                     multiple_presets=multiple_presets
                 )
 

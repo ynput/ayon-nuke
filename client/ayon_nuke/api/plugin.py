@@ -1185,7 +1185,7 @@ class ExporterReviewMov(ExporterReview):
                  klass,
                  instance,
                  name=None,
-                 settings=None,
+                 write_knobs=None,
                  multiple_presets=True
                  ):
         # initialize parent class
@@ -1199,30 +1199,9 @@ class ExporterReviewMov(ExporterReview):
         self.write_colorspace = instance.data["colorspace"]
         self.color_channels = instance.data["color_channels"]
         self.formatting_data = instance.data["anatomyData"]
-        self.settings = settings or {}
+        self.custom_write_knobs = write_knobs["custom"]
         self.name = name or "baked"
-
-        custom_write_knobs = self.settings.get("custom_write_knobs", [])
-        if custom_write_knobs:
-            file_type = None
-            for knob in custom_write_knobs:
-                if knob.get("name") == "file_type":
-                    file_type = knob.get("text")
-                    break
-
-            if not file_type:
-                raise ValueError(
-                    "Invalid custom_write_knobs settings: "
-                    "expected a non-empty 'file_type' "
-                    "knob text value when output_type is "
-                    "'custom_write_knobs'."
-                )
-
-            self.ext = file_type
-        else:
-            # backwards compatibility for old settings to
-            # get extension
-            self.ext = self.settings.get("extension", "mov")
+        self.ext = write_knobs["file_type"]
 
         # set frame start / end and file name to self
         self.get_file_info()
@@ -1431,10 +1410,8 @@ class ExporterReviewMov(ExporterReview):
         write_node = nuke.createNode("Write")
         self.log.debug(f"Path: {self.path}")
         write_node["file"].setValue(str(self.path))
-
-        custom_write_knobs = self.settings.get("custom_write_knobs") or []
-        if custom_write_knobs:
-            for knob in custom_write_knobs:
+        if self.custom_write_knobs:
+            for knob in self.custom_write_knobs:
                 if knob["name"] in {
                     "file", "file_type",
                     "channels", "raw", "mov64_fps"
@@ -1446,11 +1423,7 @@ class ExporterReviewMov(ExporterReview):
                 )
                 write_node[knob["name"]].setValue(value)
 
-            self._set_write_node_defaults(write_node, fps)
-        else:
-            # backward compatibility for old settings
-            # with only extension defined
-            self._set_write_node_defaults(write_node, fps)
+        self._set_write_node_defaults(write_node, fps)
 
         # connect
         write_node.setInput(0, self.previous_node)
