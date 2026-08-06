@@ -297,6 +297,24 @@ def _convert_collect_sync_workfile_version_model_0_4_5(overrides: dict) -> None:
     ] = sync_workfile_version_on_product_base_types
 
 
+def _convert_review_intermediates_model_0_4_11(overrides: dict) -> None:
+    """Convert review intermediates extension model to include
+    file_type extension."""
+    extract_review_outputs = (
+        overrides
+        .get("publish", {})
+        .get("ExtractReviewIntermediates", {})
+        .get("outputs")
+    )
+    for output in extract_review_outputs:
+        extension = output.pop("extension", None)
+        if not extension:
+            # Nothing to convert
+            return
+        write_knobs = output.get("write_knobs")
+        write_knobs["file_type"] = extension
+
+
 def convert_settings_overrides(
     source_version: str,
     overrides: dict[str, Any],
@@ -309,4 +327,5 @@ def convert_settings_overrides(
     _convert_baking_stream_filter_product_base_type_0_4_0(overrides)
     _convert_collect_instance_data_model_0_4_0(overrides)
     _convert_collect_sync_workfile_version_model_0_4_5(overrides)
+    _convert_review_intermediates_model_0_4_11(overrides)
     return overrides
