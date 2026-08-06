@@ -146,18 +146,6 @@ class ReformatNodesConfigModel(BaseSettingsModel):
     )
 
 
-def _intermediate_preset_output_types() -> list:
-    return [
-        {
-            "value": "extension",
-            "label": "Defined by extension"
-        },
-        {
-            "value": "custom_write_knobs",
-            "label": "Defined by custom write knobs"
-        }
-    ]
-
 class IntermediateOutputModel(BaseSettingsModel):
     name: str = SettingsField(title="Output name")
     publish: bool = SettingsField(
@@ -189,13 +177,6 @@ class IntermediateOutputModel(BaseSettingsModel):
         default_factory=ReformatNodesConfigModel,
         title="Reformat Nodes")
 
-    output_type: str = SettingsField(
-        title="Output type",
-        default="extension",
-        enum_resolver=_intermediate_preset_output_types,
-        conditional_enum=True,
-        section="Output definition",
-    )
     custom_write_knobs: list[KnobModel] = SettingsField(
         default_factory=list,
         title="Custom Write Knobs",
@@ -205,10 +186,7 @@ class IntermediateOutputModel(BaseSettingsModel):
             "settings for their pipeline."
         )
     )
-    extension: str = SettingsField(
-        "mov",
-        title="File extension",
-    )
+
     add_custom_tags: list[str] = SettingsField(
         title="Custom tags",
         default_factory=list,
@@ -505,8 +483,6 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
                         }
                     ]
                 },
-                "output_type": "custom_write_knobs",
-                "extension": "mov",
                 "custom_write_knobs": [
                     {"type": "text", "name": "file_type", "text": "mov"},
                     {"type": "text", "name": "mov64_codec", "text": "ap4h"},
