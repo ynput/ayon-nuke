@@ -289,22 +289,24 @@ class ExtractSlateFrame(publish.Extractor):
                 slate_node.setInput(0, r_node)
                 temporary_nodes.append(r_node)
 
-        # render slate as sequence frame
-        nuke.execute(
-            instance.data["name"],
-            int(slate_first_frame),
-            int(slate_first_frame)
-        )
+        try:
+            # render slate as sequence frame
+            nuke.execute(
+                instance.data["name"],
+                int(slate_first_frame),
+                int(slate_first_frame)
+            )
+        finally:
+            # Restore original slate node connections and remove temporary
+            # nodes even when rendering fails.
+            if slate_node:
+                slate_node.setInput(0, original_slate_input)
+            for node in temporary_nodes:
+                nuke.delete(node)
 
-        # Restore original slate node connections and remove temporary nodes
-        if slate_node and original_slate_input is not None:
-            slate_node.setInput(0, original_slate_input)
-        for node in temporary_nodes:
-            nuke.delete(node)
-
-        # turn the frame range limit back on
-        if limit_on:
-            write_node["use_limit"].setValue(1)
+            # turn the frame range limit back on
+            if limit_on:
+                write_node["use_limit"].setValue(1)
 
         # Add file to representation files
         # - evaluate filepaths for first frame and slate frame
