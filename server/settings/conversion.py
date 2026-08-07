@@ -311,7 +311,8 @@ def _convert_review_intermediates_model_0_4_11(overrides: dict) -> None:
         if not extension:
             # Nothing to convert
             return
-        write_knobs = output.get("write_knobs")
+
+        write_knobs = output.setdefault("write_knobs", {})
         write_knobs["file_type"] = extension
 
 
