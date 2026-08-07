@@ -375,6 +375,8 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         """
         if "slate" not in instance.data["families"]:
             return collected_frames
+        # slate_gen mode does not need to prepend slate frame
+        # since it will be created later on downstream
         if instance.data.get("slate_gen"):
             return collected_frames
 
