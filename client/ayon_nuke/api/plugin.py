@@ -1479,6 +1479,7 @@ class ExporterReviewMov(ExporterReview):
         Args:
             write_node: The write node to configure.
             custom_knobs: List of custom knob configurations.
+            log: Logger for logging warnings and information.
         """
         if not custom_knobs:
             return
