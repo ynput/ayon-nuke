@@ -117,7 +117,8 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         if instance.data.get("slate_gen"):
             first_frame, _ = self._get_frame_range_data(instance)
             slate_first_frame = first_frame - 1
-            expected_slate_path = write_node["file"].evaluate(slate_first_frame)
+            expected_slate_path = write_node["file"].evaluate(
+                slate_first_frame)
             if expected_slate_path not in expected_files:
                 expected_files.insert(0, expected_slate_path)
 
