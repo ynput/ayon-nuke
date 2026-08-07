@@ -1410,20 +1410,8 @@ class ExporterReviewMov(ExporterReview):
         write_node = nuke.createNode("Write")
         self.log.debug(f"Path: {self.path}")
         write_node["file"].setValue(str(self.path))
-        if self.custom_write_knobs:
-            for knob in self.custom_write_knobs:
-                if knob["name"] in {
-                    "file", "file_type",
-                    "channels", "raw", "mov64_fps"
-                }:
-                    continue
-                to_type = knob["type"]
-                value = convert_knob_value_to_correct_type(
-                    to_type, knob[to_type]
-                )
-                write_node[knob["name"]].setValue(value)
-
         self._set_write_node_defaults(write_node, fps)
+        self._set_custom_knobs(write_node, self.custom_write_knobs, self.log)
 
         # connect
         write_node.setInput(0, self.previous_node)
@@ -1484,6 +1472,32 @@ class ExporterReviewMov(ExporterReview):
         write_node["raw"].setValue(1)
         if "mov64_fps" in write_node.knobs():
             write_node["mov64_fps"].setValue(float(fps))
+
+    def _set_custom_knobs(self, write_node, custom_knobs, log) -> None:
+        """Set custom knobs on the write node.
+
+        Args:
+            write_node: The write node to configure.
+            custom_knobs: List of custom knob configurations.
+        """
+        if not custom_knobs:
+            return
+
+        for knob in custom_knobs:
+            if knob["name"] in {
+                "file", "file_type",
+                "channels", "raw", "mov64_fps"
+            }:
+                log.warning(
+                    f"Skipping to set custom knob '{knob['name']}' "
+                    "as it is already set in defaults."
+                )
+                continue
+            to_type = knob["type"]
+            value = convert_knob_value_to_correct_type(
+                to_type, knob[to_type]
+            )
+            write_node[knob["name"]].setValue(value)
 
 
 def convert_to_valid_instaces():
