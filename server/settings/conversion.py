@@ -322,22 +322,18 @@ def _convert_review_intermediates_model_0_4_11(
         write_knobs["file_type"] = extension
 
         if write_knobs.get("custom") is None:
-            custom: list[KnobModel] = SettingsField(
-                title="Additional Knobs",
-                default=[
-                    KnobModel(
-                        type="text",
-                        name="mov64_codec",
-                        text="ap4h",
-                    ),
-                    KnobModel(
-                        type="boolean",
-                        name="mov64_write_timecode",
-                        boolean=True,
-                    )
-                ]
-            )
-            write_knobs["custom"] = custom
+            write_knobs["custom"] = [
+                {
+                    "type": "text",
+                    "name": "mov64_codec",
+                    "text": "ap4h",
+                },
+                {
+                    "type": "boolean",
+                    "name": "mov64_write_timecode",
+                    "boolean": True,
+                },
+            ]
 
 
 def convert_settings_overrides(
