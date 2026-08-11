@@ -25,7 +25,7 @@ from ayon_core.lib import (
     BoolDef,
     UILabelDef,
 )
-
+from ayon_core.tools.ipc_utils import IPCHostTools
 from ayon_core.tools.attribute_defs.dialog import (
     AttributeDefinitionsDialog
 )
@@ -2622,8 +2622,7 @@ def _launch_workfile_app():
     #   - this happened on Centos 7 and it is because the focus of nuke
     #       changes to the main window after showing because of initialization
     #       which moves workfiles tool under it
-    from ayon_core.tools.utils import host_tools
-    host_tools.show_workfiles(parent=None, on_top=True)
+    IPCHostTools.show_workfiles()
 
 
 def update_content_on_context_change():
