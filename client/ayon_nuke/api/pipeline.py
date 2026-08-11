@@ -55,9 +55,6 @@ from ayon_core.tools.ipc_utils.utils import (
     start_main_thread_helper,
     execute_in_main_thread,
 )
-from ayon_core.tools.workfiles.ipc_backend_control import IPCWorkfilesBackend
-from ayon_core.tools.loader.ipc_backend_control import IPCLoaderBackend
-from ayon_core.tools.publisher.ipc_backend_control import IPCPublisherBackend
 from .lib import (
     Context,
     ROOT_DATA_KNOB,
@@ -170,9 +167,6 @@ class NukeHost(
         launch_workfiles_app()
 
         IPCHostTools.init()
-        IPCHostTools.set_loader_backend(IPCLoaderBackend(self))
-        IPCHostTools.set_publisher_backend(IPCPublisherBackend(self))
-        IPCHostTools.set_workfiles_backend(IPCWorkfilesBackend(self))
         start_main_thread_helper()
 
         def _tick():
