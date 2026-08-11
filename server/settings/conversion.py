@@ -315,7 +315,7 @@ def _convert_review_intermediates_model_0_4_11(overrides: dict) -> None:
         write_knobs = output.setdefault("write_knobs", {})
         write_knobs["file_type"] = extension
 
-        if "custom" not in write_knobs or write_knobs["custom"] is None:
+        if write_knobs.get("custom") is None:
             write_knobs["custom"] = [
                 {
                     "type": "text",
