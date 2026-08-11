@@ -147,16 +147,22 @@ class ReformatNodesConfigModel(BaseSettingsModel):
 
 
 class WriteKnobsModel(BaseSettingsModel):
-    file_type: str = SettingsField(False)
+    file_type: str = SettingsField(default="mov", title="File type")
     custom: list[KnobModel] = SettingsField(
-        default_factory=list,
-        title="Additional Knobs"
+        title="Additional Knobs",
+        default=[
+            KnobModel(
+                type="text",
+                name="mov64_codec",
+                text="ap4h",
+            ),
+            KnobModel(
+                type="boolean",
+                name="mov64_write_timecode",
+                boolean=True,
+            )
+        ]
     )
-    @validator("custom")
-    def ensure_unique_names(cls, value):
-        """Ensure name fields within the lists have unique names."""
-        ensure_unique_names(value)
-        return value
 
 
 class IntermediateOutputModel(BaseSettingsModel):

@@ -2,8 +2,6 @@ import re
 from typing import Any
 from copy import deepcopy
 from semver import VersionInfo
-from ayon_server.settings import SettingsField
-from .common import KnobModel
 
 
 def _get_viewer_config_from_string(input_string):
