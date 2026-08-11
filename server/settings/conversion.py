@@ -3,22 +3,6 @@ from typing import Any
 from copy import deepcopy
 
 
-def _get_custom_knobs_list() -> list[dict[str, Any]]:
-    """Return a list of custom knobs for review intermediate mov files."""
-    return [
-        {
-            "type": "text",
-            "name": "mov64_codec",
-            "text": "ap4h",
-        },
-        {
-            "type": "boolean",
-            "name": "mov64_write_timecode",
-            "boolean": True,
-        },
-    ]
-
-
 def _get_viewer_config_from_string(input_string):
     """Convert string to display and viewer string
 
@@ -330,14 +314,6 @@ def _convert_review_intermediates_model_0_4_11(overrides: dict) -> None:
 
         write_knobs = output.setdefault("write_knobs", {})
         write_knobs["file_type"] = extension
-        if extension != "mov":
-            continue
-
-        custom_knobs = write_knobs.get("custom")
-        if custom_knobs:
-            continue
-
-        write_knobs["custom"] = _get_custom_knobs_list()
 
 
 def convert_settings_overrides(
