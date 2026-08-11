@@ -1440,9 +1440,9 @@ class ExporterReviewMov(ExporterReview):
 
         # ---------- render or save to nk
         if self.publish_on_farm:
-            # Save in place then copy as a separate workfile so the baked content
-            # get saved without touching Nuke current root instance.
-            # Cannot use nuke.scriptSave() as it has no effect in terminal mode.
+            # Save in place then copy as a separate workfile so the baked
+            # content get saved without touching Nuke current root instance.
+            # Cannot use nuke.scriptSave(), it has no effect in terminal mode.
             nuke.scriptSaveAs(
                 self.instance.context.data["currentFile"], overwrite=1)
             path_nk = self.save_file()
