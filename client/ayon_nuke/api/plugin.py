@@ -1440,9 +1440,9 @@ class ExporterReviewMov(ExporterReview):
 
         # ---------- render or save to nk
         if self.publish_on_farm:
-            # Force the save: a bare scriptSave() is modified-flag dependent
-            # and can no-op under `nuke -t`, leaving the bake .nk without its
-            # Write node. Same path, so save_file() still copies, not renames.
+            # Save in place then copy as a separate workfile so the baked content
+            # get saved without touching Nuke current root instance.
+            # Cannot use nuke.scriptSave() as it has no effect in terminal mode.
             nuke.scriptSaveAs(
                 self.instance.context.data["currentFile"], overwrite=1)
             path_nk = self.save_file()
@@ -1470,8 +1470,7 @@ class ExporterReviewMov(ExporterReview):
         self.log.debug(f"Representation...   `{self.data}`")
 
         self.clean_nodes(product_name)
-        # Forced as above, so the removed bake Write node does not persist
-        # in the artist's workfile.
+        # Commit to cleaned workfile + session.
         nuke.scriptSaveAs(
             self.instance.context.data["currentFile"], overwrite=1)
 
