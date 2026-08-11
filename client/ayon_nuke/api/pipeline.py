@@ -54,7 +54,6 @@ from ayon_core.tools.ipc_utils import IPCHostTools
 from ayon_core.tools.ipc_utils.utils import (
     start_main_thread_helper,
     execute_in_main_thread,
-    WrappedCallbackItem,
 )
 from ayon_core.tools.workfiles.ipc_backend_control import IPCWorkfilesBackend
 from ayon_core.tools.loader.ipc_backend_control import IPCLoaderBackend
