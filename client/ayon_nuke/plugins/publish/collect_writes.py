@@ -112,16 +112,6 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             for source_file in collected_frames
         ]
 
-        # When slate generation is enabled, include the expected slate frame
-        # path so the farm integration knows to expect it.
-        if instance.data.get("slate_gen"):
-            first_frame, _ = self._get_frame_range_data(instance)
-            slate_first_frame = first_frame - 1
-            expected_slate_path = write_node["file"].evaluate(
-                slate_first_frame)
-            if expected_slate_path not in expected_files:
-                expected_files.insert(0, expected_slate_path)
-
         instance.data["expectedFiles"] = expected_files
 
     def _get_frame_range_data(self, instance):
@@ -375,16 +365,18 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         """
         if "slate" not in instance.data["families"]:
             return collected_frames
-        # slate_gen mode does not need to prepend slate frame
-        # since it will be created later on downstream
-        if instance.data.get("slate_gen"):
-            return collected_frames
 
         write_node = self._write_node_helper(instance)
         expected_slate_frame = first_frame - 1
         expected_slate_path = write_node["file"].evaluate(expected_slate_frame)
 
-        if os.path.exists(expected_slate_path):
+        if (
+            os.path.exists(expected_slate_path)
+            or (
+                instance.data["render_target"] == "frames_farm"
+                and instance.data.get("slate_gen")
+            )
+        ):
             slate_frame = os.path.basename(expected_slate_path)
             collected_frames.insert(0, slate_frame)
 
