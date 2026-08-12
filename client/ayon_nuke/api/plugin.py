@@ -1495,13 +1495,14 @@ class ExporterReviewMov(ExporterReview):
             value = convert_knob_value_to_correct_type(
                 to_type, knob[to_type]
             )
-            if knob["name"] not in write_node.knobs():
+            name = knob["name"]
+            if name not in write_node.knobs():
                 log.warning(
-                    f"Knob '{knob['name']}' does not exist on the write node. "
+                    f"Knob '{name}' does not exist on the write node. "
                     "Skipping setting this knob."
                 )
                 continue
-            write_node[knob["name"]].setValue(value)
+            write_node[name].setValue(value)
 
 
 def convert_to_valid_instaces():
