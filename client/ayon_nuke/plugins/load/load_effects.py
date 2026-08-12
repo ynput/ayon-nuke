@@ -66,7 +66,7 @@ class LoadEffects(plugin.NukeGroupLoader):
             self, context: dict, group_node: nuke.Node) -> str:
         """Load the json file and create nodes inside the group node"""
         file = self.filepath_from_context(context).replace("\\", "/")
-        with open(file) as f:
+        with open(file, "r") as f:
             json_f = json.load(f)
 
         # get correct order of nodes by positions on track and subtrack
@@ -110,16 +110,17 @@ class LoadEffects(plugin.NukeGroupLoader):
                     _template_data = {
                         "root": anatomy.roots,
                     }
-                    success, rootless_path = \
+                    success, rootless_path = (
                         anatomy.find_root_template_from_path(file_path)
+                    )
 
-                    self.log.info(f"rootless_path: {rootless_path}")
+                    self.log.debug(f"rootless_path: {rootless_path}")
                     if success:
                         abs_resources_path = StringTemplate.format_strict_template(
                             rootless_path, _template_data
                         )
                         v = abs_resources_path
-                        self.log.info(f"File path: {abs_resources_path}")
+                        self.log.debug(f"File path: {abs_resources_path}")
 
                 # Set node attribute values
                 if isinstance(v, list) and len(v) > 4:
