@@ -1440,7 +1440,11 @@ class ExporterReviewMov(ExporterReview):
 
         # ---------- render or save to nk
         if self.publish_on_farm:
-            nuke.scriptSave()
+            # Save in place then copy as a separate workfile so the baked
+            # content get saved without touching Nuke current root instance.
+            # Cannot use nuke.scriptSave(), it has no effect in terminal mode.
+            nuke.scriptSaveAs(
+                self.instance.context.data["currentFile"], overwrite=1)
             path_nk = self.save_file()
             self.data.update({
                 "bakeScriptPath": path_nk,
@@ -1466,7 +1470,9 @@ class ExporterReviewMov(ExporterReview):
         self.log.debug(f"Representation...   `{self.data}`")
 
         self.clean_nodes(product_name)
-        nuke.scriptSave()
+        # Commit to cleaned workfile + session.
+        nuke.scriptSaveAs(
+            self.instance.context.data["currentFile"], overwrite=1)
 
         return self.data
 
