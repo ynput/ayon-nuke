@@ -35,7 +35,6 @@ from .lib import (
     INSTANCE_DATA_KNOB,
     Knobby,
     create_backdrop,
-    deprecated,
     maintained_selection,
     get_avalon_knob_data,
     set_node_knobs_from_settings,
@@ -584,12 +583,6 @@ def get_instance_group_node_children(instance):
         return []
 
     return node.nodes()
-
-
-# alias for backwards compatibility
-@deprecated("ayon_nuke.api.plugin.get_instance_group_node_children")
-def get_instance_group_node_childs(instance):
-    return get_instance_group_node_children(instance)
 
 
 def get_colorspace_from_node(node):
@@ -1449,7 +1442,11 @@ class ExporterReviewMov(ExporterReview):
 
         # ---------- render or save to nk
         if self.publish_on_farm:
-            nuke.scriptSave()
+            # Save in place then copy as a separate workfile so the baked
+            # content get saved without touching Nuke current root instance.
+            # Cannot use nuke.scriptSave(), it has no effect in terminal mode.
+            nuke.scriptSaveAs(
+                self.instance.context.data["currentFile"], overwrite=1)
             path_nk = self.save_file()
             self.data.update({
                 "bakeScriptPath": path_nk,
@@ -1475,7 +1472,9 @@ class ExporterReviewMov(ExporterReview):
         self.log.debug(f"Representation...   `{self.data}`")
 
         self.clean_nodes(product_name)
-        nuke.scriptSave()
+        # Commit to cleaned workfile + session.
+        nuke.scriptSaveAs(
+            self.instance.context.data["currentFile"], overwrite=1)
 
         return self.data
 

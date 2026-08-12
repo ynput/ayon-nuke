@@ -4,7 +4,6 @@ import nuke
 
 import pyblish.util
 import pyblish.api
-from qtpy import QtWidgets
 
 from ayon_core import resources
 from ayon_core.pipeline import registered_host
@@ -87,14 +86,6 @@ def bake_gizmos_recursively(in_group=None):
 
                 if node.Class() == "Group":
                     bake_gizmos_recursively(node)
-
-
-def is_headless() -> bool:
-    """
-    Returns:
-        bool: headless
-    """
-    return QtWidgets.QApplication.instance() is None
 
 
 def submit_render_on_farm(node):
