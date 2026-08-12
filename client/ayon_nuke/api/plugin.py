@@ -1485,19 +1485,16 @@ class ExporterReviewMov(ExporterReview):
             return
 
         for knob in custom_knobs:
-            if knob["name"] in {
-                "file", "file_type",
-                "channels", "raw", "mov64_fps"
-            }:
-                log.warning(
-                    f"Skipping to set custom knob '{knob['name']}' "
-                    "as it is already set in defaults."
-                )
-                continue
             to_type = knob["type"]
             value = convert_knob_value_to_correct_type(
                 to_type, knob[to_type]
             )
+            if knob["name"] not in write_node.knobs():
+                log.warning(
+                    f"Knob '{knob['name']}' does not exist on the write node. "
+                    "Skipping setting this knob."
+                )
+                continue
             write_node[knob["name"]].setValue(value)
 
 
