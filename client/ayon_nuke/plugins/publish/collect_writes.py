@@ -373,6 +373,9 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         if (
             os.path.exists(expected_slate_path)
             or (
+                # When submitting to farm using existing frames on disk
+                # and slate generation is enabled then ensure to add
+                # the slate frame even though it may not exist yet
                 instance.data["render_target"] == "frames_farm"
                 and instance.data.get("slate_gen")
             )
