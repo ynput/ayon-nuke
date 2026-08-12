@@ -8,11 +8,15 @@ import pyblish.api
 
 from ayon_core.host import (
     ApplicationInformation,
+    ContextChangeData,
     HostBase,
     IWorkfileHost,
     ILoadHost,
     IPublishHost
 )
+
+from ayon_core.host.interfaces import SaveWorkfileContext
+
 from ayon_core.lib import register_event_callback, Logger
 from ayon_core.pipeline import (
     register_loader_plugin_path,
@@ -54,7 +58,7 @@ from .lib import (
     check_inventory_versions,
     set_avalon_knob_data,
     read_avalon_data,
-    on_script_load,
+    prompt_reset_context,
     dirmap_file_name_filter,
     add_scripts_menu,
     add_scripts_gizmo,
@@ -97,6 +101,7 @@ class NukeHost(
     HostBase, IWorkfileHost, ILoadHost, IPublishHost
 ):
     name = "nuke"
+    about_to_save = False
 
     def get_app_information(self):
         return ApplicationInformation(
@@ -139,7 +144,6 @@ class NukeHost(
 
         # Register AYON event for workfiles loading.
         register_event_callback("workio.open_file", check_inventory_versions)
-        register_event_callback("taskChanged", change_context_label)
 
     def setup_ui_callbacks_and_menu(self):
         """Setup AYON menus."""
@@ -163,33 +167,74 @@ class NukeHost(
         set_node_data(root_node, ROOT_DATA_KNOB, data)
 
 
+    def _before_workfile_save(
+        self, save_workfile_context: SaveWorkfileContext
+    ) -> None:
+        """Before workfile is saved.
+
+        This method is called before the workfile is saved in the host.
+
+        Args:
+            save_workfile_context (SaveWorkfileContext): Workfile path with
+                target folder and task context.
+
+        """
+        super()._before_workfile_save(save_workfile_context)
+        self.about_to_save = True
+
+    def _after_workfile_save(
+        self, save_workfile_context: SaveWorkfileContext
+    ) -> None:
+        """After workfile is saved.
+
+        This method is called after the workfile is saved in the host.
+
+        Args:
+            save_workfile_context (SaveWorkfileContext): Workfile path with
+                target folder and task context.
+
+        """
+        super()._after_workfile_save(save_workfile_context)
+        self.about_to_save = False
+
+    def _after_context_change(self, context_change_data: ContextChangeData):
+        """After context is changed.
+
+        This method is called after the context is changed.
+
+        Args:
+            context_change_data (ContextChangeData): Object with information
+                about context change.
+
+        """
+        super()._after_context_change(context_change_data)
+
+        if not nuke.GUI:
+            return
+
+        change_context_label()
+
+        if self.about_to_save:
+            # Let's prompt the user to update the context settings or not
+            prompt_reset_context()
+
+
 def add_nuke_callbacks(project_settings: dict = None):
     """Adding all available nuke callbacks"""
     if project_settings is None:
         project_settings = get_current_project_settings()
 
     nuke_settings = project_settings["nuke"]
-    workfile_settings = WorkfileSettings()
 
-    # Set context settings.
-    nuke.addOnCreate(
-        workfile_settings.set_context_settings, nodeClass="Root")
-
-    # adding favorites to file browser
-    nuke.addOnCreate(workfile_settings.set_favorites, nodeClass="Root")
-
-    # template builder callbacks
-    nuke.addOnCreate(start_workfile_template_builder, nodeClass="Root")
-
+    # Set all workfile settings.'
+    nuke.addOnCreate(on_root_create, nodeClass="Root")
+    # set checker for last versions on loaded containers
+    nuke.addOnScriptLoad(check_inventory_versions)
     # fix ffmpeg settings on script
     nuke.addOnScriptLoad(on_script_load)
 
     # set checker for last versions on loaded containers
-    nuke.addOnScriptLoad(check_inventory_versions)
     nuke.addOnScriptSave(check_inventory_versions)
-
-    # set apply all workfile settings on script load and save
-    nuke.addOnScriptLoad(WorkfileSettings().set_context_settings)
 
     if nuke_settings["dirmap"]["enabled"]:
         log.info("Added Nuke's dir-mapping callback ...")
@@ -197,6 +242,61 @@ def add_nuke_callbacks(project_settings: dict = None):
         nuke.addFilenameFilter(dirmap_file_name_filter)
 
     log.info("Added Nuke callbacks ...")
+
+
+def on_root_create() -> None:
+    """Callback function for on script create."""
+    # set apply all workfile settings on script load and save
+    workfile_settings = WorkfileSettings()
+    on_script_create_settings = (
+        workfile_settings.project_settings
+        ["nuke"]
+        ["workfile_callbacks"]
+        ["on_script_create"]
+    )
+
+    if on_script_create_settings["set_resolution"]:
+        workfile_settings.reset_resolution()
+
+    if on_script_create_settings["set_frame_range"]:
+        workfile_settings.reset_frame_range_handles()
+
+    if on_script_create_settings["set_colorspace"]:
+        workfile_settings.set_colorspace()
+
+    # adding favorites to file browser
+    workfile_settings.set_favorites()
+    # template builder callbacks
+    start_workfile_template_builder()
+
+
+def on_script_load() -> None:
+    """Callback function for on script load."""
+    # fix ffmpeg settings on script
+    if nuke.env["LINUX"]:
+        nuke.tcl('load ffmpegReader')
+        nuke.tcl('load ffmpegWriter')
+    else:
+        nuke.tcl('load movReader')
+        nuke.tcl('load movWriter')
+
+    # set apply all workfile settings on script load and save
+    workfile_settings = WorkfileSettings()
+    on_script_load_settings = (
+        workfile_settings.project_settings
+        ["nuke"]
+        ["workfile_callbacks"]
+        ["on_script_open"]
+    )
+
+    if on_script_load_settings["set_resolution"]:
+        workfile_settings.reset_resolution()
+
+    if on_script_load_settings["set_frame_range"]:
+        workfile_settings.reset_frame_range_handles()
+
+    if on_script_load_settings["set_colorspace"]:
+        workfile_settings.set_colorspace()
 
 
 def reload_config():
@@ -312,13 +412,6 @@ def _install_menu(project_settings: dict):
     menu.addCommand(
         "Manage...",
         lambda: host_tools.show_scene_inventory(parent=main_window)
-    )
-    menu.addSeparator()
-    menu.addCommand(
-        "Library...",
-        lambda: host_tools.show_library_loader(
-            parent=main_window
-        )
     )
     menu.addSeparator()
     menu.addCommand(

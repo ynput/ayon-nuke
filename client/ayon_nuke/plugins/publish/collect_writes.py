@@ -51,8 +51,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             self._set_existing_files_data(instance, colorspace)
 
         elif render_target == "frames_farm":
-            collected_frames = self._set_existing_files_data(
-                instance, colorspace)
+            collected_frames = self._get_collected_frames(instance)
 
             self._set_expected_files(instance, collected_frames)
 
@@ -161,7 +160,10 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
 
         write_node = self._write_node_helper(instance)
         if instance.data.get("stagingDir_is_custom", False):
-            self.log.info("Custom staging dir detected. Syncing write nodes output path.")
+            self.log.info(
+                "Custom staging dir detected. "
+                "Syncing write nodes output path."
+            )
             napi.lib.writes_version_sync(write_node, self.log)
 
         # Determine defined file type
@@ -312,13 +314,6 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "tags": []
         }
 
-        # set slate frame
-        collected_frames = self._add_slate_frame_to_collected_frames(
-            instance,
-            collected_frames,
-            first_frame
-        )
-
         if len(collected_frames) == 1:
             representation['files'] = collected_frames.pop()
         else:
@@ -364,7 +359,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         expected_slate_frame = first_frame - 1
         expected_slate_path = write_node["file"].evaluate(expected_slate_frame)
 
-        if not os.path.exists(expected_slate_path):
+        if os.path.exists(expected_slate_path):
             slate_frame = os.path.basename(expected_slate_path)
             collected_frames.insert(0, slate_frame)
 
@@ -427,13 +422,14 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             if filename in expected_filenames
         ]
 
-        return collected_frames
-
+        # set slate frame
+        return self._add_slate_frame_to_collected_frames(
+            instance,
+            collected_frames,
+            first_frame
+        )
 
 def _find_downstream_time_warp_node(start_node):
-    # HACK: no idea why calling `dependentNodes` the first time
-    # seems to always return nothing.
-    nuke.dependentNodes(nuke.INPUTS, [start_node])
-    for node in nuke.dependentNodes(nuke.INPUTS, [start_node]):
+    for node in start_node.dependent(nuke.INPUTS, forceEvaluate=False):
         if node.Class() == "TimeWarp":
             return node

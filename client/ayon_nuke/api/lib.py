@@ -22,6 +22,12 @@ from ayon_core.lib import (
     env_value_to_bool,
     Logger,
     StringTemplate,
+    BoolDef,
+    UILabelDef,
+)
+
+from ayon_core.tools.attribute_defs.dialog import (
+    AttributeDefinitionsDialog
 )
 
 from ayon_core.settings import (
@@ -44,6 +50,7 @@ from ayon_core.pipeline import (
     AVALON_INSTANCE_ID,
     get_current_context,
 )
+from ayon_core.pipeline.create import CreateContext
 from ayon_core.pipeline.load import filter_containers
 from ayon_core.pipeline.colorspace import (
     get_current_context_imageio_config_preset
@@ -427,6 +434,14 @@ def set_avalon_knob_data(node, data=None, prefix="avalon:"):
     """
     data = data or dict()
     create = OrderedDict()
+
+    # remove node key from container data before
+    # setting it into the node's avalon knob
+    data = {
+        key: value
+        for key, value in data.items()
+        if key not in ("node", "objectName")
+    }
 
     tab_name = NODE_TAB_NAME
     editable = ["folderPath", "productName", "name", "namespace"]
@@ -819,16 +834,6 @@ def get_view_process_node():
         return duplicate_node(ipn_node)
 
 
-def on_script_load():
-    """Callback for ffmpeg support"""
-    if nuke.env["LINUX"]:
-        nuke.tcl('load ffmpegReader')
-        nuke.tcl('load ffmpegWriter')
-    else:
-        nuke.tcl('load movReader')
-        nuke.tcl('load movWriter')
-
-
 def check_inventory_versions():
     """Update loaded container nodes' colors based on version state.
 
@@ -979,7 +984,11 @@ def get_work_default_directory(data):
         "frame": "#" * frame_padding,
     })
 
-    work_default_dir_template = anatomy.get_template_item("work", "default", "directory")
+    work_default_dir_template = anatomy.get_template_item(
+        "work",
+        "default",
+        "directory"
+    )
     normalized_dir = work_default_dir_template.format_strict(data).normalized()
     return str(normalized_dir).replace("\\", "/")
 
@@ -1514,7 +1523,12 @@ class WorkfileSettings(object):
 
     """
 
-    def __init__(self, root_node=None, nodes=None, **kwargs):
+    def __init__(
+            self,
+            root_node=None,
+            nodes=None,
+            project_settings=None,
+            **kwargs):
         project_entity = kwargs.get("project")
         if project_entity is None:
             project_name = get_current_project_name()
@@ -1543,6 +1557,18 @@ class WorkfileSettings(object):
             project_name, self._folder_path, self._task_name, "nuke"
         )
         self.formatting_data = context_data
+        self._project_setting = project_settings
+
+    @property
+    def project_settings(self) -> dict:
+        """Get project settings
+
+        Returns:
+            dict: project settings for the current project
+        """
+        if not self._project_setting:
+            self._project_setting = get_project_settings(self._project_name)
+        return self._project_setting
 
     def get_nodes(self, nodes=None, nodes_filter=None):
 
@@ -1636,7 +1662,9 @@ class WorkfileSettings(object):
             imageio_host (dict): host colorspace configurations
 
         """
-        config_data = get_current_context_imageio_config_preset()
+        config_data = get_current_context_imageio_config_preset(
+            project_settings=self.project_settings
+        )
 
         workfile_settings = imageio_host["workfile"]
         color_management = workfile_settings["color_management"]
@@ -1963,7 +1991,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             # This ensures that any values overwritten by the user is
             # not changed by the colorspace knobs set.
             colorspace_knobs = nuke_imageio_writes["knobs"]
-            all_create_settings =  get_project_settings(Context.project_name)["nuke"]["create"]
+            all_create_settings = self.project_settings["nuke"]["create"]
             plugin_names_mapping = {
                 "create_write_image": "CreateWriteImage",
                 "create_write_prerender": "CreateWritePrerender",
@@ -1971,7 +1999,9 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             }
             node_data = get_node_data(node, INSTANCE_DATA_KNOB)
             identifier = node_data["creator_identifier"]
-            creator_settings = all_create_settings[plugin_names_mapping[identifier]]
+            creator_settings = all_create_settings[
+                plugin_names_mapping[identifier]
+            ]
             exposed_knobs = creator_settings.get("exposed_knobs")
 
             colorspace_knobs = [
@@ -2013,13 +2043,43 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                     }
 
         if changes:
-            msg = "Read nodes are not set to correct colorspace:\n\n"
-            for node_name, knobs in changes.items():
-                msg += (
-                    " - node: '{0}' is now '{1}' but should be '{2}'\n"
-                ).format(node_name, knobs["from"], knobs["to"])
+            # Limit items shown in the UI
+            # to avoid display issues with long lists.
+            MAX_ITEMS = 10
 
-            msg += "\nWould you like to change it?"
+            items = list(changes.items())
+            details = []
+
+            msg = (
+                "Read node is not set to the correct colorspace:\n\n"
+                if len(items) == 1
+                else "Read nodes are not set to the correct colorspace:\n\n"
+            )
+
+            for i, (node_name, knobs) in enumerate(items):
+                line = (
+                    f" - node: '{node_name}' is now '{knobs['from']}' "
+                    f"but should be '{knobs['to']}'"
+                )
+                details.append(line)
+
+                if i < MAX_ITEMS:
+                    msg += line + "\n"
+
+            remaining = len(items) - MAX_ITEMS
+            if remaining > 0:
+                print("\n".join(details))
+                msg += (
+                    f"\n...and {remaining} more "
+                    f"{'node' if remaining == 1 else 'nodes'}.\n"
+                    "\nA detailed list has been printed to the Script Editor."
+                )
+
+            msg += (
+                "\n\nWould you like to change it?"
+                if len(items) == 1
+                else "\n\nWould you like to change them?"
+            )
 
             if nuke.ask(msg):
                 for node_name, knobs in changes.items():
@@ -2174,8 +2234,18 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             log.info("Creating new format: {}".format(format_string))
             nuke.addFormat(format_string)
 
-        nuke.root()["format"].setValue(format_data["name"])
-        log.info("Format is set.")
+        try:
+            nuke.root()["format"].setValue(format_data["name"])
+            log.info("Root format is set.")
+
+        except Exception as error:
+            log.error(
+                "Failed to set root format from %r: %r",
+                format_data,
+                error,
+                exc_info=True,
+            )
+            raise
 
         # update node graph so knobs are updated
         update_node_graph()
@@ -2268,6 +2338,8 @@ def get_dependent_nodes(nodes):
     """Get all dependent nodes connected to the list of nodes.
 
     Looking for connections outside the nodes in incoming argument.
+    This only checks for direct connections (nuke.INPUTS). It ignores others,
+    like hidden links (nuke.HIDDEN_INPUTS) and expressions (nuke.EXPRESSIONS).
 
     Arguments:
         nodes (list): list of nuke.Node objects
@@ -2279,24 +2351,28 @@ def get_dependent_nodes(nodes):
 
     connections_in = dict()
     connections_out = dict()
-    node_names = [n.name() for n in nodes]
+    node_names: set[str] = {n.name() for n in nodes}
     for node in nodes:
-        inputs = node.dependencies()
-        outputs = node.dependent()
         # collect all inputs outside
-        test_in = [(i, n) for i, n in enumerate(inputs)
-                   if n.name() not in node_names]
+        inputs = node.dependencies(nuke.INPUTS)
+        test_in = [
+            (i, input_) for i, input_ in enumerate(inputs)
+            if input_.name() not in node_names
+        ]
         if test_in:
-            connections_in.update({
-                node: test_in
-            })
-        # collect all outputs outside
-        test_out = [i for i in outputs if i.name() not in node_names]
+            connections_in[node] = test_in
+
+        # collect last connected output; only one dependent node is allowed
+        outputs = node.dependent(nuke.INPUTS, forceEvaluate=False)
+        test_out = next(
+            (
+                output for output in reversed(outputs)
+                if output.name() not in node_names
+            ),
+            None
+        )
         if test_out:
-            # only one dependent node is allowed
-            connections_out.update({
-                node: test_out[-1]
-            })
+            connections_out[node] = test_out
 
     return connections_in, connections_out
 
@@ -2548,6 +2624,115 @@ def _launch_workfile_app():
     #       which moves workfiles tool under it
     from ayon_core.tools.utils import host_tools
     host_tools.show_workfiles(parent=None, on_top=True)
+
+
+def update_content_on_context_change():
+    """Update creator instances when the current folder/task changes."""
+    host = registered_host()
+    create_context = CreateContext(host, discover_publish_plugins=False)
+
+    project_entity = create_context.get_current_project_entity()
+    folder_entity = create_context.get_current_folder_entity()
+    task_entity = create_context.get_current_task_entity()
+
+    current_folder_path = folder_entity["path"]
+    current_task = task_entity["name"]
+
+    project_name = project_entity["name"]
+    host_name = create_context.host_name
+
+    _changed = False
+
+    for instance in create_context.instances:
+        if instance.creator_identifier == "workfile":
+            continue
+
+        if (
+            instance.get("folderPath") == current_folder_path
+            and instance.get("task") == current_task
+        ):
+            continue
+
+        creator = create_context.creators[instance.creator_identifier]
+
+        product_name = creator.get_product_name(
+            project_name=project_name,
+            project_entity=project_entity,
+            folder_entity=folder_entity,
+            task_entity=task_entity,
+            variant=instance.get("variant"),
+            host_name=host_name,
+        )
+
+        instance["folderPath"] = current_folder_path
+        instance["task"] = current_task
+        instance["productName"] = product_name
+
+        _changed = True
+
+    if _changed:
+        create_context.save_changes()
+
+
+def prompt_reset_context():
+    """Prompt the user what context settings to reset.
+    This prompt is used on saving to a different task to allow the scene to
+    get matched to the new context.
+    """
+    definitions = [
+        UILabelDef(
+            label=(
+                "You are saving your workfile into a different folder or task."
+                "\n\n"
+                "Would you like to update some settings to the new context?\n"
+            )
+        ),
+        BoolDef(
+            "resolution",
+            label="Resolution",
+            tooltip="Reset workfile resolution",
+            default=True
+        ),
+        BoolDef(
+            "frame_range_fps",
+            label="Frame Range / FPS",
+            tooltip="Reset workfile start/end frame ranges and fps",
+            default=True
+        ),
+        BoolDef(
+            "colorspace",
+            label="Colorspace",
+            tooltip="Reset workfile colorspace",
+            default=True
+        ),
+        BoolDef(
+            "instances",
+            label="Publish instances",
+            tooltip="Update all publish instance's folder and task to match "
+                    "the new folder and task",
+            default=True
+        ),
+    ]
+
+    dialog = AttributeDefinitionsDialog(definitions)
+    dialog.setWindowTitle("Saving to different context.")
+    try:
+        if not dialog.exec_():
+            return None
+
+        options = dialog.get_values()
+
+        settings = WorkfileSettings()
+        if options.get("resolution"):
+            settings.reset_resolution()
+        if options.get("frame_range_fps"):
+            settings.reset_frame_range_handles()
+        if options.get("colorspace"):
+            settings.set_colorspace()
+        if options.get("instances"):
+            update_content_on_context_change()
+    finally:
+        dialog.deleteLater()
 
 
 def start_workfile_template_builder():

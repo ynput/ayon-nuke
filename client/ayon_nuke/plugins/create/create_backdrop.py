@@ -3,7 +3,7 @@ from nukescripts import autoBackdrop
 from ayon_nuke.api import (
     NukeCreator,
     maintained_selection,
-    select_nodes
+    select_nodes,
 )
 
 
@@ -42,7 +42,8 @@ class CreateBackdrop(NukeCreator):
             nuke.Node: Newly created instance node.
 
         Raises:
-            NukeCreatorError. When multiple Camera nodes are part of the selection.
+            NukeCreatorError:
+                When multiple Camera nodes are part of the selection.
 
         """
         with maintained_selection():

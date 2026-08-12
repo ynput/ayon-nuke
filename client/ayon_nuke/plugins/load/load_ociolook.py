@@ -176,7 +176,7 @@ class LoadOcioLookNodes(load.LoaderPlugin):
                     (
                         file for file in all_files
                         if file.endswith(extension)
-                        and os.path.basename(file).endswith(lut_suffix)
+                        and os.path.splitext(file)[0].endswith(lut_suffix)
                     ),
                     None
                 )

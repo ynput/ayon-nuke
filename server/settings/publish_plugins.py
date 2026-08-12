@@ -249,10 +249,12 @@ class ExtractSlateFrameModel(BaseSettingsModel):
 
 
 class PublishPluginsModel(BaseSettingsModel):
-    CollectSyncWorkfileVersion: CollectSyncWorkfileVersionModel = SettingsField(
-        title="Collect Sync Workfile Version",
-        default_factory=CollectSyncWorkfileVersionModel,
-        section="Collectors"
+    CollectSyncWorkfileVersion: CollectSyncWorkfileVersionModel = (
+        SettingsField(
+            title="Collect Sync Workfile Version",
+            default_factory=CollectSyncWorkfileVersionModel,
+            section="Collectors",
+        )
     )
     ValidateCorrectAssetContext: OptionalPluginModel = SettingsField(
         title="Validate Correct Folder Name",
@@ -265,6 +267,22 @@ class PublishPluginsModel(BaseSettingsModel):
     )
     ValidateOutputResolution: OptionalPluginModel = SettingsField(
         title="Validate Output Resolution",
+        default_factory=OptionalPluginModel
+    )
+    ValidateExposedKnobs: OptionalPluginModel = SettingsField(
+        title="Validate Exposed Knobs",
+        default_factory=OptionalPluginModel
+    )
+    ValidateProxyMode: OptionalPluginModel = SettingsField(
+        title="Validate Proxy Mode",
+        default_factory=OptionalPluginModel
+    )
+    ValidateRenderedFrames: OptionalPluginModel = SettingsField(
+        title="Validate Rendered Frames",
+        default_factory=OptionalPluginModel
+    )
+    ValidateNukeWriteNode: OptionalPluginModel = SettingsField(
+        title="Validate Nuke Write Node",
         default_factory=OptionalPluginModel
     )
     ValidateGizmo: OptionalPluginModel = SettingsField(
@@ -349,6 +367,26 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
     "ValidateOutputResolution": {
         "enabled": True,
         "optional": True,
+        "active": True
+    },
+    "ValidateExposedKnobs": {
+        "enabled": True,
+        "optional": False,  # match how it was before it was made optional
+        "active": True
+    },
+    "ValidateProxyMode": {
+        "enabled": True,
+        "optional": False,  # match how it was before it was made optional
+        "active": True
+    },
+    "ValidateRenderedFrames": {
+        "enabled": True,
+        "optional": False,  # match how it was before it was made optional
+        "active": True
+    },
+    "ValidateNukeWriteNode": {
+        "enabled": True,
+        "optional": False,  # match how it was before it was made optional
         "active": True
     },
     "ValidateGizmo": {
