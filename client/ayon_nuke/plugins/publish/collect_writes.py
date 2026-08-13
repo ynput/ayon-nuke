@@ -30,11 +30,11 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             instance.data["stagingDir_persistent"] = True
 
         # add slate family to instance.data["families"]
-        if instance.data.get("slate_gen"):
-            if instance.data.get("families") is None:
-                instance.data["families"] = []
-            instance.data["families"] = list(
-                set(instance.data["families"] + ["slate"]))
+        if (
+            instance.data.get("slate_gen")
+            and "slate" not in instance.data["families"]
+        ):
+            instance.data["families"].append("slate")
 
         group_node = instance.data["transientData"]["node"]
 
