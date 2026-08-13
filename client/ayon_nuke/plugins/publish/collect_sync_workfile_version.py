@@ -25,7 +25,7 @@ class CollectSyncWorkfileVersion(pyblish.api.InstancePlugin):
         context = instance.context
         if "version" not in context.data:
             # This may happen is workfile is not saved
-            self.log.error(
+            self.log.warning(
                 "Unable to sync workfile version because no context version "
                 "was found. Make sure the workfile is saved."
             )
