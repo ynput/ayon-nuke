@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# 0. Ensure this hook script is executable. Git will silently skip hooks
+# that don't have the executable bit set, so we self-correct here and
+# also make sure future copies of this file remain executable.
+if [ ! -x "$0" ]; then
+    chmod +x "$0" 2>/dev/null
+fi
+
+# 1. Capture the Git hook arguments
+PREV_HEAD="$1"
+NEW_HEAD="$2"
+IS_BRANCH_CHECKOUT="$3"
+
+# 2. Check if this is a brand new worktree creation
+# New worktrees always have an empty all-zero hash for the previous HEAD,
+# and the branch checkout flag must be 1, and we must be inside a worktree
+# (not the main working tree) to avoid triggering on the initial clone/checkout.
+IS_WORKTREE=$(git rev-parse --is-inside-work-tree 2>/dev/null)
+GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null)
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
+
+if [ "$PREV_HEAD" = "0000000000000000000000000000000000000000" ] \
+   && [ "$IS_BRANCH_CHECKOUT" = "1" ] \
+   && [ "$IS_WORKTREE" = "true" ] \
+   && [ "$GIT_DIR" != "$GIT_COMMON_DIR" ]; then
+
+    # Target directory where the hook is currently running
+    CURRENT_WORKTREE_DIR=$(pwd)
+
+    # Extract the current branch name
+    CURRENT_BRANCH=$(git symbolic-ref --short HEAD)
+
+    echo "⚙️ New worktree detected for branch [$CURRENT_BRANCH] at: $CURRENT_WORKTREE_DIR"
+
+    # Current location: /project_root/worktrees/[BRANCH]/[repo_root]
+    # We want to go up one level to: /project_root/worktrees/[BRANCH]/
+    BRANCH_FOLDER=$(dirname "$CURRENT_WORKTREE_DIR")
+
+    echo "🚚 Fetching shared rules/data into branch root: $BRANCH_FOLDER"
+
+    # 4. Pull data from your external central standards repository
+    # Using a shallow clone to pull data into a folder named 'agentic-instructions'
+    # Only clone if it doesn't already exist to avoid duplicate work on repeated triggers
+    if [ ! -d "$BRANCH_FOLDER/central-rules" ]; then
+        mkdir -p "$BRANCH_FOLDER"
+        git clone --depth 1 https://github.com/<org>/<repo>.git "$BRANCH_FOLDER/agentic-instructions"
+    else
+        echo "ℹ️ agentic-instructions already exists at $BRANCH_FOLDER, skipping clone."
+    fi
+
+    echo "✅ Workspace initialization complete for $CURRENT_BRANCH."
+fi
