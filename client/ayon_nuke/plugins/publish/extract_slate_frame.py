@@ -254,7 +254,7 @@ class ExtractSlateFrame(publish.Extractor):
         first_frame = instance.data["frameStartHandle"]
         last_frame = instance.data["frameEndHandle"]
         slate_first_frame = first_frame - 1
-        render_target = instance.data.get("render_target", "local")
+        render_target = instance.data["render_target"]
 
         # - get write node
         write_node = instance.data["transientData"]["writeNode"]
