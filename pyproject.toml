@@ -1,0 +1,15 @@
+[project]
+name = "ayon-nuke"
+version = "0.4.11+dev"
+requires-python = ">=3.11"
+
+[project.scripts]
+install = "repo_install:main"
+repo_install = "repo_install:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["repo_install"]
