@@ -40,13 +40,13 @@ if [ "$PREV_HEAD" = "0000000000000000000000000000000000000000" ] \
     echo "🚚 Fetching shared rules/data into branch root: $BRANCH_FOLDER"
 
     # 4. Pull data from your external central standards repository
-    # Using a shallow clone to pull data into a folder named 'agentic-instructions'
+    # Using a shallow clone to pull data into a folder named 'ayon-agentic-instructions'
     # Only clone if it doesn't already exist to avoid duplicate work on repeated triggers
-    if [ ! -d "$BRANCH_FOLDER/central-rules" ]; then
+    if [ ! -d "$BRANCH_FOLDER/ayon-agentic-instructions" ]; then
         mkdir -p "$BRANCH_FOLDER"
-        git clone --depth 1 https://github.com/<org>/<repo>.git "$BRANCH_FOLDER/agentic-instructions"
+        git clone --depth 1 https://github.com/ynput/ayon-agentic-instructions.git "$BRANCH_FOLDER/ayon-agentic-instructions"
     else
-        echo "ℹ️ agentic-instructions already exists at $BRANCH_FOLDER, skipping clone."
+        echo "ℹ️ ayon-agentic-instructions already exists at $BRANCH_FOLDER, skipping clone."
     fi
 
     echo "✅ Workspace initialization complete for $CURRENT_BRANCH."
