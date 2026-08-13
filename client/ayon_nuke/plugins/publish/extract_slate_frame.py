@@ -300,7 +300,7 @@ class ExtractSlateFrame(publish.Extractor):
         finally:
             # Restore original slate node connections and remove temporary
             # nodes even when rendering fails.
-            if slate_node:
+            if slate_node and original_slate_input:
                 slate_node.setInput(0, original_slate_input)
             for node in temporary_nodes:
                 nuke.delete(node)
