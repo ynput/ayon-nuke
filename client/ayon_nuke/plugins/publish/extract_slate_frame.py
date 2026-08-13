@@ -274,21 +274,19 @@ class ExtractSlateFrame(publish.Extractor):
         # content rather than the live upstream graph.
         temporary_nodes = []
         original_slate_input = None
-        slate_node = None
-        if render_target == "frames":
+        slate_node = instance.data.get("slateNode")
+        if render_target == "frames" and slate_node:
             fpath = instance.data["path"]
-            slate_node = instance.data.get("slateNode")
-            if slate_node:
-                original_slate_input = slate_node.input(0)
-                r_node = nuke.createNode("Read")
-                r_node["file"].setValue(fpath)
-                r_node["first"].setValue(first_frame)
-                r_node["origfirst"].setValue(first_frame)
-                r_node["last"].setValue(last_frame)
-                r_node["origlast"].setValue(last_frame)
-                r_node["colorspace"].setValue(instance.data["colorspace"])
-                slate_node.setInput(0, r_node)
-                temporary_nodes.append(r_node)
+            original_slate_input = slate_node.input(0)
+            r_node = nuke.createNode("Read")
+            r_node["file"].setValue(fpath)
+            r_node["first"].setValue(first_frame)
+            r_node["origfirst"].setValue(first_frame)
+            r_node["last"].setValue(last_frame)
+            r_node["origlast"].setValue(last_frame)
+            r_node["colorspace"].setValue(instance.data["colorspace"])
+            slate_node.setInput(0, r_node)
+            temporary_nodes.append(r_node)
 
         try:
             # render slate as sequence frame
