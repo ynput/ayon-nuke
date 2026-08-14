@@ -19,7 +19,8 @@ from ayon_nuke.api.lib import (
 from ayon_nuke.api import (
     containerise,
     update_container,
-    colorspace_exists_on_node
+    colorspace_exists_on_node,
+    viewer_update_and_undo_stop
 )
 from ayon_nuke.api.command import undo_chunk
 
