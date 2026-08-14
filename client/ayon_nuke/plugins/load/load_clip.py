@@ -19,9 +19,10 @@ from ayon_nuke.api.lib import (
 from ayon_nuke.api import (
     containerise,
     update_container,
-    viewer_update_and_undo_stop,
     colorspace_exists_on_node
 )
+from ayon_nuke.api.command import undo_chunk
+
 from ayon_core.lib.transcoding import (
     VIDEO_EXTENSIONS,
     IMAGE_EXTENSIONS
@@ -102,6 +103,7 @@ class LoadClip(plugin.NukeLoader):
     def get_representations(cls):
         return cls.representations_include or cls.representations
 
+    @undo_chunk("Load Clip")
     def load(self, context, name, namespace, options):
         """Load asset via database."""
         project_name = context["project"]["name"]
@@ -233,11 +235,11 @@ class LoadClip(plugin.NukeLoader):
 
             container = containerise(
                 read_node,
-                name=name,
-                namespace=namespace,
-                context=context,
-                loader=self.__class__.__name__,
-                data=data_imprint)
+                filepath,
+                project_name,
+                version_entity,
+                repre_entity
+            )
 
         if add_retime and version_data.get("retime"):
             self._make_retimes(
@@ -283,6 +285,7 @@ class LoadClip(plugin.NukeLoader):
         new_repre_entity["context"]["frame"] = hashed_frame
         return new_repre_entity
 
+    @undo_chunk("Update Clip")
     def update(self, container, context):
         """Update the Loader's path
 
@@ -298,10 +301,16 @@ class LoadClip(plugin.NukeLoader):
 
         version_attributes = version_entity["attrib"]
         version_data = version_entity["data"]
+        version_name = version_entity["version"]
 
         is_sequence = len(repre_entity["files"]) > 1
 
         read_node = container["node"]
+
+        # update undo name
+        name = container.get("name") or read_node.name()
+        undo_name = f"Update: {name} to v{version_name}"
+        nuke.Undo.name(undo_name)
 
         if is_sequence:
             repre_entity = self._representation_with_hash_in_frame(
@@ -437,15 +446,20 @@ class LoadClip(plugin.NukeLoader):
         else:
             self.log.info("Colorspace not set...")
 
+    @undo_chunk("Remove Clip")
     def remove(self, container):
         read_node = container["node"]
         assert read_node.Class() == "Read", "Must be Read"
 
-        with viewer_update_and_undo_stop():
-            members = self.get_members(read_node)
-            nuke.delete(read_node)
-            for member in members:
-                nuke.delete(member)
+        # update undo name
+        name = container.get("name") or read_node.name()
+        undo_name = f"Remove: {name}"
+        nuke.Undo.name(undo_name)
+
+        members = self.get_members(read_node)
+        nuke.delete(read_node)
+        for member in members:
+            nuke.delete(member)
 
     def _set_range_to_node(
         self, read_node: nuke.Node, first: int, last: int
