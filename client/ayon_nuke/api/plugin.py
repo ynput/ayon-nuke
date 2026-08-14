@@ -54,7 +54,7 @@ from .pipeline import (
     containerise,
     update_container,
 )
-from .command import viewer_update_and_undo_stop
+from .command import undo_chunk
 from .colorspace import (
     get_formatted_display_and_view_as_dict,
     get_formatted_colorspace
@@ -739,6 +739,7 @@ class NukeGroupLoader(LoaderPlugin):
             inpanel=False
         )
 
+    @undo_chunk("Load Group")
     def load(self, context, name=None, namespace=None, options=None):
         """
         Loading function to get the soft effects to particular read node
@@ -776,6 +777,7 @@ class NukeGroupLoader(LoaderPlugin):
             loader=self.__class__.__name__,
             data=data_imprint)
 
+    @undo_chunk("Update Group")
     def update(self, container, context):
         """Update the Loader's path
 
@@ -807,10 +809,10 @@ class NukeGroupLoader(LoaderPlugin):
     def switch(self, container, context):
         self.update(container, context)
 
+    @undo_chunk("Remove Group")
     def remove(self, container):
         node = container["node"]
-        with viewer_update_and_undo_stop():
-            nuke.delete(node)
+        nuke.delete(node)
 
     def connect_active_viewer(self, group_node):
         """

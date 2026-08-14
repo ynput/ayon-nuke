@@ -5,11 +5,11 @@ from ayon_core.pipeline import (
     load,
     get_representation_path,
 )
+from ayon_nuke.api.command import undo_chunk
 from ayon_nuke.api.lib import maintained_selection
 from ayon_nuke.api import (
     containerise,
     update_container,
-    viewer_update_and_undo_stop
 )
 
 
@@ -33,6 +33,7 @@ class AlembicModelLoader(load.LoaderPlugin):
     color = "orange"
     node_color = "0x4ecd91ff"
 
+    @undo_chunk("Load Alembic Geo")
     def load(self, context, name, namespace, data):
         # get main variables
         project_name = context["project"]["name"]
@@ -84,6 +85,7 @@ class AlembicModelLoader(load.LoaderPlugin):
             loader=self.__class__.__name__,
             data=data_imprint)
 
+    @undo_chunk("Update Alembic Geo")
     def update(self, container, context):
         """
             Called by Scene Inventory when look should be updated to current
@@ -224,7 +226,7 @@ class AlembicModelLoader(load.LoaderPlugin):
     def switch(self, container, context):
         self.update(container, context)
 
+    @undo_chunk("Remove Alembic Geo")
     def remove(self, container):
         node = nuke.toNode(container['objectName'])
-        with viewer_update_and_undo_stop():
-            nuke.delete(node)
+        nuke.delete(node)
