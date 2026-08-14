@@ -64,7 +64,8 @@ class ValidateNukeWriteNode(
     product_base_types_mapping = {
         "render": "CreateWriteRender",
         "prerender": "CreateWritePrerender",
-        "image": "CreateWriteImage"
+        "image": "CreateWriteImage",
+        "plate": "CreateWritePlate",
     }
 
     def process(self, instance):
