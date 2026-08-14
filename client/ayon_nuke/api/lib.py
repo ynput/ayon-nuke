@@ -2559,7 +2559,10 @@ def select_nodes(nodes):
         "nodes has to be list, tuple or set"
 
     for node in nodes:
-        node["selected"].setValue(True)
+        try:
+            node["selected"].setValue(True)
+        except Exception as error:
+            log.warning(f"Failed to select node: {error}")
 
 
 def launch_workfiles_app():
