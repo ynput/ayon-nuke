@@ -375,7 +375,8 @@ class LoadClip(plugin.NukeLoader):
             elif extension in VIDEO_EXTENSIONS:
                 read_node["frame_mode"].setValue("start at")
                 read_node["frame"].setValue(
-                    str(version_attributes.get("frameStart") - version_attributes["handleStart"])
+                    str(version_attributes.get("frameStart") 
+                    - version_attributes["handleStart"])
                 )
 
             updated_dict = {
