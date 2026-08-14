@@ -195,7 +195,7 @@ class LoadClip(plugin.NukeLoader):
             self._set_range_to_node(read_node, first, last)
 
         if start_at_workfile:
-            self._start_at_workfile_frame(read_node)
+            self._start_at_workfile_frame(read_node, slate_frames)
         elif extension in VIDEO_EXTENSIONS:
             read_node["frame_mode"].setValue("start at")
             read_node["frame"].setValue(
@@ -327,6 +327,7 @@ class LoadClip(plugin.NukeLoader):
         set_frame_range: bool = container.get("option_set_start_frame",
             self.options_defaults["set_frame_range"]
         )
+        extension = "." + repre_entity["context"]["ext"]
 
         add_retime = [
             key for key in read_node.knobs().keys()
@@ -365,7 +366,7 @@ class LoadClip(plugin.NukeLoader):
             last = int(read_node['last'].value())
 
         if start_at_workfile:
-            self._start_at_workfile_frame(read_node, slate_frames)
+            self._start_at_workfile_frame(read_node)
         elif extension in VIDEO_EXTENSIONS:
             read_node["frame_mode"].setValue("start at")
             read_node["frame"].setValue(
