@@ -1,15 +1,28 @@
 [project]
 name = "ayon-nuke"
-version = "0.4.11+dev"
+version = "0.3.3"
+description = "Nuke addon for Ayon.\n"
+readme = "README.md"
 requires-python = ">=3.11"
-
-[project.scripts]
-install = "repo_install:main"
-repo_install = "repo_install:main"
+dependencies = [
+    "tomlkit>=0.13.2",
+    "requests>=2.32.3",
+    "mkdocs-material>=9.6.7",
+    "mkdocs-autoapi>=0.4.0",
+    "mkdocstrings-python>=1.16.2",
+    "mkdocs-minify-plugin>=0.8.0",
+    "markdown-checklist>=0.4.4",
+    "mdx-gh-links>=0.4",
+    "pymdown-extensions>=10.14.3",
+    "mike>=2.1.3",
+]
 
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
+
+[project.scripts]
+repo_install = "repo_install:main"
 
 [tool.setuptools]
 py-modules = ["repo_install"]
