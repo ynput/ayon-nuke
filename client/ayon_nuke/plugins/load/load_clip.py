@@ -237,10 +237,11 @@ class LoadClip(plugin.NukeLoader):
 
             container = containerise(
                 read_node,
-                filepath,
-                project_name,
-                version_entity,
-                repre_entity
+                name=name,
+                namespace=namespace,
+                context=context,
+                loader=self.__class__.__name__,
+                data=data_imprint
             )
 
         if add_retime and version_data.get("retime"):
