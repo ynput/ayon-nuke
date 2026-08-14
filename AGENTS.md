@@ -3,12 +3,17 @@
 ## General AYON instructions
 
 Generic AYON addon instructions are distributed separately. When needed,
-search for and follow:
+first look for and follow in case worktree was setupped correctly with git hook:
+
+`.ayon-main/AGENTS.md`
+
+If that file does not exist, look for and follow as fallback:
 
 `../ayon-agentic-instructions/AGENTS.md`
 
 The sidecar directory is outside this repository root and contains the
 organization-level agentic skills and instructions.
+
 
 ## Nuke-specific repository details
 

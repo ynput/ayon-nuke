@@ -33,20 +33,13 @@ if [ "$PREV_HEAD" = "0000000000000000000000000000000000000000" ] \
 
     echo "⚙️ New worktree detected for branch [$CURRENT_BRANCH] at: $CURRENT_WORKTREE_DIR"
 
-    # Current location: /project_root/worktrees/[BRANCH]/[repo_root]
-    # We want to go up one level to: /project_root/worktrees/[BRANCH]/
-    BRANCH_FOLDER=$(dirname "$CURRENT_WORKTREE_DIR")
+    echo "🚚 Fetching shared Agentic instructions into Worktree: $CURRENT_WORKTREE_DIR"
 
-    echo "🚚 Fetching shared rules/data into branch root: $BRANCH_FOLDER"
-
-    # 4. Pull data from your external central standards repository
-    # Using a shallow clone to pull data into a folder named 'ayon-agentic-instructions'
-    # Only clone if it doesn't already exist to avoid duplicate work on repeated triggers
-    if [ ! -d "$BRANCH_FOLDER/ayon-agentic-instructions" ]; then
-        mkdir -p "$BRANCH_FOLDER"
-        git clone --depth 1 https://github.com/ynput/ayon-agentic-instructions.git "$BRANCH_FOLDER/ayon-agentic-instructions"
+    # Pull data from your external central standards repository
+    if [ ! -d "$CURRENT_WORKTREE_DIR/.agents-main" ]; then
+        git clone --depth 1 https://github.com/ynput/ayon-agentic-instructions.git "$CURRENT_WORKTREE_DIR/.agents-main"
     else
-        echo "ℹ️ ayon-agentic-instructions already exists at $BRANCH_FOLDER, skipping clone."
+        echo "ℹ️ .agents-main already exists at $CURRENT_WORKTREE_DIR, skipping clone."
     fi
 
     echo "✅ Workspace initialization complete for $CURRENT_BRANCH."
