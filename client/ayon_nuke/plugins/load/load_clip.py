@@ -19,8 +19,7 @@ from ayon_nuke.api.lib import (
 from ayon_nuke.api import (
     containerise,
     update_container,
-    colorspace_exists_on_node,
-    viewer_update_and_undo_stop
+    colorspace_exists_on_node
 )
 from ayon_nuke.api.command import undo_chunk
 
@@ -183,66 +182,65 @@ class LoadClip(plugin.NukeLoader):
             inpanel=False
         )
 
-        # to avoid multiple undo steps for rest of process
-        # we will switch off undo-ing
-        with viewer_update_and_undo_stop():
-            read_node["file"].fromUserText(filepath)
-            if read_node.Class() == "Read":
-                self.set_colorspace_to_node(
-                    read_node,
-                    filepath,
-                    project_name,
-                    version_entity,
-                    repre_entity
-                )
-            if set_frame_range and first is not None and last is not None:
-                self._set_range_to_node(read_node, first, last)
-
-            if start_at_workfile:
-                self._start_at_workfile_frame(read_node, slate_frames)
-            elif extension in VIDEO_EXTENSIONS:
-                read_node["frame_mode"].setValue("start at")
-                read_node["frame"].setValue(
-                    str(version_attributes.get("frameStart")
-                    - version_attributes["handleStart"])
-                )
-
-            version_name = version_entity["version"]
-            if version_name < 0:
-                version_name = "hero"
-
-            data_imprint = {
-                "version": version_name,
-                "option_set_start_frame": set_frame_range
-            }
-
-            # add attributes from the version to imprint metadata knob
-            for key in [
-                "frameStart",
-                "frameEnd",
-                "source",
-                "fps",
-                "handleStart",
-                "handleEnd",
-            ]:
-                value = version_attributes.get(key, str(None))
-                if isinstance(value, str):
-                    value = value.replace("\\", "/")
-                data_imprint[key] = value
-
-            if add_retime and version_data.get("retime"):
-                data_imprint["addRetime"] = True
-
-            read_node["tile_color"].setValue(int("0x4ecd25ff", 16))
-
-            container = containerise(
+        read_node["file"].fromUserText(filepath)
+        if read_node.Class() == "Read":
+            self.set_colorspace_to_node(
                 read_node,
-                name=name,
-                namespace=namespace,
-                context=context,
-                loader=self.__class__.__name__,
-                data=data_imprint
+                filepath,
+                project_name,
+                version_entity,
+                repre_entity
             )
+        if set_frame_range and first is not None and last is not None:
+            self._set_range_to_node(read_node, first, last)
+
+        if start_at_workfile:
+            self._start_at_workfile_frame(read_node)
+        elif extension in VIDEO_EXTENSIONS:
+            read_node["frame_mode"].setValue("start at")
+            read_node["frame"].setValue(
+                str(version_attributes.get("frameStart")
+                - version_attributes["handleStart"])
+            )
+
+        version_name = version_entity["version"]
+        if version_name < 0:
+            version_name = "hero"
+
+        # update the name of the current undo step
+        nuke.Undo.name(f"{self.__class__.__name__}: {name} v{version_name}")
+
+        data_imprint = {
+            "version": version_name,
+            "option_set_start_frame": set_frame_range
+        }
+
+        # add attributes from the version to imprint metadata knob
+        for key in [
+            "frameStart",
+            "frameEnd",
+            "source",
+            "fps",
+            "handleStart",
+            "handleEnd",
+        ]:
+            value = version_attributes.get(key, str(None))
+            if isinstance(value, str):
+                value = value.replace("\\", "/")
+            data_imprint[key] = value
+
+        if add_retime and version_data.get("retime"):
+            data_imprint["addRetime"] = True
+
+        read_node["tile_color"].setValue(int("0x4ecd25ff", 16))
+
+        container = containerise(
+            read_node,
+            name=name,
+            namespace=namespace,
+            context=context,
+            loader=self.__class__.__name__,
+            data=data_imprint)
 
         if add_retime and version_data.get("retime"):
             self._make_retimes(
@@ -340,8 +338,6 @@ class LoadClip(plugin.NukeLoader):
         handle_start = version_attributes.get("handleStart") or 0
         handle_end = version_attributes.get("handleEnd") or 0
 
-        extension = "." + repre_entity["context"]["ext"]
-
         if first is not None and last is not None and not is_sequence:
             duration = last - first
             first = 1
@@ -354,58 +350,53 @@ class LoadClip(plugin.NukeLoader):
 
         read_node["file"].fromUserText(filepath)
 
-        # to avoid multiple undo steps for rest of process
-        # we will switch off undo-ing
-        with viewer_update_and_undo_stop():
-            if read_node.Class() == "Read":
-                self.set_colorspace_to_node(
-                    read_node,
-                    filepath,
-                    project_name,
-                    version_entity,
-                    repre_entity
-                )
-            if set_frame_range and first is not None and last is not None:
-                self._set_range_to_node(read_node, first, last)
-            else:
-                first = int(read_node['first'].value())
-                last = int(read_node['last'].value())
-
-            if start_at_workfile:
-                self._start_at_workfile_frame(read_node)
-            elif extension in VIDEO_EXTENSIONS:
-                read_node["frame_mode"].setValue("start at")
-                read_node["frame"].setValue(
-                    str(version_attributes.get("frameStart")
-                    - version_attributes["handleStart"])
-                )
-
-            updated_dict = {
-                "representation": repre_entity["id"],
-                "frameStart": str(first),
-                "frameEnd": str(last),
-                "version": str(version_entity["version"]),
-                "source": version_attributes.get("source"),
-                "handleStart": str(handle_start),
-                "handleEnd": str(handle_end),
-                "fps": str(version_attributes.get("fps"))
-            }
-
-            last_version_entity = ayon_api.get_last_version_by_product_id(
-                project_name, version_entity["productId"], fields={"id"}
+        if read_node.Class() == "Read":
+            self.set_colorspace_to_node(
+                read_node,
+                filepath,
+                project_name,
+                version_entity,
+                repre_entity
             )
-            # change color of read_node
-            if version_entity["id"] == last_version_entity["id"]:
-                color_value = "0x4ecd25ff"
-            else:
-                color_value = "0xd84f20ff"
-            read_node["tile_color"].setValue(int(color_value, 16))
+        if set_frame_range and first is not None and last is not None:
+            self._set_range_to_node(read_node, first, last)
+        else:
+            first = int(read_node['first'].value())
+            last = int(read_node['last'].value())
 
-            # Update the imprinted representation
-            update_container(read_node, updated_dict)
-            self.log.info(
-                "updated to version: {}".format(version_entity["version"])
+        if start_at_workfile:
+            self._start_at_workfile_frame(read_node, slate_frames)
+        elif extension in VIDEO_EXTENSIONS:
+            read_node["frame_mode"].setValue("start at")
+            read_node["frame"].setValue(
+                str(version_attributes.get("frameStart")
+                - version_attributes["handleStart"])
             )
+
+        updated_dict = {
+            "representation": repre_entity["id"],
+            "frameStart": str(first),
+            "frameEnd": str(last),
+            "version": str(version_name),
+            "source": version_attributes.get("source"),
+            "handleStart": str(handle_start),
+            "handleEnd": str(handle_end),
+            "fps": str(version_attributes.get("fps"))
+        }
+
+        last_version_entity = ayon_api.get_last_version_by_product_id(
+            project_name, version_entity["productId"], fields={"id"}
+        )
+        # change color of read_node
+        if version_entity["id"] == last_version_entity["id"]:
+            color_value = "0x4ecd25ff"
+        else:
+            color_value = "0xd84f20ff"
+        read_node["tile_color"].setValue(int(color_value, 16))
+
+        # Update the imprinted representation
+        update_container(read_node, updated_dict)
+        self.log.info(f"updated to version: {version_name}")
 
         if add_retime and version_data.get("retime"):
             self._make_retimes(
