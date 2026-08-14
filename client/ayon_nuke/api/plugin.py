@@ -461,6 +461,14 @@ class NukeWriteCreator(NukeCreator):
                     label="Review"
                 )
             )
+        if "slate_gen" in self.instance_attributes:
+            attr_defs.append(
+                BoolDef(
+                    "slate_gen",
+                    default=True,
+                    label="Slate Generation"
+                )
+            )
 
         return attr_defs
 

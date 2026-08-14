@@ -1,10 +1,10 @@
 import os
-import nuke
+
 import pyblish.api
-
 from ayon_core.pipeline import publish
-
 from ayon_nuke import api as napi
+
+import nuke  # noqa
 
 
 class CollectNukeWrites(pyblish.api.InstancePlugin,
@@ -23,12 +23,18 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
     _frame_ranges = {}
 
     def process(self, instance):
-
         # compatibility. This is mainly focused on `renders`folders which
         # were previously not cleaned up (and could be used in read notes)
         # this logic should be removed and replaced with custom staging dir
         if instance.data.get("stagingDir_persistent") is None:
             instance.data["stagingDir_persistent"] = True
+
+        # add slate family to instance.data["families"]
+        if (
+            instance.data.get("slate_gen")
+            and "slate" not in instance.data["families"]
+        ):
+            instance.data["families"].append("slate")
 
         group_node = instance.data["transientData"]["node"]
 
@@ -101,10 +107,12 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         write_file_path = nuke.filename(write_node)
         output_dir = os.path.dirname(write_file_path)
 
-        instance.data["expectedFiles"] = [
+        expected_files = [
             os.path.join(output_dir, source_file)
             for source_file in collected_frames
         ]
+
+        instance.data["expectedFiles"] = expected_files
 
     def _get_frame_range_data(self, instance):
         """Get frame range data from instance.
@@ -314,6 +322,9 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "tags": []
         }
 
+        if instance.data.get("slate_gen"):
+            representation["tags"].append("slate-frame")
+
         if len(collected_frames) == 1:
             representation['files'] = collected_frames.pop()
         else:
@@ -359,7 +370,16 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         expected_slate_frame = first_frame - 1
         expected_slate_path = write_node["file"].evaluate(expected_slate_frame)
 
-        if os.path.exists(expected_slate_path):
+        if (
+            os.path.exists(expected_slate_path)
+            or (
+                # When submitting to farm using existing frames on disk
+                # and slate generation is enabled then ensure to add
+                # the slate frame even though it may not exist yet
+                instance.data["render_target"] == "frames_farm"
+                and instance.data.get("slate_gen")
+            )
+        ):
             slate_frame = os.path.basename(expected_slate_path)
             collected_frames.insert(0, slate_frame)
 
@@ -383,6 +403,13 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "farm": True  # to skip integrate
         })
         self.log.info("Farm rendering ON ...")
+
+        if instance.data.get("slate_gen"):
+            write_node = self._write_node_helper(instance)
+            slate_representation_ext = instance.data.setdefault(
+                "slateRepresentationExt", [])
+            slate_representation_ext.append(
+                write_node["file_type"].value())
 
     def _get_collected_frames(self, instance):
         """Get collected frames.
