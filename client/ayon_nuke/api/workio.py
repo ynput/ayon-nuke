@@ -40,12 +40,18 @@ def open_file(filepath):
             with _no_create_callbacks():
                 nuke.scriptClear()
             nuke.scriptReadFile(nuke_script)
-            nuke.Root()["name"].setValue(nuke_script)
-            nuke.Root()["project_directory"].setValue(os.path.dirname(nuke_script))
-            nuke.Root().setModified(False)
 
-            # Above way of loading script does not trigger onScriptLoad()
-            # callback, so we need to call it manually
+            root = nuke.Root()
+            root["name"].setValue(nuke_script)
+            root["project_directory"].setValue(os.path.dirname(nuke_script))
+            root.setModified(False)
+
+            # Above way of loading script does not trigger onCreate() nor
+            # onScriptLoad() callback, so we need to call it manually here
+            # after root name has been set so the callbacks behave similar
+            # to how they would if user would do File > Open or on Nuke
+            # launch with a comp script file.
+            nuke.onCreate()
             nuke.onScriptLoad()
         else:
             nuke.scriptOpen(nuke_script)
