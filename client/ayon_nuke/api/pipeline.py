@@ -226,11 +226,8 @@ def add_nuke_callbacks(project_settings: dict = None):
 
     nuke_settings = project_settings["nuke"]
 
-    # Set all workfile settings.'
     nuke.addOnCreate(on_root_create, nodeClass="Root")
-    # set checker for last versions on loaded containers
-    nuke.addOnScriptLoad(check_inventory_versions)
-    # fix ffmpeg settings on script
+
     nuke.addOnScriptLoad(on_script_load)
 
     # set checker for last versions on loaded containers
@@ -268,6 +265,8 @@ def on_root_create() -> None:
     workfile_settings.set_favorites()
     # template builder callbacks
     start_workfile_template_builder()
+    # set checker for last versions on loaded containers
+    check_inventory_versions()
 
 
 def on_script_load() -> None:
@@ -297,6 +296,9 @@ def on_script_load() -> None:
 
     if on_script_load_settings["set_colorspace"]:
         workfile_settings.set_colorspace()
+
+    # set checker for last versions on loaded containers
+    check_inventory_versions()
 
 
 def reload_config():
