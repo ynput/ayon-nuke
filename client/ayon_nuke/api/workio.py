@@ -7,7 +7,7 @@ from .constants import ASSIST
 
 
 @contextlib.contextmanager
-def _no_script_create_callbacks():
+def _no_create_callbacks():
     """Context manager to temporarily disable `nuke.onCreate` callbacks."""
     callbacks = nuke.onCreates.copy()
     try:
@@ -37,7 +37,7 @@ def open_file(filepath):
 
     def read_script(nuke_script):
         if not ASSIST:
-            with _no_script_create_callbacks():
+            with _no_create_callbacks():
                 nuke.scriptClear()
             nuke.scriptReadFile(nuke_script)
             nuke.Root()["name"].setValue(nuke_script)
