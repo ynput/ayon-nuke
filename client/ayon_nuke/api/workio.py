@@ -30,6 +30,10 @@ def open_file(filepath):
             nuke.Root()["name"].setValue(nuke_script)
             nuke.Root()["project_directory"].setValue(os.path.dirname(nuke_script))
             nuke.Root().setModified(False)
+
+            # Above way of loading script does not trigger onScriptLoad()
+            # callback, so we need to call it manually
+            nuke.onScriptLoad()
         else:
             nuke.scriptOpen(nuke_script)
 
