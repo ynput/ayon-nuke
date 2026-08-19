@@ -8,7 +8,7 @@ from .constants import ASSIST
 
 @contextlib.contextmanager
 def _no_script_create_callbacks():
-    """Context manager to temporarily disable on_script_create callbacks."""
+    """Context manager to temporarily disable `nuke.onCreate` callbacks."""
     callbacks = nuke.onCreates.copy()
     try:
         nuke.onCreates.clear()
