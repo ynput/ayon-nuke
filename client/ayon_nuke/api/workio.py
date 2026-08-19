@@ -1,8 +1,20 @@
 """Host API required Work Files tool"""
 import os
+import contextlib
 import nuke
 import shutil
 from .constants import ASSIST
+
+
+@contextlib.contextmanager
+def _no_script_create_callbacks():
+    """Context manager to temporarily disable on_script_create callbacks."""
+    callbacks = nuke.onCreates.copy()
+    try:
+        nuke.onCreates.clear()
+        yield
+    finally:
+        nuke.onCreates = callbacks
 
 
 def file_extensions():
@@ -25,7 +37,8 @@ def open_file(filepath):
 
     def read_script(nuke_script):
         if not ASSIST:
-            nuke.scriptClear()
+            with _no_script_create_callbacks():
+                nuke.scriptClear()
             nuke.scriptReadFile(nuke_script)
             nuke.Root()["name"].setValue(nuke_script)
             nuke.Root()["project_directory"].setValue(os.path.dirname(nuke_script))
