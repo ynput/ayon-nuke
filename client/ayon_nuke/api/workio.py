@@ -33,6 +33,26 @@ def save_file(filepath):
     nuke.Root().setModified(False)
 
 
+def _get_autosave_filepath(filepath: str) -> str | None:
+    """Query autosave file path for a given file path, by evaluating the
+    autosave name preferences with root name temporarily set to the given
+    file path.
+
+    This allows us to get the autosave path for a file that is not currently
+    open in Nuke.
+    """
+    root = nuke.Root()
+    original_name = root.name()
+    root["name"].setValue(filepath)
+    try:
+        autosave = nuke.toNode("preferences")["AutoSaveName"].evaluate()
+        if os.path.isfile(autosave):
+            return autosave
+        return None
+    finally:
+        root["name"].setValue(original_name)
+
+
 def open_file(filepath):
 
     def read_script(nuke_script):
@@ -58,26 +78,24 @@ def open_file(filepath):
 
     filepath = filepath.replace("\\", "/")
 
-    # To remain in the same window, we have to clear the script and read
-    # in the contents of the workfile.
-    # Nuke Preferences can be read after the script is read.
-    read_script(filepath)
-
-    if nuke.GUI:
-        autosave = nuke.toNode("preferences")["AutoSaveName"].evaluate()
-        autosave_prmpt = "Autosave detected.\n" \
-                         "Would you like to load the autosave file?"  # noqa
-        if os.path.isfile(autosave) and nuke.ask(autosave_prmpt):
+    # Before opening the file, see if it has an autosave file and ask the user
+    # if they want to load it instead.
+    if nuke.GUI and (autosave := _get_autosave_filepath(filepath)):
+        if nuke.ask(
+            "Autosave detected.\n"
+            "Would you like to load the autosave file?"
+        ):
             try:
                 # Overwrite the filepath with autosave
                 shutil.copy(autosave, filepath)
-                # Now read the (auto-saved) script again
-                read_script(filepath)
             except shutil.Error as err:
                 nuke.message(
-                    "Detected autosave file could not be used.\n{}"
+                    f"Detected autosave file could not be used.\n{err}"
+                )
 
-                    .format(err))
+    # To remain in the same window, we have to clear the script and read
+    # in the contents of the workfile.
+    read_script(filepath)
 
     return True
 
