@@ -265,8 +265,6 @@ def on_root_create() -> None:
     workfile_settings.set_favorites()
     # template builder callbacks
     start_workfile_template_builder()
-    # set checker for last versions on loaded containers
-    check_inventory_versions()
 
 
 def on_script_load() -> None:
