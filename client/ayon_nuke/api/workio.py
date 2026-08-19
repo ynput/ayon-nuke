@@ -14,7 +14,7 @@ def _no_create_callbacks():
         nuke.onCreates.clear()
         yield
     finally:
-        nuke.onCreates = callbacks
+        nuke.onCreates.update(callbacks)
 
 
 def file_extensions():
