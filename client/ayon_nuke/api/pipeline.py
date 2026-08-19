@@ -242,29 +242,33 @@ def add_nuke_callbacks(project_settings: dict = None):
 
 
 def on_root_create() -> None:
-    """Callback function for on script create."""
-    # set apply all workfile settings on script load and save
-    workfile_settings = WorkfileSettings()
-    on_script_create_settings = (
-        workfile_settings.project_settings
-        ["nuke"]
-        ["workfile_callbacks"]
-        ["on_script_create"]
-    )
-
-    if on_script_create_settings["set_resolution"]:
-        workfile_settings.reset_resolution()
-
-    if on_script_create_settings["set_frame_range"]:
-        workfile_settings.reset_frame_range_handles()
-
-    if on_script_create_settings["set_colorspace"]:
-        workfile_settings.set_colorspace()
-
+    """Callback function for on root node create."""
     # adding favorites to file browser
+    workfile_settings = WorkfileSettings()
     workfile_settings.set_favorites()
-    # template builder callbacks
-    start_workfile_template_builder()
+
+    # Root created callback is also triggered on scene load because that also
+    # creates a new root node. So we check if current file is None to run
+    # logic that we only want to apply on new scene creation.
+    if current_file() is None:
+        on_script_create_settings = (
+            workfile_settings.project_settings
+            ["nuke"]
+            ["workfile_callbacks"]
+            ["on_script_create"]
+        )
+
+        if on_script_create_settings["set_resolution"]:
+            workfile_settings.reset_resolution()
+
+        if on_script_create_settings["set_frame_range"]:
+            workfile_settings.reset_frame_range_handles()
+
+        if on_script_create_settings["set_colorspace"]:
+            workfile_settings.set_colorspace()
+
+        # template builder callbacks
+        start_workfile_template_builder()
 
 
 def on_script_load() -> None:
