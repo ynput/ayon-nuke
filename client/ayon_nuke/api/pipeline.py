@@ -166,7 +166,7 @@ class NukeHost(
         add_scripts_gizmo()
         launch_workfiles_app()
 
-        IPCHostTools.init()
+        IPCHostTools.init(host=self)
         start_main_thread_helper()
 
         def _tick():
