@@ -1,7 +1,6 @@
 import nuke
 
 import os
-import contextlib
 import importlib
 from collections import OrderedDict, defaultdict
 
@@ -18,7 +17,7 @@ from ayon_core.host import (
 
 from ayon_core.host.interfaces import SaveWorkfileContext
 
-from ayon_core.lib import register_event_callback, Logger
+from ayon_core.lib import Logger
 from ayon_core.pipeline import (
     register_loader_plugin_path,
     register_creator_plugin_path,
