@@ -147,10 +147,14 @@ class AlembicCameraLoader(load.LoaderPlugin):
         # getting file path
         file = get_representation_path(repre_entity).replace("\\", "/")
 
-        with maintained_selection():
-            camera_node = container["node"]
-            camera_node['selected'].setValue(True)
+        camera_node = container["node"]
+        selected = camera_node["selected"]
 
+        with maintained_selection(
+            # exclude from selection, since we will be recreating the node
+            # which will invalidate the reference to the object in memory
+            exclude_nodes=[camera_node],
+        ):
             # collect input output dependencies
             dependencies = camera_node.dependencies()
             dependent = camera_node.dependent()
@@ -162,11 +166,12 @@ class AlembicCameraLoader(load.LoaderPlugin):
             # not adding animation keys properly
             xpos = camera_node.xpos()
             ypos = camera_node.ypos()
+            camera_node.selectOnly()
             nuke.nodeCopy("%clipboard%")
-            camera_name = camera_node.name()
             nuke.delete(camera_node)
-            nuke.nodePaste("%clipboard%")
-            camera_node = nuke.toNode(camera_name)
+            camera_node = nuke.nodePaste("%clipboard%")
+            if not camera_node:
+                raise RuntimeError("Failed to paste camera node")
             camera_node.setXYpos(xpos, ypos)
 
             # link to original input nodes
@@ -178,6 +183,8 @@ class AlembicCameraLoader(load.LoaderPlugin):
                               d.dependencies())
                               if camera_node is dpcy), 0)
                 d.setInput(index, camera_node)
+
+        camera_node["selected"].setValue(selected)
 
         # color node by correct color by actual version
         self.node_version_color(
