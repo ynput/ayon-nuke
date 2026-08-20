@@ -164,7 +164,6 @@ class NukeHost(
         root_node = nuke.root()
         set_node_data(root_node, ROOT_DATA_KNOB, data)
 
-
     def _before_workfile_save(
         self, save_workfile_context: SaveWorkfileContext
     ) -> None:
