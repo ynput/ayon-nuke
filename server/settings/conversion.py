@@ -312,6 +312,9 @@ def _convert_review_intermediates_model_0_4_11(
         .get("ExtractReviewIntermediates", {})
         .get("outputs")
     )
+    if not extract_review_outputs:
+        return
+
     for output in extract_review_outputs:
         extension = output.pop("extension", None)
         if not extension:
