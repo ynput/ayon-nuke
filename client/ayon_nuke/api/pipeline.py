@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import nuke
 
-import os
-import importlib
 from collections import OrderedDict, defaultdict
+import importlib
+import os
+from typing import Any
 
 import pyblish.api
 
@@ -47,6 +50,11 @@ except ImportError:
         version_up_current_workfile as save_next_version
     )
 
+from ayon_core.tools.ipc_utils import IPCHostTools
+from ayon_core.tools.ipc_utils.utils import (
+    start_main_thread_helper,
+    execute_in_main_thread,
+)
 from .lib import (
     Context,
     ROOT_DATA_KNOB,
@@ -157,6 +165,18 @@ class NukeHost(
         add_scripts_menu()
         add_scripts_gizmo()
         launch_workfiles_app()
+
+        IPCHostTools.init(host=self)
+        start_main_thread_helper()
+
+        def _tick():
+            IPCHostTools.process_requests()
+            execute_in_main_thread(_tick)
+
+        execute_in_main_thread(_tick)
+
+    def execute_in_main_thread(self, func, *args, **kwargs) -> Any:
+        return nuke.executeInMainThreadWithResult(func, (), kwargs)
 
     def get_context_data(self):
         root_node = nuke.root()
@@ -369,16 +389,9 @@ def _install_menu(project_settings: dict):
             shortcut_str
         )
 
-    def _show_workfiles():
-        # Make sure parent is not set
-        # - this makes Workfiles tool as separated window which
-        #   avoid issues with reopening
-        # - it is possible to explicitly change on top flag of the tool
-        host_tools.show_workfiles(parent=None, on_top=False)
-
     menu.addCommand(
         "Work Files...",
-        _show_workfiles
+        IPCHostTools.show_workfiles
     )
 
     menu.addSeparator()
@@ -387,8 +400,7 @@ def _install_menu(project_settings: dict):
         # known issue with no solution yet
         menu.addCommand(
             "Create...",
-            lambda: host_tools.show_publisher(
-                parent=main_window,
+            lambda: IPCHostTools.show_publisher(
                 tab="create"
             )
         )
@@ -396,18 +408,12 @@ def _install_menu(project_settings: dict):
         # known issue with no solution yet
         menu.addCommand(
             "Publish...",
-            lambda: host_tools.show_publisher(
-                parent=main_window,
-                tab="publish"
-            )
+            IPCHostTools.show_publisher
         )
 
     menu.addCommand(
         "Load...",
-        lambda: host_tools.show_loader(
-            parent=main_window,
-            use_context=True
-        )
+        IPCHostTools.show_loader
     )
     menu.addCommand(
         "Manage...",
