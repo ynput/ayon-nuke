@@ -1,4 +1,6 @@
 """Host API required Work Files tool"""
+from __future__ import annotations
+
 import os
 import contextlib
 import nuke
