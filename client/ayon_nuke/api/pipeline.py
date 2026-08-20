@@ -1,6 +1,7 @@
 import nuke
 
 import os
+import contextlib
 import importlib
 from collections import OrderedDict, defaultdict
 
@@ -142,9 +143,6 @@ class NukeHost(
         register_inventory_action_path(INVENTORY_PATH)
         register_workfile_build_plugin_path(WORKFILE_BUILD_PATH)
 
-        # Register AYON event for workfiles loading.
-        register_event_callback("workio.open_file", check_inventory_versions)
-
     def setup_ui_callbacks_and_menu(self):
         """Setup AYON menus."""
         if not nuke.GUI:
@@ -243,6 +241,7 @@ def add_nuke_callbacks(project_settings: dict = None):
 
 def on_root_create() -> None:
     """Callback function for on root node create."""
+    log.info("On root create...")
     # adding favorites to file browser
     workfile_settings = WorkfileSettings()
     workfile_settings.set_favorites()
@@ -251,6 +250,7 @@ def on_root_create() -> None:
     # creates a new root node. So we check if current file is None to run
     # logic that we only want to apply on new scene creation.
     if current_file() is None:
+        log.info("On new file..")
         on_script_create_settings = (
             workfile_settings.project_settings
             ["nuke"]
@@ -273,6 +273,7 @@ def on_root_create() -> None:
 
 def on_script_load() -> None:
     """Callback function for on script load."""
+    log.info("On script load...")
     # fix ffmpeg settings on script
     if nuke.env["LINUX"]:
         nuke.tcl('load ffmpegReader')
