@@ -160,9 +160,27 @@ class NukePlaceholderPlugin(PlaceholderPlugin):
         return output
 
 
-def build_workfile_template(*args, **kwargs):
+def trigger_on_new_file():
+    """Build the workfile template during new file creation
+    if the setting is enabled."""
     builder = NukeTemplateBuilder(registered_host())
-    builder.build_template(*args, **kwargs)
+    builder.trigger_on_new_file()
+
+
+def trigger_on_app_launch() -> None:
+    """Build the workfile template during application
+    launch if the setting is enabled.
+    """
+    builder = NukeTemplateBuilder(registered_host())
+    builder.trigger_on_app_launch()
+
+
+def build_workfile_template():
+    builder = NukeTemplateBuilder(registered_host())
+    preset = builder.get_template_preset()
+    if not preset.has_valid_path():
+        return
+    builder.build_template(preset=preset)
 
     # set all settings to shot context default
     WorkfileSettings().set_context_settings()
