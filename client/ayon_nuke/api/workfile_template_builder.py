@@ -8,6 +8,7 @@ from ayon_core.pipeline.workfile.workfile_template_builder import (
     PlaceholderPlugin,
     PlaceholderItem
 )
+from ayon_core.tools.workfile_template_build import open_template_ui
 
 from .lib import (
     imprint,
@@ -182,6 +183,16 @@ def build_workfile_template():
 def update_workfile_template(*args):
     builder = NukeTemplateBuilder(registered_host())
     builder.rebuild_template()
+
+
+def open_template() -> None:
+    """Open the workfile template UI for 3ds Max."""
+    host = registered_host()
+    builder = NukeTemplateBuilder(host)
+    preset = builder.get_template_preset()
+    if not preset.has_valid_path():
+        return
+    open_template_ui(builder, main_window=get_main_window())
 
 
 def create_placeholder(*args):
