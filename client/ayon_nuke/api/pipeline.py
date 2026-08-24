@@ -28,7 +28,6 @@ from ayon_core.pipeline import (
     AVALON_CONTAINER_ID,
     get_current_folder_path,
     get_current_task_name,
-    registered_host,
 )
 from ayon_core.pipeline.workfile import BuildWorkfile
 from ayon_nuke import NUKE_ROOT_DIR
@@ -335,7 +334,6 @@ def _install_menu(project_settings: dict):
     """Install AYON menu into Nuke's main menu bar."""
     # local imports, modules not available in non-GUI mode
     from ayon_core.tools.utils import host_tools
-    from ayon_core.tools.workfile_template_build import open_template_ui
 
     # uninstall original AYON menu
     main_window = get_main_window()
