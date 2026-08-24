@@ -70,7 +70,7 @@ from .workfile_template_builder import (
     build_workfile_template,
     create_placeholder,
     update_placeholder,
-    NukeTemplateBuilder,
+    open_template,
 )
 from .workio import (
     open_file,
@@ -447,9 +447,7 @@ def _install_menu(project_settings: dict):
         menu_template.addSeparator()
         menu_template.addCommand(
             "Open template",
-            lambda: open_template_ui(
-                NukeTemplateBuilder(registered_host()), get_main_window()
-            )
+            lambda: open_template()
         )
         menu_template.addCommand(
             "Create Place Holder",
