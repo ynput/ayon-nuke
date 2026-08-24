@@ -160,13 +160,6 @@ class NukePlaceholderPlugin(PlaceholderPlugin):
         return output
 
 
-def trigger_on_new_file():
-    """Build the workfile template during new file creation
-    if the setting is enabled."""
-    builder = NukeTemplateBuilder(registered_host())
-    builder.trigger_on_new_file()
-
-
 def trigger_on_app_launch() -> None:
     """Build the workfile template during application
     launch if the setting is enabled.

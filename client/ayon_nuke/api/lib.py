@@ -15,9 +15,7 @@ from qtpy import QtCore, QtWidgets
 import ayon_api
 
 from ayon_core.host import HostDirmap
-from ayon_core.pipeline.workfile.workfile_template_builder import (
-    TemplateProfileNotFound
-)
+
 from ayon_core.lib import (
     env_value_to_bool,
     Logger,
@@ -2735,20 +2733,14 @@ def prompt_reset_context():
         dialog.deleteLater()
 
 
-def start_workfile_template_builder():
-    from .workfile_template_builder import (
-        build_workfile_template
-    )
+def start_workfile_template_builder() -> None:
+    """trigger workfile template builder for every nuke launch if enabled."""
+    from .workfile_template_builder import trigger_on_app_launch
+    # Ignore opened scripts: only run new-file trigger for unsaved scenes.
+    if nuke.root().name().lower() != "root":
+        return
 
-    # remove callback since it would be duplicating the workfile
-    nuke.removeOnCreate(start_workfile_template_builder, nodeClass="Root")
-
-    # to avoid looping of the callback, remove it!
-    log.info("Starting workfile template builder...")
-    try:
-        build_workfile_template(workfile_creation_enabled=True)
-    except TemplateProfileNotFound:
-        log.warning("Template profile not found. Skipping...")
+    trigger_on_app_launch()
 
 
 def add_scripts_menu():
