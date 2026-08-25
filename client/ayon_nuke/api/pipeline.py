@@ -222,12 +222,17 @@ def add_nuke_callbacks(project_settings: dict = None):
 
     nuke_settings = project_settings["nuke"]
 
+    # Set all workfile settings.'
     nuke.addOnCreate(on_root_create, nodeClass="Root")
-
+    # set checker for last versions on loaded containers
+    nuke.addOnScriptLoad(check_inventory_versions)
+    # fix ffmpeg settings on script
     nuke.addOnScriptLoad(on_script_load)
 
     # set checker for last versions on loaded containers
     nuke.addOnScriptSave(check_inventory_versions)
+
+    nuke.addOnScriptClose(deregister_nuke_callbacks)
 
     if nuke_settings["dirmap"]["enabled"]:
         log.info("Added Nuke's dir-mapping callback ...")
@@ -235,6 +240,11 @@ def add_nuke_callbacks(project_settings: dict = None):
         nuke.addFilenameFilter(dirmap_file_name_filter)
 
     log.info("Added Nuke callbacks ...")
+
+
+def deregister_nuke_callbacks():
+    log.info("Deregistering Nuke callbacks ...")
+    nuke.removeOnCreate(on_root_create, nodeClass="Root")
 
 
 def on_root_create() -> None:
