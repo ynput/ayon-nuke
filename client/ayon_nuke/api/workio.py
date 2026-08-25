@@ -58,6 +58,8 @@ def _get_autosave_filepath(filepath: str) -> str | None:
 def open_file(filepath):
 
     def read_script(nuke_script):
+        # Nuke Assist does not support clearing and reading a script into the
+        # current session, so it must use scriptOpen() instead.
         if not ASSIST:
             with _no_create_callbacks():
                 nuke.scriptClear()
@@ -95,13 +97,6 @@ def open_file(filepath):
                     f"Detected autosave file could not be used.\n{err}"
                 )
 
-    # Load the script into the current Nuke session.
-    # This uses read_script() which replaces the current script content
-    # in the same window. However, when a GUI is active and an autosave
-    # exists, the user is prompted to load the autosave instead - which
-    # is then copied over the original file before read_script() executes.
-    # The "same window" behavior applies only when the GUI is not active
-    # or when no autosave prompt is shown.
     read_script(filepath)
 
     return True
