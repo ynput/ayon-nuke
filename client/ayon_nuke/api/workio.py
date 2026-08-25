@@ -95,8 +95,13 @@ def open_file(filepath):
                     f"Detected autosave file could not be used.\n{err}"
                 )
 
-    # To remain in the same window, we have to clear the script and read
-    # in the contents of the workfile.
+    # Load the script into the current Nuke session.
+    # This uses read_script() which replaces the current script content
+    # in the same window. However, when a GUI is active and an autosave
+    # exists, the user is prompted to load the autosave instead - which
+    # is then copied over the original file before read_script() executes.
+    # The "same window" behavior applies only when the GUI is not active
+    # or when no autosave prompt is shown.
     read_script(filepath)
 
     return True
