@@ -2734,13 +2734,13 @@ def prompt_reset_context():
 
 
 def start_workfile_template_builder() -> None:
-    """trigger workfile template builder for every nuke launch if enabled."""
-    from .workfile_template_builder import trigger_on_app_launch
+    """trigger workfile template builder for every nuke new file if enabled."""
+    from .workfile_template_builder import trigger_on_new_file
     # Ignore opened scripts: only run new-file trigger for unsaved scenes.
     if nuke.root().name().lower() != "root":
         return
 
-    trigger_on_app_launch()
+    trigger_on_new_file()
 
 
 def add_scripts_menu():
