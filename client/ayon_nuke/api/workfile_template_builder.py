@@ -161,6 +161,14 @@ class NukePlaceholderPlugin(PlaceholderPlugin):
         return output
 
 
+def trigger_on_app_launch() -> None:
+    """Build the workfile template during application
+    launch if the setting is enabled.
+    """
+    builder = NukeTemplateBuilder(registered_host())
+    builder.trigger_on_app_launch()
+
+
 def trigger_on_new_file() -> None:
     """Build the workfile template during new file creation
     if the setting is enabled.
@@ -186,12 +194,8 @@ def update_workfile_template(*args):
 
 
 def open_template() -> None:
-    """Open the workfile template UI for 3ds Max."""
-    host = registered_host()
-    builder = NukeTemplateBuilder(host)
-    preset = builder.get_template_preset()
-    if not preset.has_valid_path():
-        return
+    """Open the workfile template UI for Nuke."""
+    builder = NukeTemplateBuilder(registered_host())
     open_template_ui(builder, main_window=get_main_window())
 
 

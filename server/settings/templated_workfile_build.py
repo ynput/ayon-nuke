@@ -25,6 +25,10 @@ class TemplatedWorkfileProfileModel(BaseSettingsModel):
         False,
         title="Apply to New Scene"
     )
+    execute_on_app_launch: bool = SettingsField(
+        True,
+        title="Apply on Nuke launch"
+    )
     create_first_version: bool = SettingsField(
         True,
         title="Save first workfile version"
