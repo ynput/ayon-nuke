@@ -2736,6 +2736,8 @@ def prompt_reset_context():
 
 def start_workfile_template_builder() -> None:
     """trigger workfile template builder for every nuke new file if enabled."""
+    # remove callback since it would be duplicating the workfile
+    nuke.removeOnCreate(start_workfile_template_builder, nodeClass="Root")
     # Ignore opened scripts: only run new-file trigger for unsaved scenes.
     if nuke.root().name().lower() != "root":
         return
