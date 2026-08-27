@@ -4,6 +4,7 @@ import nuke
 
 from ayon_core.pipeline import registered_host
 from ayon_core.pipeline.workfile.workfile_template_builder import (
+    TemplateLoadFailed,
     AbstractTemplateBuilder,
     PlaceholderPlugin,
     PlaceholderItem
@@ -181,7 +182,7 @@ def build_workfile_template():
     builder = NukeTemplateBuilder(registered_host())
     preset = builder.get_template_preset()
     if not preset.has_valid_path():
-        return
+        raise TemplateLoadFailed(f"Invalid template path: {preset.path}")
     builder.build_template(preset=preset)
 
     # set all settings to shot context default
