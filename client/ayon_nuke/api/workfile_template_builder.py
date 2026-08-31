@@ -1,4 +1,5 @@
 import collections
+import os
 from typing import Any
 import nuke
 
@@ -9,8 +10,11 @@ from ayon_core.pipeline.workfile.workfile_template_builder import (
     PlaceholderPlugin,
     PlaceholderItem
 )
+from ayon_core.pipeline.workfile import save_next_version
+
 try:
     from ayon_core.tools.workfile_template_build import open_template_ui
+
 except ImportError:
     def open_template_ui(*_args, **_kwargs):
         raise RuntimeError("Template UI is not available in non-GUI mode.")
@@ -167,19 +171,20 @@ class NukePlaceholderPlugin(PlaceholderPlugin):
 
 
 def trigger_on_app_launch() -> None:
-    """Build the workfile template during application
-    launch if the setting is enabled.
-    """
+    """Build the workfile template during application launch."""
     builder = NukeTemplateBuilder(registered_host())
-    builder.trigger_on_app_launch()
+    preset = builder.get_template_preset()
+    if not preset.has_valid_path():
+        raise TemplateLoadFailed(f"Invalid template path: {preset.path}")
 
+    if os.path.exists(preset.get_workfile_path()):
+        return
 
-def trigger_on_new_file() -> None:
-    """Build the workfile template during new file creation
-    if the setting is enabled.
-    """
-    builder = NukeTemplateBuilder(registered_host())
-    builder.trigger_on_new_file()
+    if preset.create_first_version:
+        builder.build_template(preset=preset)
+        save_next_version()
+
+    WorkfileSettings().set_context_settings()
 
 
 def build_workfile_template():
