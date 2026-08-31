@@ -225,6 +225,8 @@ def add_nuke_callbacks(project_settings: dict = None):
 
     nuke.addOnScriptLoad(on_script_load)
 
+    nuke.addOnCreate(start_workfile_template_builder, nodeClass="Root")
+
     # set checker for last versions on loaded containers
     nuke.addOnScriptSave(check_inventory_versions)
 
@@ -263,9 +265,6 @@ def on_root_create() -> None:
 
         if on_script_create_settings["set_colorspace"]:
             workfile_settings.set_colorspace()
-
-        # template builder callbacks
-        start_workfile_template_builder()
 
 
 def on_script_load() -> None:
