@@ -10,9 +10,9 @@ from ayon_core.pipeline import (
 )
 from ayon_nuke.api import (
     containerise,
-    viewer_update_and_undo_stop,
     update_container,
 )
+from ayon_nuke.api.command import undo_chunk
 
 
 class LoadOcioLookNodes(load.LoaderPlugin):
@@ -38,6 +38,7 @@ class LoadOcioLookNodes(load.LoaderPlugin):
     # json file variables
     schema_version = 1
 
+    @undo_chunk("Load OcioLook [nodes]")
     def load(self, context, name, namespace, data):
         """
         Loading function to get the soft effects to particular read node
@@ -221,6 +222,7 @@ class LoadOcioLookNodes(load.LoaderPlugin):
 
         return group_node
 
+    @undo_chunk("Update OcioLook [nodes]")
     def update(self, container, context):
         repre_entity = context["representation"]
 
@@ -285,10 +287,10 @@ class LoadOcioLookNodes(load.LoaderPlugin):
     def switch(self, container, context):
         self.update(container, context)
 
+    @undo_chunk("Remove OcioLook [nodes]")
     def remove(self, container):
         node = nuke.toNode(container['objectName'])
-        with viewer_update_and_undo_stop():
-            nuke.delete(node)
+        nuke.delete(node)
 
     def _node_version_color(self, project_name, version_entity, node):
         """Coloring a node by correct color by actual version"""

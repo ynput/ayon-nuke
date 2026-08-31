@@ -834,16 +834,6 @@ def get_view_process_node():
         return duplicate_node(ipn_node)
 
 
-def on_script_load():
-    """Callback for ffmpeg support"""
-    if nuke.env["LINUX"]:
-        nuke.tcl('load ffmpegReader')
-        nuke.tcl('load ffmpegWriter')
-    else:
-        nuke.tcl('load movReader')
-        nuke.tcl('load movWriter')
-
-
 def check_inventory_versions():
     """Update loaded container nodes' colors based on version state.
 
@@ -1533,7 +1523,12 @@ class WorkfileSettings(object):
 
     """
 
-    def __init__(self, root_node=None, nodes=None, **kwargs):
+    def __init__(
+            self,
+            root_node=None,
+            nodes=None,
+            project_settings=None,
+            **kwargs):
         project_entity = kwargs.get("project")
         if project_entity is None:
             project_name = get_current_project_name()
@@ -1562,6 +1557,18 @@ class WorkfileSettings(object):
             project_name, self._folder_path, self._task_name, "nuke"
         )
         self.formatting_data = context_data
+        self._project_setting = project_settings
+
+    @property
+    def project_settings(self) -> dict:
+        """Get project settings
+
+        Returns:
+            dict: project settings for the current project
+        """
+        if not self._project_setting:
+            self._project_setting = get_project_settings(self._project_name)
+        return self._project_setting
 
     def get_nodes(self, nodes=None, nodes_filter=None):
 
@@ -1655,7 +1662,9 @@ class WorkfileSettings(object):
             imageio_host (dict): host colorspace configurations
 
         """
-        config_data = get_current_context_imageio_config_preset()
+        config_data = get_current_context_imageio_config_preset(
+            project_settings=self.project_settings
+        )
 
         workfile_settings = imageio_host["workfile"]
         color_management = workfile_settings["color_management"]
@@ -1982,9 +1991,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             # This ensures that any values overwritten by the user is
             # not changed by the colorspace knobs set.
             colorspace_knobs = nuke_imageio_writes["knobs"]
-            all_create_settings = get_project_settings(
-                Context.project_name,
-            )["nuke"]["create"]
+            all_create_settings = self.project_settings["nuke"]["create"]
             plugin_names_mapping = {
                 "create_write_image": "CreateWriteImage",
                 "create_write_prerender": "CreateWritePrerender",
@@ -2331,6 +2338,8 @@ def get_dependent_nodes(nodes):
     """Get all dependent nodes connected to the list of nodes.
 
     Looking for connections outside the nodes in incoming argument.
+    This only checks for direct connections (nuke.INPUTS). It ignores others,
+    like hidden links (nuke.HIDDEN_INPUTS) and expressions (nuke.EXPRESSIONS).
 
     Arguments:
         nodes (list): list of nuke.Node objects
@@ -2342,24 +2351,28 @@ def get_dependent_nodes(nodes):
 
     connections_in = dict()
     connections_out = dict()
-    node_names = [n.name() for n in nodes]
+    node_names: set[str] = {n.name() for n in nodes}
     for node in nodes:
-        inputs = node.dependencies()
-        outputs = node.dependent()
         # collect all inputs outside
-        test_in = [(i, n) for i, n in enumerate(inputs)
-                   if n.name() not in node_names]
+        inputs = node.dependencies(nuke.INPUTS)
+        test_in = [
+            (i, input_) for i, input_ in enumerate(inputs)
+            if input_.name() not in node_names
+        ]
         if test_in:
-            connections_in.update({
-                node: test_in
-            })
-        # collect all outputs outside
-        test_out = [i for i in outputs if i.name() not in node_names]
+            connections_in[node] = test_in
+
+        # collect last connected output; only one dependent node is allowed
+        outputs = node.dependent(nuke.INPUTS, forceEvaluate=False)
+        test_out = next(
+            (
+                output for output in reversed(outputs)
+                if output.name() not in node_names
+            ),
+            None
+        )
         if test_out:
-            # only one dependent node is allowed
-            connections_out.update({
-                node: test_out[-1]
-            })
+            connections_out[node] = test_out
 
     return connections_in, connections_out
 
