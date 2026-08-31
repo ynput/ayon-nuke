@@ -78,7 +78,6 @@ EXCLUDED_KNOB_TYPE_ON_READ = (
 JSON_PREFIX = "JSON:::"
 ROOT_DATA_KNOB = "publish_context"
 INSTANCE_DATA_KNOB = "publish_instance"
-app_launch = True
 
 
 class DeprecatedWarning(DeprecationWarning):
@@ -2741,18 +2740,10 @@ def start_workfile_template_builder() -> None:
     # Ignore opened scripts: only run new-file trigger for unsaved scenes.
     if nuke.root().name().lower() != "root":
         return
-    global app_launch
-    from .workfile_template_builder import (
-        trigger_on_app_launch,
-        trigger_on_new_file
-    )
-    if app_launch:
-        trigger_on_app_launch()
-        app_launch = False
-        return
 
-    if not app_launch:
-        trigger_on_new_file()
+    log.info("Starting workfile template builder...")
+    from .workfile_template_builder import trigger_on_app_launch
+    trigger_on_app_launch()
 
 
 def add_scripts_menu():
