@@ -10,6 +10,4 @@ if nuke_host is None:
     raise RuntimeError("Cannot find expected registered Nuke host.")
 
 nuke_host.setup_ui_callbacks_and_menu()
-QtCore.QTimer.singleShot(1000, lambda: setattr(
-    nuke_host, "app_initialized", True)
-)
+nuke_host.app_initialized = True
