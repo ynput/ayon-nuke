@@ -62,6 +62,7 @@ from .constants import (
 )
 
 from .utils import get_node_outputs
+from .workio import current_file
 
 from .colorspace import get_formatted_display_and_view
 
@@ -2734,16 +2735,16 @@ def prompt_reset_context():
 
 
 def start_workfile_template_builder() -> None:
-    """trigger workfile template builder for every nuke new file if enabled."""
-    # remove callback since it would be duplicating the workfile
-    nuke.removeOnCreate(start_workfile_template_builder, nodeClass="Root")
-    # Ignore opened scripts: only run new-file trigger for unsaved scenes.
-    if nuke.root().name().lower() != "root":
+    """Trigger workfile template builder when a new file is created."""
+    if current_file() is not None:
         return
 
-    log.info("Starting workfile template builder...")
-    from .workfile_template_builder import trigger_on_app_launch
-    trigger_on_app_launch()
+    from .workfile_template_builder import trigger_on_new_file
+    host = registered_host()
+    log.info(f"App initialized: {host.app_initialized}")
+    if not host.app_initialized:
+        log.info("Triggering workfile template builder on new file...")
+        trigger_on_new_file()
 
 
 def add_scripts_menu():
