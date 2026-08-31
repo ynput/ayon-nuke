@@ -101,6 +101,8 @@ class NukeHost(
 ):
     name = "nuke"
     about_to_save = False
+    app_initialized = False
+    cached_app_initialized = False
 
     def get_app_information(self):
         return ApplicationInformation(
@@ -148,11 +150,15 @@ class NukeHost(
 
         project_settings = get_current_project_settings()
         add_nuke_callbacks(project_settings)
+
         _install_menu(project_settings)
 
         add_scripts_menu()
         add_scripts_gizmo()
         launch_workfiles_app()
+
+    def _get_app_initialized(self):
+        self._cached_app_initialized = self.app_initialized
 
     def get_context_data(self):
         root_node = nuke.root()
@@ -225,8 +231,6 @@ def add_nuke_callbacks(project_settings: dict = None):
 
     nuke.addOnScriptLoad(on_script_load)
 
-    nuke.addOnCreate(start_workfile_template_builder, nodeClass="Root")
-
     # set checker for last versions on loaded containers
     nuke.addOnScriptSave(check_inventory_versions)
 
@@ -266,6 +270,7 @@ def on_root_create() -> None:
         if on_script_create_settings["set_colorspace"]:
             workfile_settings.set_colorspace()
 
+    start_workfile_template_builder()
 
 def on_script_load() -> None:
     """Callback function for on script load."""

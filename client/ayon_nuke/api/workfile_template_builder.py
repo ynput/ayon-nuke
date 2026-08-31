@@ -173,17 +173,14 @@ class NukePlaceholderPlugin(PlaceholderPlugin):
 def trigger_on_app_launch() -> None:
     """Build the workfile template during application launch."""
     builder = NukeTemplateBuilder(registered_host())
-    preset = builder.get_template_preset()
-    if not preset.has_valid_path():
-        raise TemplateLoadFailed(f"Invalid template path: {preset.path}")
+    builder.trigger_on_app_launch()
+    WorkfileSettings().set_context_settings()
 
-    if os.path.exists(preset.get_workfile_path()):
-        return
 
-    if preset.create_first_version:
-        builder.build_template(preset=preset)
-        save_next_version()
-
+def trigger_on_new_file() -> None:
+    """Build the workfile template when a new file is created."""
+    builder = NukeTemplateBuilder(registered_host())
+    builder.trigger_on_new_file()
     WorkfileSettings().set_context_settings()
 
 
