@@ -102,7 +102,6 @@ class NukeHost(
     name = "nuke"
     about_to_save = False
     app_initialized = False
-    cached_app_initialized = False
 
     def get_app_information(self):
         return ApplicationInformation(
@@ -156,9 +155,6 @@ class NukeHost(
         add_scripts_menu()
         add_scripts_gizmo()
         launch_workfiles_app()
-
-    def _get_app_initialized(self):
-        self._cached_app_initialized = self.app_initialized
 
     def get_context_data(self):
         root_node = nuke.root()
