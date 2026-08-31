@@ -2739,12 +2739,18 @@ def start_workfile_template_builder() -> None:
     if current_file() is not None:
         return
 
-    from .workfile_template_builder import trigger_on_new_file
+    from .workfile_template_builder import (
+        trigger_on_app_launch,
+        trigger_on_new_file,
+    )
     host = registered_host()
     log.info(f"App initialized: {host.app_initialized}")
-    if not host.app_initialized:
-        log.info("Triggering workfile template builder on new file...")
+    if host.app_initialized:
+        log.info("Triggering workfile template builder on new file.")
         trigger_on_new_file()
+    else:
+        log.info("Triggering workfile template builder on application launch.")
+        trigger_on_app_launch()
 
 
 def add_scripts_menu():
