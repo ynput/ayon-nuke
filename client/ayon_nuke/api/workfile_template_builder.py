@@ -1,5 +1,4 @@
 import collections
-import os
 from typing import Any
 import nuke
 
@@ -10,7 +9,6 @@ from ayon_core.pipeline.workfile.workfile_template_builder import (
     PlaceholderPlugin,
     PlaceholderItem
 )
-from ayon_core.pipeline.workfile import save_next_version
 
 try:
     from ayon_core.tools.workfile_template_build import open_template_ui
