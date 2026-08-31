@@ -9,7 +9,11 @@ from ayon_core.pipeline.workfile.workfile_template_builder import (
     PlaceholderPlugin,
     PlaceholderItem
 )
-from ayon_core.tools.workfile_template_build import open_template_ui
+try:
+    from ayon_core.tools.workfile_template_build import open_template_ui
+except ImportError:
+    def open_template_ui(*_args, **_kwargs):
+        raise RuntimeError("Template UI is not available in non-GUI mode.")
 
 from .lib import (
     imprint,
