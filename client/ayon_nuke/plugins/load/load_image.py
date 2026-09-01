@@ -129,7 +129,7 @@ class LoadImage(plugin.NukeLoader):
         for k in ["source", "fps"]:
             data_imprint[k] = version_attributes.get(k, str(None))
 
-        container =  containerise(
+        container = containerise(
             read_node,
             name=name,
             namespace=namespace,

@@ -15,6 +15,8 @@ from ayon_nuke.api.lib import (
     select_nodes,
     set_avalon_knob_data,
 )
+from ayon_nuke.api.command import undo_chunk
+from ayon_nuke.api import containerise, update_container
 
 
 class LoadBackdropNodes(load.LoaderPlugin):

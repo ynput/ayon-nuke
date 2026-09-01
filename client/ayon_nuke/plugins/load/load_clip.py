@@ -365,9 +365,6 @@ class LoadClip(plugin.NukeLoader):
             "fps": str(version_attributes.get("fps"))
         }
 
-        last_version_entity = ayon_api.get_last_version_by_product_id(
-            project_name, version_entity["productId"], fields={"id"}
-        )
         # Update the imprinted representation
         update_container(read_node, updated_dict)
         self.update_node_color(read_node)
