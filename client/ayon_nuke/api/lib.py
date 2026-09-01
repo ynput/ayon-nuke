@@ -2747,7 +2747,6 @@ def start_workfile_template_builder() -> None:
         log.info("Triggering workfile template builder on application launch.")
         trigger_on_app_launch()
         os.environ["AYON_NUKE_INITIALIZED"] = "True"
-        return
 
     log.info("Triggering workfile template builder on new file.")
     trigger_on_new_file()
