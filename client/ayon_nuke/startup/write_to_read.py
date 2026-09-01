@@ -14,7 +14,7 @@ def detect_file_on_disk(
         project_dir: str,
         first_frame: int,
         allow_relative: bool
-) -> tuple[str, int, int] | None:
+) -> tuple[str | None, int, int]:
     """Detects a file or image sequence on disk and returns its path along
     with the first and last frame numbers.
 
