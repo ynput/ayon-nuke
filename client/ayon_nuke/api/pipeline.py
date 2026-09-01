@@ -17,7 +17,7 @@ from ayon_core.host import (
 
 from ayon_core.host.interfaces import SaveWorkfileContext
 
-from ayon_core.lib import register_event_callback, Logger
+from ayon_core.lib import Logger
 from ayon_core.pipeline import (
     register_loader_plugin_path,
     register_creator_plugin_path,
@@ -142,9 +142,6 @@ class NukeHost(
         register_inventory_action_path(INVENTORY_PATH)
         register_workfile_build_plugin_path(WORKFILE_BUILD_PATH)
 
-        # Register AYON event for workfiles loading.
-        register_event_callback("workio.open_file", check_inventory_versions)
-
     def setup_ui_callbacks_and_menu(self):
         """Setup AYON menus."""
         if not nuke.GUI:
@@ -165,7 +162,6 @@ class NukeHost(
     def update_context_data(self, data, changes):
         root_node = nuke.root()
         set_node_data(root_node, ROOT_DATA_KNOB, data)
-
 
     def _before_workfile_save(
         self, save_workfile_context: SaveWorkfileContext
@@ -226,11 +222,8 @@ def add_nuke_callbacks(project_settings: dict = None):
 
     nuke_settings = project_settings["nuke"]
 
-    # Set all workfile settings.'
     nuke.addOnCreate(on_root_create, nodeClass="Root")
-    # set checker for last versions on loaded containers
-    nuke.addOnScriptLoad(check_inventory_versions)
-    # fix ffmpeg settings on script
+
     nuke.addOnScriptLoad(on_script_load)
 
     # set checker for last versions on loaded containers
@@ -245,33 +238,38 @@ def add_nuke_callbacks(project_settings: dict = None):
 
 
 def on_root_create() -> None:
-    """Callback function for on script create."""
-    # set apply all workfile settings on script load and save
-    workfile_settings = WorkfileSettings()
-    on_script_create_settings = (
-        workfile_settings.project_settings
-        ["nuke"]
-        ["workfile_callbacks"]
-        ["on_script_create"]
-    )
-
-    if on_script_create_settings["set_resolution"]:
-        workfile_settings.reset_resolution()
-
-    if on_script_create_settings["set_frame_range"]:
-        workfile_settings.reset_frame_range_handles()
-
-    if on_script_create_settings["set_colorspace"]:
-        workfile_settings.set_colorspace()
-
+    """Callback function for on root node create."""
     # adding favorites to file browser
+    workfile_settings = WorkfileSettings()
     workfile_settings.set_favorites()
-    # template builder callbacks
-    start_workfile_template_builder()
+
+    # Root created callback is also triggered on scene load because that also
+    # creates a new root node. So we check if current file is None to run
+    # logic that we only want to apply on new scene creation.
+    if current_file() is None:
+        on_script_create_settings = (
+            workfile_settings.project_settings
+            ["nuke"]
+            ["workfile_callbacks"]
+            ["on_script_create"]
+        )
+
+        if on_script_create_settings["set_resolution"]:
+            workfile_settings.reset_resolution()
+
+        if on_script_create_settings["set_frame_range"]:
+            workfile_settings.reset_frame_range_handles()
+
+        if on_script_create_settings["set_colorspace"]:
+            workfile_settings.set_colorspace()
+
+        # template builder callbacks
+        start_workfile_template_builder()
 
 
 def on_script_load() -> None:
     """Callback function for on script load."""
+    log.info("On script load...")
     # fix ffmpeg settings on script
     if nuke.env["LINUX"]:
         nuke.tcl('load ffmpegReader')
@@ -297,6 +295,9 @@ def on_script_load() -> None:
 
     if on_script_load_settings["set_colorspace"]:
         workfile_settings.set_colorspace()
+
+    # set checker for last versions on loaded containers
+    check_inventory_versions()
 
 
 def reload_config():
