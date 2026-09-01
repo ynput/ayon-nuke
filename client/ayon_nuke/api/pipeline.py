@@ -238,7 +238,6 @@ def add_nuke_callbacks(project_settings: dict = None):
 
 def on_root_create() -> None:
     """Callback function for on root node create."""
-    log.info("On root create...")
     # adding favorites to file browser
     workfile_settings = WorkfileSettings()
     workfile_settings.set_favorites()
@@ -247,7 +246,6 @@ def on_root_create() -> None:
     # creates a new root node. So we check if current file is None to run
     # logic that we only want to apply on new scene creation.
     if current_file() is None:
-        log.info("On new file..")
         on_script_create_settings = (
             workfile_settings.project_settings
             ["nuke"]
