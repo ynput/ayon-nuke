@@ -276,6 +276,10 @@ def start_workfile_template_builder() -> None:
     if not os.getenv("AYON_NUKE_INITIALIZED"):
         log.info("Triggering workfile template builder on application launch.")
         trigger_on_app_launch()
+        # Track this at process level because the host instance may be
+        # recreated or reloaded during Nuke's lifetime.
+        # The environment marker persists across those reloads and ensures
+        # the application-launch trigger runs only once.
         os.environ["AYON_NUKE_INITIALIZED"] = "True"
     else:
         log.info("Triggering workfile template builder on new file.")
