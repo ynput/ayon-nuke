@@ -2515,9 +2515,13 @@ def maintained_selection(exclude_nodes=None):
         # unselect all selection in case there is some
         reset_selection()
 
-        # and select all previously selected nodes
-        if previous_selection:
-            select_nodes(previous_selection)
+        for node in previous_selection:
+            try:
+                node["selected"].setValue(True)
+            except ValueError:
+                # Could fail if a node was deleted during the context.
+                # See: https://github.com/ynput/ayon-nuke/pull/331 for details.
+                pass
 
 
 @contextlib.contextmanager
