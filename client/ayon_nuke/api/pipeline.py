@@ -28,7 +28,6 @@ from ayon_core.pipeline import (
     AVALON_CONTAINER_ID,
     get_current_folder_path,
     get_current_task_name,
-    registered_host,
 )
 from ayon_core.pipeline.workfile import BuildWorkfile
 from ayon_nuke import NUKE_ROOT_DIR
@@ -53,7 +52,6 @@ from .lib import (
     INSTANCE_DATA_KNOB,
     get_main_window,
     WorkfileSettings,
-    start_workfile_template_builder,
     launch_workfiles_app,
     check_inventory_versions,
     set_avalon_knob_data,
@@ -70,7 +68,7 @@ from .workfile_template_builder import (
     build_workfile_template,
     create_placeholder,
     update_placeholder,
-    NukeTemplateBuilder,
+    open_template,
 )
 from .workio import (
     open_file,
@@ -149,6 +147,7 @@ class NukeHost(
 
         project_settings = get_current_project_settings()
         add_nuke_callbacks(project_settings)
+
         _install_menu(project_settings)
 
         add_scripts_menu()
@@ -263,8 +262,26 @@ def on_root_create() -> None:
         if on_script_create_settings["set_colorspace"]:
             workfile_settings.set_colorspace()
 
-        # template builder callbacks
         start_workfile_template_builder()
+
+
+def start_workfile_template_builder() -> None:
+    """Trigger workfile template builder when a new file is created."""
+    from .workfile_template_builder import (
+        trigger_on_app_launch,
+        trigger_on_new_file,
+    )
+    if not os.getenv("AYON_NUKE_INITIALIZED"):
+        log.info("Triggering workfile template builder on application launch.")
+        trigger_on_app_launch()
+        # Track this at process level because the host instance may be
+        # recreated or reloaded during Nuke's lifetime.
+        # The environment marker persists across those reloads and ensures
+        # the application-launch trigger runs only once.
+        os.environ["AYON_NUKE_INITIALIZED"] = "True"
+    else:
+        log.info("Triggering workfile template builder on new file.")
+        trigger_on_new_file()
 
 
 def on_script_load() -> None:
@@ -336,7 +353,6 @@ def _install_menu(project_settings: dict):
     """Install AYON menu into Nuke's main menu bar."""
     # local imports, modules not available in non-GUI mode
     from ayon_core.tools.utils import host_tools
-    from ayon_core.tools.workfile_template_build import open_template_ui
 
     # uninstall original AYON menu
     main_window = get_main_window()
@@ -448,9 +464,7 @@ def _install_menu(project_settings: dict):
         menu_template.addSeparator()
         menu_template.addCommand(
             "Open template",
-            lambda: open_template_ui(
-                NukeTemplateBuilder(registered_host()), get_main_window()
-            )
+            lambda: open_template()
         )
         menu_template.addCommand(
             "Create Place Holder",

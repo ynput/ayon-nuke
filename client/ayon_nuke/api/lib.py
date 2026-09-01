@@ -15,9 +15,7 @@ from qtpy import QtCore, QtWidgets
 import ayon_api
 
 from ayon_core.host import HostDirmap
-from ayon_core.pipeline.workfile.workfile_template_builder import (
-    TemplateProfileNotFound
-)
+
 from ayon_core.lib import (
     env_value_to_bool,
     Logger,
@@ -2737,22 +2735,6 @@ def prompt_reset_context():
             update_content_on_context_change()
     finally:
         dialog.deleteLater()
-
-
-def start_workfile_template_builder():
-    from .workfile_template_builder import (
-        build_workfile_template
-    )
-
-    # remove callback since it would be duplicating the workfile
-    nuke.removeOnCreate(start_workfile_template_builder, nodeClass="Root")
-
-    # to avoid looping of the callback, remove it!
-    log.info("Starting workfile template builder...")
-    try:
-        build_workfile_template(workfile_creation_enabled=True)
-    except TemplateProfileNotFound:
-        log.warning("Template profile not found. Skipping...")
 
 
 def add_scripts_menu():
