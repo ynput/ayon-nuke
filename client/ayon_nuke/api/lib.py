@@ -998,6 +998,24 @@ def script_name() -> str:
     return nuke.root().knob("name").value()
 
 
+def add_button_render_single_image(node: nuke.Node) -> None:
+    """Add a button to render a single image for the given node.
+
+    Args:
+        node (nuke.Node): The node for which the render single image
+        button is being added.
+    """
+    name = "Render"
+    label = "Render Local"
+    value = (
+        "from ayon_nuke.api.utils import render_single_frame;"
+        "render_single_frame(nuke.thisNode())"
+    )
+    knob = nuke.PyScript_Knob(name, label, value)
+    knob.clearFlag(nuke.STARTLINE)
+    node.addKnob(knob)
+
+
 def add_button_render_on_farm(node):
     name = "renderOnFarm"
     label = "Render On Farm"
@@ -1280,8 +1298,15 @@ def create_write_node(
             if "___" in _k_name:
                 # add divider
                 GN.addKnob(nuke.Text_Knob(""))
+
+            elif  _k_name == "Render" and plugin_name == "CreateWriteImage":
+                add_button_render_single_image(GN)
+
             else:
                 # add linked knob by _k_name
+                if _k_name not in write_node.knobs():
+                    log.warning("Cannot expose missing Write knob: %s", _k_name)
+                    continue
                 link = nuke.Link_Knob("")
                 link.makeLink(write_node.name(), _k_name)
                 link.setName(_k_name)
