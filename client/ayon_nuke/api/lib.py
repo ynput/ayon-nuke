@@ -1304,9 +1304,6 @@ def create_write_node(
 
             else:
                 # add linked knob by _k_name
-                if _k_name not in write_node.knobs():
-                    log.warning("Cannot expose missing Write knob: %s", _k_name)
-                    continue
                 link = nuke.Link_Knob("")
                 link.makeLink(write_node.name(), _k_name)
                 link.setName(_k_name)

@@ -1,6 +1,4 @@
-import re
 import os
-import glob
 import nuke
 import clique
 from ayon_core.lib import Logger
