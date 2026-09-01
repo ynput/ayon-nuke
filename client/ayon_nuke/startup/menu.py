@@ -1,4 +1,3 @@
-from qtpy import QtCore
 from ayon_core.pipeline import registered_host
 
 
@@ -10,4 +9,3 @@ if nuke_host is None:
     raise RuntimeError("Cannot find expected registered Nuke host.")
 
 nuke_host.setup_ui_callbacks_and_menu()
-nuke_host.app_initialized = True

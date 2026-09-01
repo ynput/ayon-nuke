@@ -63,6 +63,10 @@ from .constants import (
 
 from .utils import get_node_outputs
 from .workio import current_file
+from .workfile_template_builder import (
+    trigger_on_app_launch,
+    trigger_on_new_file,
+)
 
 from .colorspace import get_formatted_display_and_view
 
@@ -2739,18 +2743,14 @@ def start_workfile_template_builder() -> None:
     if current_file() is not None:
         return
 
-    from .workfile_template_builder import (
-        trigger_on_app_launch,
-        trigger_on_new_file,
-    )
-    host = registered_host()
-    log.info(f"App initialized: {host.app_initialized}")
-    if host.app_initialized:
-        log.info("Triggering workfile template builder on new file.")
-        trigger_on_new_file()
-    else:
+    if not os.getenv("AYON_NUKE_INITIALIZED"):
         log.info("Triggering workfile template builder on application launch.")
         trigger_on_app_launch()
+        os.environ["AYON_NUKE_INITIALIZED"] = "True"
+        return
+
+    log.info("Triggering workfile template builder on new file.")
+    trigger_on_new_file()
 
 
 def add_scripts_menu():

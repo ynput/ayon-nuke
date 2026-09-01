@@ -101,7 +101,6 @@ class NukeHost(
 ):
     name = "nuke"
     about_to_save = False
-    app_initialized = False
 
     def get_app_information(self):
         return ApplicationInformation(
@@ -780,3 +779,21 @@ def select_instance(instance):
     """
     instance_node = instance.transient_data["node"]
     instance_node["selected"].setValue(True)
+
+
+def initialize_app():
+    global _app_initialized
+
+    if not _app_initialized:
+        # First time initialization
+        print(">>> [ App initialized: True ]")
+        print(">>> [ Triggering workfile template builder on application launch. ]")
+        # Your first-time initialization code here
+        _app_initialized = True
+        return True
+    else:
+        # Subsequent initializations (New Comp)
+        print(">>> [ App initialized: False ]")
+        # Your subsequent initialization code here (if any)
+        return False
+
