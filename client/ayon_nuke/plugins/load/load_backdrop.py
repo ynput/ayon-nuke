@@ -1,19 +1,17 @@
 import contextlib
-
-import ayon_api
 import nuke
 import nukescripts
+import ayon_api
+
 from ayon_core.pipeline import load
-from ayon_nuke.api import containerise, update_container
-from ayon_nuke.api.command import undo_chunk
 from ayon_nuke.api.lib import (
     find_free_space_to_paste_nodes,
-    get_avalon_knob_data,
     get_backdrop_nodes,
     maintained_selection,
     reset_selection,
     select_nodes,
-    set_avalon_knob_data,
+    get_avalon_knob_data,
+    set_avalon_knob_data
 )
 from ayon_nuke.api.command import undo_chunk
 from ayon_nuke.api import containerise, update_container
