@@ -74,6 +74,7 @@ def detect_file_on_disk(
     collections, _ = clique.assemble(
         [combined_relative_path],
         assume_padded_when_ambiguous=True,
+        minimum_items=1,
         patterns=[clique.PATTERNS['frames']]
     )
 
@@ -88,26 +89,20 @@ def detect_file_on_disk(
 
         if files_in_dir:
             # Assemble all files in directory to find the complete sequence
-            coll, _ = clique.assemble(
+            coll = clique.assemble(
                 files_in_dir,
                 assume_padded_when_ambiguous=True,
                 patterns=[clique.PATTERNS['frames']]
             )[0][0]
             if coll.padding == collection.padding:
                 # Found matching sequence
-                directory_path = os.path.dirname(k_value)
-                basename = coll.head
-                extension = coll.tail
                 firstframe = min(coll.indexes)
                 lastframe = max(coll.indexes)
-                filepath = os.path.join(
-                    directory_path,
-                    f"{basename}{'#' * coll.padding}{extension}"
-                ).replace('\\', '/')
+                filepath = f"{coll.head}{'#' * coll.padding}{coll.tail}"
     # Convert to relative path if requested
     if filepath and allow_relative and project_dir:
         filepath = os.path.relpath(filepath, project_dir)
-        filepath = filepath.replace('\\', '/')
+    filepath = filepath.replace('\\', '/')
 
     return filepath, firstframe, lastframe
 
