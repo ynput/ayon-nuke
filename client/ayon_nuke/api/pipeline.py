@@ -239,7 +239,6 @@ def add_nuke_callbacks(project_settings: dict = None):
 
 def on_root_create() -> None:
     """Callback function for on root node create."""
-    log.info("On root create...")
     # adding favorites to file browser
     workfile_settings = WorkfileSettings()
     workfile_settings.set_favorites()
