@@ -62,7 +62,6 @@ from .constants import (
 )
 
 from .utils import get_node_outputs
-from .workio import current_file
 
 from .colorspace import get_formatted_display_and_view
 
