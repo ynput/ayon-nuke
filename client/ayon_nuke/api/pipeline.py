@@ -52,7 +52,6 @@ from .lib import (
     INSTANCE_DATA_KNOB,
     get_main_window,
     WorkfileSettings,
-    start_workfile_template_builder,
     launch_workfiles_app,
     check_inventory_versions,
     set_avalon_knob_data,
@@ -265,7 +264,23 @@ def on_root_create() -> None:
         if on_script_create_settings["set_colorspace"]:
             workfile_settings.set_colorspace()
 
-    start_workfile_template_builder()
+        start_workfile_template_builder()
+
+
+def start_workfile_template_builder() -> None:
+    """Trigger workfile template builder when a new file is created."""
+    from .workfile_template_builder import (
+        trigger_on_app_launch,
+        trigger_on_new_file,
+    )
+    if not os.getenv("AYON_NUKE_INITIALIZED"):
+        log.info("Triggering workfile template builder on application launch.")
+        trigger_on_app_launch()
+        os.environ["AYON_NUKE_INITIALIZED"] = "True"
+    else:
+        log.info("Triggering workfile template builder on new file.")
+        trigger_on_new_file()
+
 
 def on_script_load() -> None:
     """Callback function for on script load."""
@@ -779,21 +794,3 @@ def select_instance(instance):
     """
     instance_node = instance.transient_data["node"]
     instance_node["selected"].setValue(True)
-
-
-def initialize_app():
-    global _app_initialized
-
-    if not _app_initialized:
-        # First time initialization
-        print(">>> [ App initialized: True ]")
-        print(">>> [ Triggering workfile template builder on application launch. ]")
-        # Your first-time initialization code here
-        _app_initialized = True
-        return True
-    else:
-        # Subsequent initializations (New Comp)
-        print(">>> [ App initialized: False ]")
-        # Your subsequent initialization code here (if any)
-        return False
-
