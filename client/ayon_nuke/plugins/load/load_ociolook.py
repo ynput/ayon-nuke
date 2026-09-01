@@ -1,15 +1,14 @@
-import os
 import json
+import os
 
 import nuke
-
 from ayon_core.pipeline import get_representation_path
 from ayon_nuke.api import (
     containerise,
     plugin,
-    viewer_update_and_undo_stop,
     update_container,
 )
+from ayon_nuke.api.command import undo_chunk
 from ayon_nuke.api.lib import color_to_int
 
 
@@ -35,6 +34,7 @@ class LoadOcioLookNodes(plugin.NukeLoader):
     # json file variables
     schema_version = 1
 
+    @undo_chunk("Load OcioLook [nodes]")
     def load(self, context, name, namespace, data):
         """
         Loading function to get the soft effects to particular read node
@@ -214,6 +214,7 @@ class LoadOcioLookNodes(plugin.NukeLoader):
 
         return group_node
 
+    @undo_chunk("Update OcioLook [nodes]")
     def update(self, container, context):
         repre_entity = context["representation"]
 
@@ -276,10 +277,10 @@ class LoadOcioLookNodes(plugin.NukeLoader):
     def switch(self, container, context):
         self.update(container, context)
 
+    @undo_chunk("Remove OcioLook [nodes]")
     def remove(self, container):
         node = nuke.toNode(container['objectName'])
-        with viewer_update_and_undo_stop():
-            nuke.delete(node)
+        nuke.delete(node)
 
 
 def _colorspace_name_by_type(colorspace_data):

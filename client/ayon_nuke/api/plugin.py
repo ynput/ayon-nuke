@@ -1,3 +1,4 @@
+
 import nuke
 import re
 import os
@@ -37,7 +38,6 @@ from .lib import (
     check_inventory_versions,
     color_to_int,
     create_backdrop,
-    deprecated,
     maintained_selection,
     get_avalon_knob_data,
     set_node_knobs_from_settings,
@@ -48,6 +48,7 @@ from .lib import (
     get_work_default_directory,
     link_knobs,
     get_version_from_path,
+    convert_knob_value_to_correct_type,
 )
 from .pipeline import (
     list_instances,
@@ -56,7 +57,7 @@ from .pipeline import (
     containerise,
     update_container,
 )
-from .command import viewer_update_and_undo_stop
+from .command import undo_chunk
 from .colorspace import (
     get_formatted_display_and_view_as_dict,
     get_formatted_colorspace
@@ -463,6 +464,14 @@ class NukeWriteCreator(NukeCreator):
                     label="Review"
                 )
             )
+        if "slate_gen" in self.instance_attributes:
+            attr_defs.append(
+                BoolDef(
+                    "slate_gen",
+                    default=True,
+                    label="Slate Generation"
+                )
+            )
 
         return attr_defs
 
@@ -587,12 +596,6 @@ def get_instance_group_node_children(instance):
         return []
 
     return node.nodes()
-
-
-# alias for backwards compatibility
-@deprecated("ayon_nuke.api.plugin.get_instance_group_node_children")
-def get_instance_group_node_childs(instance):
-    return get_instance_group_node_children(instance)
 
 
 def get_colorspace_from_node(node):
@@ -781,6 +784,7 @@ class NukeGroupLoader(LoaderPlugin):
             inpanel=False
         )
 
+    @undo_chunk("Load Group")
     def load(self, context, name=None, namespace=None, options=None):
         """
         Loading function to get the soft effects to particular read node
@@ -818,6 +822,7 @@ class NukeGroupLoader(LoaderPlugin):
             loader=self.__class__.__name__,
             data=data_imprint)
 
+    @undo_chunk("Update Group")
     def update(self, container, context):
         """Update the Loader's path
 
@@ -849,10 +854,10 @@ class NukeGroupLoader(LoaderPlugin):
     def switch(self, container, context):
         self.update(container, context)
 
+    @undo_chunk("Remove Group")
     def remove(self, container):
         node = container["node"]
-        with viewer_update_and_undo_stop():
-            nuke.delete(node)
+        nuke.delete(node)
 
     def connect_active_viewer(self, group_node):
         """
@@ -1235,7 +1240,7 @@ class ExporterReviewMov(ExporterReview):
                  klass,
                  instance,
                  name=None,
-                 ext=None,
+                 write_knobs=None,
                  multiple_presets=True
                  ):
         # initialize parent class
@@ -1249,9 +1254,9 @@ class ExporterReviewMov(ExporterReview):
         self.write_colorspace = instance.data["colorspace"]
         self.color_channels = instance.data["color_channels"]
         self.formatting_data = instance.data["anatomyData"]
-
+        self.custom_write_knobs = write_knobs["custom"]
         self.name = name or "baked"
-        self.ext = ext or "mov"
+        self.ext = write_knobs["file_type"]
 
         # set frame start / end and file name to self
         self.get_file_info()
@@ -1459,30 +1464,9 @@ class ExporterReviewMov(ExporterReview):
         # Write node
         write_node = nuke.createNode("Write")
         self.log.debug(f"Path: {self.path}")
-
         write_node["file"].setValue(str(self.path))
-        write_node["file_type"].setValue(str(self.ext))
-        write_node["channels"].setValue(str(self.color_channels))
-
-        # Knobs `meta_codec` and `mov64_codec` are not available on centos.
-        # TODO shouldn't this come from settings on outputs?
-        try:
-            write_node["meta_codec"].setValue("ap4h")
-        except Exception:
-            self.log.info("`meta_codec` knob was not found")
-
-        try:
-            write_node["mov64_codec"].setValue("ap4h")
-            write_node["mov64_fps"].setValue(float(fps))
-        except Exception:
-            self.log.info("`mov64_codec` knob was not found")
-
-        try:
-            write_node["mov64_write_timecode"].setValue(1)
-        except Exception:
-            self.log.info("`mov64_write_timecode` knob was not found")
-
-        write_node["raw"].setValue(1)
+        self._set_write_node_defaults(write_node, fps)
+        self._set_custom_knobs(write_node, self.custom_write_knobs, self.log)
 
         # connect
         write_node.setInput(0, self.previous_node)
@@ -1492,7 +1476,11 @@ class ExporterReviewMov(ExporterReview):
 
         # ---------- render or save to nk
         if self.publish_on_farm:
-            nuke.scriptSave()
+            # Save in place then copy as a separate workfile so the baked
+            # content get saved without touching Nuke current root instance.
+            # Cannot use nuke.scriptSave(), it has no effect in terminal mode.
+            nuke.scriptSaveAs(
+                self.instance.context.data["currentFile"], overwrite=1)
             path_nk = self.save_file()
             self.data.update({
                 "bakeScriptPath": path_nk,
@@ -1518,7 +1506,9 @@ class ExporterReviewMov(ExporterReview):
         self.log.debug(f"Representation...   `{self.data}`")
 
         self.clean_nodes(product_name)
-        nuke.scriptSave()
+        # Commit to cleaned workfile + session.
+        nuke.scriptSaveAs(
+            self.instance.context.data["currentFile"], overwrite=1)
 
         return self.data
 
@@ -1530,6 +1520,44 @@ class ExporterReviewMov(ExporterReview):
     def _connect_to_above_nodes(self, node, product_name, message):
         node.setInput(0, self.previous_node)
         self._shift_to_previous_node_and_temp(product_name, node, message)
+
+    def _set_write_node_defaults(self, write_node, fps) -> None:
+        """Set default write node configuration.
+
+        Args:
+            write_node: The write node to configure.
+            fps: Frames per second for the write node.
+        """
+        write_node["file_type"].setValue(str(self.ext))
+        write_node["channels"].setValue(str(self.color_channels))
+        write_node["raw"].setValue(1)
+        if "mov64_fps" in write_node.knobs():
+            write_node["mov64_fps"].setValue(float(fps))
+
+    def _set_custom_knobs(self, write_node, custom_knobs, log) -> None:
+        """Set custom knobs on the write node.
+
+        Args:
+            write_node: The write node to configure.
+            custom_knobs: List of custom knob configurations.
+            log: Logger for logging warnings and information.
+        """
+        if not custom_knobs:
+            return
+
+        for knob in custom_knobs:
+            to_type = knob["type"]
+            value = convert_knob_value_to_correct_type(
+                to_type, knob[to_type]
+            )
+            name = knob["name"]
+            if name not in write_node.knobs():
+                log.warning(
+                    f"Knob '{name}' does not exist on the write node. "
+                    "Skipping setting this knob."
+                )
+                continue
+            write_node[name].setValue(value)
 
 
 def convert_to_valid_instaces():

@@ -1,13 +1,14 @@
 import nuke
-
-from ayon_core.pipeline import get_representation_path
-from ayon_nuke.api.lib import color_to_int, maintained_selection
+from ayon_core.pipeline import (
+    get_representation_path,
+)
 from ayon_nuke.api import (
     containerise,
     plugin,
     update_container,
-    viewer_update_and_undo_stop
 )
+from ayon_nuke.api.command import undo_chunk
+from ayon_nuke.api.lib import color_to_int, maintained_selection
 
 
 class AlembicModelLoader(plugin.NukeLoader):
@@ -32,6 +33,7 @@ class AlembicModelLoader(plugin.NukeLoader):
     node_color_latest   = color_to_int(78, 205, 145)   # 0x4ecd91ff
     node_color_outdated = color_to_int(216, 132, 103)  # 0xd88467ff
 
+    @undo_chunk("Load Alembic Geo")
     def load(self, context, name, namespace, data):
         # get main variables
         version_entity = context["version"]
@@ -81,6 +83,7 @@ class AlembicModelLoader(plugin.NukeLoader):
         self.update_node_color(model_node)  # after containerise
         return container
 
+    @undo_chunk("Update Alembic Geo")
     def update(self, container, context):
         """
             Called by Scene Inventory when look should be updated to current
@@ -205,7 +208,7 @@ class AlembicModelLoader(plugin.NukeLoader):
     def switch(self, container, context):
         self.update(container, context)
 
+    @undo_chunk("Remove Alembic Geo")
     def remove(self, container):
         node = nuke.toNode(container['objectName'])
-        with viewer_update_and_undo_stop():
-            nuke.delete(node)
+        nuke.delete(node)

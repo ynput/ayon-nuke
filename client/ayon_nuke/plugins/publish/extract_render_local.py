@@ -124,6 +124,10 @@ class NukeRenderLocal(publish.Extractor,
                 "stagingDir": out_dir
             }
 
+        if instance.data.get("slate_gen"):
+            tags = repre.setdefault("tags", [])
+            tags.append("slate-frame")
+
         # inject colorspace data
         self.set_representation_colorspace(
             repre, instance.context,

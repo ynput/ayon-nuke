@@ -1,12 +1,11 @@
 import nuke
-
-from ayon_nuke.api.lib import color_to_int, maintained_selection
 from ayon_nuke.api import (
     containerise,
     plugin,
     update_container,
-    viewer_update_and_undo_stop,
 )
+from ayon_nuke.api.command import undo_chunk
+from ayon_nuke.api.lib import color_to_int, maintained_selection
 
 
 class GeoImportLoader(plugin.NukeLoader):
@@ -30,6 +29,7 @@ class GeoImportLoader(plugin.NukeLoader):
     node_class = "GeoImport"
     node_file_knob = "file"
 
+    @undo_chunk("Load GeoImport")
     def load(self, context, name, namespace, data):
         namespace = namespace or context["folder"]["name"]
         object_name = "{}_{}".format(name, namespace)
@@ -55,6 +55,7 @@ class GeoImportLoader(plugin.NukeLoader):
         self.update_node_color(node)  # after containerise
         return container
 
+    @undo_chunk("Update GeoImport")
     def update(self, container, context):
         node: nuke.Node = container["node"]
         file = self.filepath_from_context(context).replace("\\", "/")
@@ -73,10 +74,10 @@ class GeoImportLoader(plugin.NukeLoader):
     def switch(self, container, context):
         self.update(container, context)
 
+    @undo_chunk("Remove GeoImport")
     def remove(self, container):
         node = nuke.toNode(container["objectName"])
-        with viewer_update_and_undo_stop():
-            nuke.delete(node)
+        nuke.delete(node)
 
 
 class GeoReferenceLoader(GeoImportLoader):

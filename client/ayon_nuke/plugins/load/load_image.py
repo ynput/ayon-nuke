@@ -1,21 +1,19 @@
-import nuke
 
-from ayon_nuke.api.lib import get_imageio_input_colorspace
+import nuke
 from ayon_core.lib import NumberDef
+from ayon_core.lib.transcoding import IMAGE_EXTENSIONS
 from ayon_core.pipeline.colorspace import (
-    get_imageio_file_rules_colorspace_from_filepath,
     get_current_context_imageio_config_preset,
+    get_imageio_file_rules_colorspace_from_filepath,
 )
 from ayon_nuke.api import (
-    containerise,
-    update_container,
-    viewer_update_and_undo_stop,
     colorspace_exists_on_node,
+    containerise,
     plugin,
+    update_container,
 )
-from ayon_core.lib.transcoding import (
-    IMAGE_EXTENSIONS
-)
+from ayon_nuke.api.command import undo_chunk
+from ayon_nuke.api.lib import get_imageio_input_colorspace
 
 
 class LoadImage(plugin.NukeLoader):
@@ -62,6 +60,7 @@ class LoadImage(plugin.NukeLoader):
     def get_representations(cls):
         return cls.representations_include or cls.representations
 
+    @undo_chunk("Load Image")
     def load(self, context, name, namespace, options):
         project_name = context["project"]["name"]
 
@@ -103,49 +102,49 @@ class LoadImage(plugin.NukeLoader):
         read_name = self._get_node_name(context)
 
         # Create the Loader with the filename path set
-        with viewer_update_and_undo_stop():
-            read_node = nuke.createNode(
-                "Read", "name {}".format(read_name), inpanel=False
-            )
+        read_node = nuke.createNode(
+            "Read", "name {}".format(read_name), inpanel=False
+        )
 
-            self.set_colorspace_to_node(
-                read_node,
-                filepath,
-                project_name,
-                version_entity,
-                repre_entity
-            )
+        self.set_colorspace_to_node(
+            read_node,
+            filepath,
+            project_name,
+            version_entity,
+            repre_entity
+        )
 
-            read_node["file"].setValue(filepath)
-            read_node["origfirst"].setValue(first)
-            read_node["first"].setValue(first)
-            read_node["origlast"].setValue(last)
-            read_node["last"].setValue(last)
+        read_node["file"].setValue(filepath)
+        read_node["origfirst"].setValue(first)
+        read_node["first"].setValue(first)
+        read_node["origlast"].setValue(last)
+        read_node["last"].setValue(last)
 
-            # add attributes from the version to imprint metadata knob
-            data_imprint = {
-                "frameStart": first,
-                "frameEnd": last,
-                "version": version_entity["version"]
-            }
-            for k in ["source", "fps"]:
-                data_imprint[k] = version_attributes.get(k, str(None))
+        # add attributes from the version to imprint metadata knob
+        data_imprint = {
+            "frameStart": first,
+            "frameEnd": last,
+            "version": version_entity["version"]
+        }
+        for k in ["source", "fps"]:
+            data_imprint[k] = version_attributes.get(k, str(None))
 
-            container =  containerise(
-                read_node,
-                name=name,
-                namespace=namespace,
-                context=context,
-                loader=self.__class__.__name__,
-                data=data_imprint,
-            )
-            self.update_node_color(read_node)  # after containerise
+        container =  containerise(
+            read_node,
+            name=name,
+            namespace=namespace,
+            context=context,
+            loader=self.__class__.__name__,
+            data=data_imprint,
+        )
+        self.update_node_color(read_node)  # after containerise
 
-            return container
+        return container
 
     def switch(self, container, context):
         self.update(container, context)
 
+    @undo_chunk("Update Image")
     def update(self, container, context):
         """Update the Loader's path
 
@@ -213,12 +212,11 @@ class LoadImage(plugin.NukeLoader):
             version_entity["version"]
         ))
 
+    @undo_chunk("Remove Image")
     def remove(self, container):
         node = container["node"]
         assert node.Class() == "Read", "Must be Read"
-
-        with viewer_update_and_undo_stop():
-            nuke.delete(node)
+        nuke.delete(node)
 
     def _get_node_name(self, context):
         folder_entity = context["folder"]

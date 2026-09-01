@@ -1558,7 +1558,12 @@ class WorkfileSettings(object):
 
     """
 
-    def __init__(self, root_node=None, nodes=None, **kwargs):
+    def __init__(
+            self,
+            root_node=None,
+            nodes=None,
+            project_settings=None,
+            **kwargs):
         project_entity = kwargs.get("project")
         if project_entity is None:
             project_name = get_current_project_name()
@@ -1587,6 +1592,18 @@ class WorkfileSettings(object):
             project_name, self._folder_path, self._task_name, "nuke"
         )
         self.formatting_data = context_data
+        self._project_setting = project_settings
+
+    @property
+    def project_settings(self) -> dict:
+        """Get project settings
+
+        Returns:
+            dict: project settings for the current project
+        """
+        if not self._project_setting:
+            self._project_setting = get_project_settings(self._project_name)
+        return self._project_setting
 
     def get_nodes(self, nodes=None, nodes_filter=None):
 
@@ -1680,7 +1697,9 @@ class WorkfileSettings(object):
             imageio_host (dict): host colorspace configurations
 
         """
-        config_data = get_current_context_imageio_config_preset()
+        config_data = get_current_context_imageio_config_preset(
+            project_settings=self.project_settings
+        )
 
         workfile_settings = imageio_host["workfile"]
         color_management = workfile_settings["color_management"]
@@ -2007,9 +2026,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             # This ensures that any values overwritten by the user is
             # not changed by the colorspace knobs set.
             colorspace_knobs = nuke_imageio_writes["knobs"]
-            all_create_settings = get_project_settings(
-                Context.project_name,
-            )["nuke"]["create"]
+            all_create_settings = self.project_settings["nuke"]["create"]
             plugin_names_mapping = {
                 "create_write_image": "CreateWriteImage",
                 "create_write_prerender": "CreateWritePrerender",
@@ -2061,13 +2078,43 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                     }
 
         if changes:
-            msg = "Read nodes are not set to correct colorspace:\n\n"
-            for node_name, knobs in changes.items():
-                msg += (
-                    " - node: '{0}' is now '{1}' but should be '{2}'\n"
-                ).format(node_name, knobs["from"], knobs["to"])
+            # Limit items shown in the UI
+            # to avoid display issues with long lists.
+            MAX_ITEMS = 10
 
-            msg += "\nWould you like to change it?"
+            items = list(changes.items())
+            details = []
+
+            msg = (
+                "Read node is not set to the correct colorspace:\n\n"
+                if len(items) == 1
+                else "Read nodes are not set to the correct colorspace:\n\n"
+            )
+
+            for i, (node_name, knobs) in enumerate(items):
+                line = (
+                    f" - node: '{node_name}' is now '{knobs['from']}' "
+                    f"but should be '{knobs['to']}'"
+                )
+                details.append(line)
+
+                if i < MAX_ITEMS:
+                    msg += line + "\n"
+
+            remaining = len(items) - MAX_ITEMS
+            if remaining > 0:
+                print("\n".join(details))
+                msg += (
+                    f"\n...and {remaining} more "
+                    f"{'node' if remaining == 1 else 'nodes'}.\n"
+                    "\nA detailed list has been printed to the Script Editor."
+                )
+
+            msg += (
+                "\n\nWould you like to change it?"
+                if len(items) == 1
+                else "\n\nWould you like to change them?"
+            )
 
             if nuke.ask(msg):
                 for node_name, knobs in changes.items():
@@ -2326,6 +2373,8 @@ def get_dependent_nodes(nodes):
     """Get all dependent nodes connected to the list of nodes.
 
     Looking for connections outside the nodes in incoming argument.
+    This only checks for direct connections (nuke.INPUTS). It ignores others,
+    like hidden links (nuke.HIDDEN_INPUTS) and expressions (nuke.EXPRESSIONS).
 
     Arguments:
         nodes (list): list of nuke.Node objects
@@ -2337,24 +2386,28 @@ def get_dependent_nodes(nodes):
 
     connections_in = dict()
     connections_out = dict()
-    node_names = [n.name() for n in nodes]
+    node_names: set[str] = {n.name() for n in nodes}
     for node in nodes:
-        inputs = node.dependencies()
-        outputs = node.dependent()
         # collect all inputs outside
-        test_in = [(i, n) for i, n in enumerate(inputs)
-                   if n.name() not in node_names]
+        inputs = node.dependencies(nuke.INPUTS)
+        test_in = [
+            (i, input_) for i, input_ in enumerate(inputs)
+            if input_.name() not in node_names
+        ]
         if test_in:
-            connections_in.update({
-                node: test_in
-            })
-        # collect all outputs outside
-        test_out = [i for i in outputs if i.name() not in node_names]
+            connections_in[node] = test_in
+
+        # collect last connected output; only one dependent node is allowed
+        outputs = node.dependent(nuke.INPUTS, forceEvaluate=False)
+        test_out = next(
+            (
+                output for output in reversed(outputs)
+                if output.name() not in node_names
+            ),
+            None
+        )
         if test_out:
-            # only one dependent node is allowed
-            connections_out.update({
-                node: test_out[-1]
-            })
+            connections_out[node] = test_out
 
     return connections_in, connections_out
 
@@ -2475,9 +2528,13 @@ def maintained_selection(exclude_nodes=None):
         # unselect all selection in case there is some
         reset_selection()
 
-        # and select all previously selected nodes
-        if previous_selection:
-            select_nodes(previous_selection)
+        for node in previous_selection:
+            try:
+                node["selected"].setValue(True)
+            except ValueError:
+                # Could fail if a node was deleted during the context.
+                # See: https://github.com/ynput/ayon-nuke/pull/331 for details.
+                pass
 
 
 @contextlib.contextmanager

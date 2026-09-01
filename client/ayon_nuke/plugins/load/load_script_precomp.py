@@ -1,13 +1,12 @@
 import nuke
-
 from ayon_core.pipeline import get_representation_path
-from ayon_nuke.api.lib import color_to_int, get_avalon_knob_data
 from ayon_nuke.api import (
     containerise,
     plugin,
     update_container,
-    viewer_update_and_undo_stop
 )
+from ayon_nuke.api.command import undo_chunk
+from ayon_nuke.api.lib import color_to_int, get_avalon_knob_data
 
 
 class LinkAsGroup(plugin.NukeLoader):
@@ -27,6 +26,7 @@ class LinkAsGroup(plugin.NukeLoader):
     node_color_latest =   color_to_int(255, 255, 255)  # 0xff0ff0ff
     node_color_outdated = color_to_int(216, 79, 32)    # 0xd84f20ff
 
+    @undo_chunk("Load Precomp")
     def load(self, context, name, namespace, data):
         # for k, v in context.items():
         #     log.info("key: `{}`, value: {}\n".format(k, v))
@@ -107,6 +107,7 @@ class LinkAsGroup(plugin.NukeLoader):
     def switch(self, container, context):
         self.update(container, context)
 
+    @undo_chunk("Update Precomp")
     def update(self, container, context):
         """Update the Loader's path
 
@@ -147,7 +148,7 @@ class LinkAsGroup(plugin.NukeLoader):
         )
         return container
 
+    @undo_chunk("Remove Precomp")
     def remove(self, container):
         node = container["node"]
-        with viewer_update_and_undo_stop():
-            nuke.delete(node)
+        nuke.delete(node)
