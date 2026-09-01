@@ -110,11 +110,13 @@ def _convert_extract_intermediate_files_0_2_3(publish_overrides):
 
     0.2.2. is the latest version using the old way.
     """
-    # override can be either `display/view` or `view (display)`
-    if "ExtractReviewIntermediates" in publish_overrides:
-        extract_review_intermediates = publish_overrides[
-            "ExtractReviewIntermediates"]
+    if "ExtractReviewIntermediates" not in publish_overrides:
+        return
 
+    extract_review_intermediates = publish_overrides[
+        "ExtractReviewIntermediates"
+    ]
+    # override can be either `display/view` or `view (display)`
     for output in extract_review_intermediates.get("outputs", []):
         if viewer_process_override := output.get("viewer_process_override"):
             display, view = _get_viewer_config_from_string(
@@ -310,6 +312,9 @@ def _convert_review_intermediates_model_0_4_11(
         .get("ExtractReviewIntermediates", {})
         .get("outputs")
     )
+    if not extract_review_outputs:
+        return
+
     for output in extract_review_outputs:
         extension = output.pop("extension", None)
         if not extension:

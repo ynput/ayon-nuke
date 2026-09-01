@@ -5,8 +5,8 @@ from ayon_core.pipeline import load
 from ayon_nuke.api import (
     containerise,
     update_container,
-    viewer_update_and_undo_stop,
 )
+from ayon_nuke.api.command import undo_chunk
 from ayon_nuke.api.lib import maintained_selection
 
 from pxr import Usd, UsdGeom
@@ -33,6 +33,7 @@ class UsdCameraLoader(load.LoaderPlugin):
     node_color = "0x3469ffff"
     settings_category = "nuke"
 
+    @undo_chunk("Load USD Camera")
     def load(self, context, name, namespace, data):
         version_entity = context["version"]
         version_attributes = version_entity["attrib"]
@@ -69,6 +70,7 @@ class UsdCameraLoader(load.LoaderPlugin):
             loader=self.__class__.__name__,
         )
 
+    @undo_chunk("Update USD Camera")
     def update(self, container, context):
         version_entity = context["version"]
         version_attributes = version_entity["attrib"]
@@ -113,10 +115,10 @@ class UsdCameraLoader(load.LoaderPlugin):
     def switch(self, container, context):
         self.update(container, context)
 
+    @undo_chunk("Remove USD Camera")
     def remove(self, container):
         node = container["node"]
-        with viewer_update_and_undo_stop():
-            nuke.delete(node)
+        nuke.delete(node)
 
     def set_usd_camera_prim_path(self, camera_node):
         """Set the camera prim path on the Camera4 node.

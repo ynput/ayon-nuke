@@ -6,8 +6,8 @@ from ayon_nuke.api.lib import maintained_selection
 from ayon_nuke.api import (
     containerise,
     update_container,
-    viewer_update_and_undo_stop,
 )
+from ayon_nuke.api.command import undo_chunk
 
 
 class GeoImportLoader(load.LoaderPlugin):
@@ -29,6 +29,7 @@ class GeoImportLoader(load.LoaderPlugin):
     node_class = "GeoImport"
     node_file_knob = "file"
 
+    @undo_chunk("Load GeoImport")
     def load(self, context, name, namespace, data):
         namespace = namespace or context["folder"]["name"]
         object_name = "{}_{}".format(name, namespace)
@@ -55,6 +56,7 @@ class GeoImportLoader(load.LoaderPlugin):
             loader=self.__class__.__name__,
         )
 
+    @undo_chunk("Update GeoImport")
     def update(self, container, context):
         node: nuke.Node = container["node"]
         file = self.filepath_from_context(context).replace("\\", "/")
@@ -82,10 +84,10 @@ class GeoImportLoader(load.LoaderPlugin):
     def switch(self, container, context):
         self.update(container, context)
 
+    @undo_chunk("Remove GeoImport")
     def remove(self, container):
         node = nuke.toNode(container["objectName"])
-        with viewer_update_and_undo_stop():
-            nuke.delete(node)
+        nuke.delete(node)
 
 
 class GeoReferenceLoader(GeoImportLoader):
