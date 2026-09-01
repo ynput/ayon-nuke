@@ -10,13 +10,6 @@ from ayon_core.pipeline.workfile.workfile_template_builder import (
     PlaceholderItem
 )
 
-try:
-    from ayon_core.tools.workfile_template_build import open_template_ui
-
-except ImportError:
-    def open_template_ui(*_args, **_kwargs):
-        raise RuntimeError("Template UI is not available in non-GUI mode.")
-
 from .lib import (
     imprint,
     reset_selection,
@@ -200,6 +193,7 @@ def update_workfile_template(*args):
 
 def open_template() -> None:
     """Open the workfile template UI for Nuke."""
+    from ayon_core.tools.workfile_template_build import open_template_ui
     builder = NukeTemplateBuilder(registered_host())
     open_template_ui(builder, main_window=get_main_window())
 
