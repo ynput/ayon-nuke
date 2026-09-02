@@ -5,7 +5,7 @@
 Generic AYON addon instructions are distributed separately. When needed,
 first look for and follow in case worktree was setupped correctly with git hook:
 
-`.ayon-main/AGENTS.md`
+`.agents-main/AGENTS.md`
 
 The directory is outside this repository root and contains the
 organization-level agentic skills and instructions.
