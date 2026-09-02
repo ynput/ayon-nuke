@@ -15,9 +15,7 @@ from qtpy import QtCore, QtWidgets
 import ayon_api
 
 from ayon_core.host import HostDirmap
-from ayon_core.pipeline.workfile.workfile_template_builder import (
-    TemplateProfileNotFound
-)
+
 from ayon_core.lib import (
     env_value_to_bool,
     Logger,
@@ -998,6 +996,24 @@ def script_name() -> str:
     return nuke.root().knob("name").value()
 
 
+def add_button_render_single_image(node: nuke.Node) -> None:
+    """Add a button to render a single image for the given node.
+
+    Args:
+        node (nuke.Node): The node for which the render single image
+        button is being added.
+    """
+    name = "Render"
+    label = "Render Local"
+    value = (
+        "from ayon_nuke.api.utils import render_single_frame;"
+        "render_single_frame(nuke.thisNode())"
+    )
+    knob = nuke.PyScript_Knob(name, label, value)
+    knob.clearFlag(nuke.STARTLINE)
+    node.addKnob(knob)
+
+
 def add_button_render_on_farm(node):
     name = "renderOnFarm"
     label = "Render On Farm"
@@ -1280,6 +1296,10 @@ def create_write_node(
             if "___" in _k_name:
                 # add divider
                 GN.addKnob(nuke.Text_Knob(""))
+
+            elif  _k_name == "Render" and plugin_name == "CreateWriteImage":
+                add_button_render_single_image(GN)
+
             else:
                 # add linked knob by _k_name
                 link = nuke.Link_Knob("")
@@ -2737,22 +2757,6 @@ def prompt_reset_context():
             update_content_on_context_change()
     finally:
         dialog.deleteLater()
-
-
-def start_workfile_template_builder():
-    from .workfile_template_builder import (
-        build_workfile_template
-    )
-
-    # remove callback since it would be duplicating the workfile
-    nuke.removeOnCreate(start_workfile_template_builder, nodeClass="Root")
-
-    # to avoid looping of the callback, remove it!
-    log.info("Starting workfile template builder...")
-    try:
-        build_workfile_template(workfile_creation_enabled=True)
-    except TemplateProfileNotFound:
-        log.warning("Template profile not found. Skipping...")
 
 
 def add_scripts_menu():
