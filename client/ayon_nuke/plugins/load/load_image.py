@@ -1,30 +1,22 @@
+
 import nuke
-
-import ayon_api
-
-from ayon_core.pipeline import load
-
-from ayon_nuke.api.lib import (
-    get_imageio_input_colorspace
-)
-from ayon_nuke.api.command import undo_chunk
-
 from ayon_core.lib import NumberDef
+from ayon_core.lib.transcoding import IMAGE_EXTENSIONS
 from ayon_core.pipeline.colorspace import (
-    get_imageio_file_rules_colorspace_from_filepath,
     get_current_context_imageio_config_preset,
+    get_imageio_file_rules_colorspace_from_filepath,
 )
 from ayon_nuke.api import (
-    containerise,
-    update_container,
     colorspace_exists_on_node,
+    containerise,
+    plugin,
+    update_container,
 )
-from ayon_core.lib.transcoding import (
-    IMAGE_EXTENSIONS
-)
+from ayon_nuke.api.command import undo_chunk
+from ayon_nuke.api.lib import get_imageio_input_colorspace
 
 
-class LoadImage(load.LoaderPlugin):
+class LoadImage(plugin.NukeLoader):
     """Load still image into Nuke"""
 
     product_base_types = {
@@ -137,9 +129,7 @@ class LoadImage(load.LoaderPlugin):
         for k in ["source", "fps"]:
             data_imprint[k] = version_attributes.get(k, str(None))
 
-        read_node["tile_color"].setValue(int("0x4ecd25ff", 16))
-
-        return containerise(
+        container = containerise(
             read_node,
             name=name,
             namespace=namespace,
@@ -147,6 +137,9 @@ class LoadImage(load.LoaderPlugin):
             loader=self.__class__.__name__,
             data=data_imprint,
         )
+        self.update_node_color(read_node)  # after containerise
+
+        return container
 
     def switch(self, container, context):
         self.update(container, context)
@@ -189,10 +182,6 @@ class LoadImage(load.LoaderPlugin):
             )
 
         # Get start frame from version data
-        last_version_entity = ayon_api.get_last_version_by_product_id(
-            project_name, version_entity["productId"], fields={"id"}
-        )
-
         last = first = int(frame_number)
 
         self.set_colorspace_to_node(
@@ -215,15 +204,10 @@ class LoadImage(load.LoaderPlugin):
             "fps": str(version_attributes.get("fps")),
         }
 
-        # change color of node
-        if version_entity["id"] == last_version_entity["id"]:
-            color_value = "0x4ecd25ff"
-        else:
-            color_value = "0xd84f20ff"
-        read_node["tile_color"].setValue(int(color_value, 16))
-
         # Update the imprinted representation
         update_container(read_node, updated_dict)
+        self.update_node_color(read_node)
+
         self.log.info("updated to version: {}".format(
             version_entity["version"]
         ))
