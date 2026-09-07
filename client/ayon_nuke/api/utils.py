@@ -10,6 +10,18 @@ from ayon_core.pipeline import registered_host
 from ayon_core.pipeline.create import CreateContext
 
 
+def render_single_frame(group_node: nuke.Node) -> None:
+    """Render a single frame for the given group node.
+
+    Args:
+        group_node (nuke.Node): The group node containing the write
+        node to render.
+    """
+    write_node = nuke.allNodes("Write", group=group_node)[0]
+    frame = int(write_node["first"].value())
+    nuke.execute(write_node.fullName(), frame, frame)
+
+
 def set_context_favorites(favorites=None):
     """Adding favorite folders to nuke's browser
 
