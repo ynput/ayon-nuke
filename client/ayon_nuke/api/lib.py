@@ -1768,23 +1768,12 @@ class WorkfileSettings(object):
         m_display, m_viewer = get_viewer_config_from_string(monitor_lut)
         v_display, v_viewer = get_viewer_config_from_string(viewer_lut)
 
-        # set monitor lut differently for nuke version 14
-        if nuke.NUKE_VERSION_MAJOR >= 14:
-            output_data["monitorOutLUT"] = create_viewer_profile_string(
-                m_viewer, m_display, path_like=False)
-            # monitorLut=thumbnails - viewerProcess makes more sense
-            output_data["monitorLut"] = create_viewer_profile_string(
-                v_viewer, v_display, path_like=False)
-
-        if nuke.NUKE_VERSION_MAJOR == 13:
-            output_data["monitorOutLUT"] = create_viewer_profile_string(
-                m_viewer, m_display, path_like=False)
-            # monitorLut=thumbnails - viewerProcess makes more sense
-            output_data["monitorLut"] = create_viewer_profile_string(
-                v_viewer, v_display, path_like=True)
-        if nuke.NUKE_VERSION_MAJOR <= 12:
-            output_data["monitorLut"] = create_viewer_profile_string(
-                m_viewer, m_display, path_like=True)
+        # set monitor lut differently (supported for nuke 14+)
+        output_data["monitorOutLUT"] = create_viewer_profile_string(
+            m_viewer, m_display, path_like=False)
+        # monitorLut=thumbnails - viewerProcess makes more sense
+        output_data["monitorLut"] = create_viewer_profile_string(
+            v_viewer, v_display, path_like=False)
 
         return output_data
 
@@ -3190,19 +3179,14 @@ def get_filenames_without_hash(filename, frame_start, frame_end):
 
 def create_camera_node_by_version():
     """Function to create the camera with the latest node class
+
     For Nuke version 14.0 or later, the Camera4 camera node class
-        would be used
-    For the version before, the Camera2 camera node class
-        would be used
+        would be used. We've dropped support folder older Nuke versions.
+
     Returns:
         Node: camera node
     """
-    nuke_number_version = nuke.NUKE_VERSION_MAJOR
-    if nuke_number_version >= 14:
-        return nuke.createNode("Camera4")
-    else:
-        return nuke.createNode("Camera2")
-
+    return nuke.createNode("Camera4")
 
 def link_knobs(knobs, node, group_node):
     """Link knobs from inside `group_node`"""
