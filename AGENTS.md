@@ -8,8 +8,8 @@ first look for and follow in case worktree was setupped correctly with git hook:
 `.agents-main/AGENTS.md`
 
 The directory is outside this repository root and contains the
-organization-level agentic skills and instructions and this file is extending 
-it with addon level implementaiton. Read it first if it is available. 
+organization-level agentic skills and instructions and this file is extending
+it with addon level implementation. Read it first if it is available.
 
 
 ## Nuke-specific repository details
