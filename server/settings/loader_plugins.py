@@ -6,33 +6,19 @@ class LoaderEnabledModel(BaseSettingsModel):
 
 
 class LoadImageModel(BaseSettingsModel):
-    enabled: bool = SettingsField(
-        title="Enabled"
-    )
+    enabled: bool = SettingsField(title="Enabled")
     representations_include: list[str] = SettingsField(
-        default_factory=list,
-        title="Include representations"
+        default_factory=list, title="Include representations"
     )
 
-    node_name_template: str = SettingsField(
-        title="Read node name template"
-    )
+    node_name_template: str = SettingsField(title="Read node name template")
 
 
 def node_type_enum_options():
     return [
-        {
-            "value": "auto",
-            "label": "Auto-detect"
-        },
-        {
-            "value": "Read",
-            "label": "Read"
-        },
-        {
-            "value": "DeepRead",
-            "label": "DeepRead"
-        }
+        {"value": "auto", "label": "Auto-detect"},
+        {"value": "Read", "label": "Read"},
+        {"value": "DeepRead", "label": "DeepRead"},
     ]
 
 
@@ -42,14 +28,12 @@ class LoadClipOptionsModel(BaseSettingsModel):
         description=(
             "When loading, set the node's frame range "
             "to the version's frame range."
-        )
+        ),
     )
     start_at_workfile: bool = SettingsField(
         title="Start at workfile's start frame"
     )
-    add_retime: bool = SettingsField(
-        title="Add retime"
-    )
+    add_retime: bool = SettingsField(title="Add retime")
     node_type: str = SettingsField(
         title="Read Node Type",
         enum_resolver=node_type_enum_options,
@@ -64,43 +48,35 @@ class LoadBackdropNodesModel(BaseSettingsModel):
 
 
 class LoadClipModel(BaseSettingsModel):
-    enabled: bool = SettingsField(
-        title="Enabled"
-    )
+    enabled: bool = SettingsField(title="Enabled")
     representations_include: list[str] = SettingsField(
-        default_factory=list,
-        title="Include representations"
+        default_factory=list, title="Include representations"
     )
 
-    node_name_template: str = SettingsField(
-        title="Read node name template"
-    )
+    node_name_template: str = SettingsField(title="Read node name template")
     options_defaults: LoadClipOptionsModel = SettingsField(
-        default_factory=LoadClipOptionsModel,
-        title="Loader option defaults"
+        default_factory=LoadClipOptionsModel, title="Loader option defaults"
     )
 
 
 class LoaderPluginsModel(BaseSettingsModel):
     LoadImage: LoadImageModel = SettingsField(
-        default_factory=LoadImageModel,
-        title="Load Image"
+        default_factory=LoadImageModel, title="Load Image"
     )
     LoadClip: LoadClipModel = SettingsField(
-        default_factory=LoadClipModel,
-        title="Load Clip"
+        default_factory=LoadClipModel, title="Load Clip"
     )
     LoadBackdropNodes: LoadBackdropNodesModel = SettingsField(
-        default_factory=LoadBackdropNodesModel,
-        title="Load Backdrop Nodes"
+        default_factory=LoadBackdropNodesModel, title="Load Backdrop Nodes"
     )
     GeoImportLoader: LoaderEnabledModel = SettingsField(
-        default_factory=LoaderEnabledModel,
-        title="Load GeoImport"
+        default_factory=LoaderEnabledModel, title="Load GeoImport"
     )
     GeoReferenceLoader: LoaderEnabledModel = SettingsField(
-        default_factory=LoaderEnabledModel,
-        title="Load GeoReference"
+        default_factory=LoaderEnabledModel, title="Load GeoReference"
+    )
+    UsdCameraLoaderV2: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel, title="Load USD Camera (V2)"
     )
 
 
@@ -108,7 +84,7 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
     "LoadImage": {
         "enabled": True,
         "representations_include": [],
-        "node_name_template": "{class_name}_{ext}"
+        "node_name_template": "{class_name}_{ext}",
     },
     "LoadClip": {
         "enabled": True,
@@ -118,16 +94,11 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
             "set_frame_range": True,
             "start_at_workfile": False,
             "add_retime": True,
-            "node_type": "auto"
-        }
+            "node_type": "auto",
+        },
     },
-    "LoadBackdropNodes": {
-        "remove_nodes_from_backdrop": False
-    },
-    "GeoImportLoader": {
-        "enabled": True
-    },
-    "GeoReferenceLoader": {
-        "enabled": True
-    }
+    "LoadBackdropNodes": {"remove_nodes_from_backdrop": False},
+    "GeoImportLoader": {"enabled": True},
+    "GeoReferenceLoader": {"enabled": True},
+    "UsdCameraLoaderV2": {"enabled": True},
 }
