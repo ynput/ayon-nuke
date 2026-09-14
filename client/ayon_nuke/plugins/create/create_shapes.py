@@ -6,7 +6,7 @@ from ayon_nuke.api import (
 import nuke
 
 
-class CreateShapes(NukeCreator):
+class CreateSilhouetteShapes(NukeCreator):
     """Add Publishable Silhouette Shapes"""
 
     settings_category = "nuke"
