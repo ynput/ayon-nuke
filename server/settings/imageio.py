@@ -385,6 +385,11 @@ DEFAULT_IMAGEIO_SETTINGS = {
                         "text": "16 bit half",
                     },
                     {
+                        "type": "color_gui",
+                        "name": "tile_color",
+                        "color_gui": [186, 35, 35],
+                    },
+                    {
                         "type": "text",
                         "name": "compression",
                         "text": "Zip (1 scanline)",
@@ -437,6 +442,11 @@ DEFAULT_IMAGEIO_SETTINGS = {
                         "type": "text",
                         "name": "datatype",
                         "text": "16 bit half",
+                    },
+                    {
+                        "type": "color_gui",
+                        "name": "tile_color",
+                        "color_gui": [171, 171, 10],
                     },
                     {
                         "type": "text",
