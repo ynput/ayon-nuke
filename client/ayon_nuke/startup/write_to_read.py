@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import nuke
 import clique
@@ -106,9 +108,12 @@ def detect_file_on_disk(
 
 
 def create_read_node(ndata, comp_start):
-    read = nuke.createNode('Read', 'file "' + ndata['filepath'] + '"')
-    read.knob('colorspace').setValue(int(ndata['colorspace']))
-    read.knob('raw').setValue(ndata['rawdata'])
+    if ndata.get("node_class") == "DeepWrite":
+        read = nuke.createNode('DeepRead', 'file "' + ndata['filepath'] + '"')
+    else:
+        read = nuke.createNode('Read', 'file "' + ndata['filepath'] + '"')
+        read.knob('colorspace').setValue(int(ndata['colorspace']))
+        read.knob('raw').setValue(ndata['rawdata'])
     read.knob('first').setValue(int(ndata['firstframe']))
     read.knob('last').setValue(int(ndata['lastframe']))
     read.knob('origfirst').setValue(int(ndata['firstframe']))
@@ -137,7 +142,9 @@ def write_to_read(gn,
         height = gn.screenHeight()  # get group height and position
         new_xpos = int(gn.knob('xpos').value())
         new_ypos = int(gn.knob('ypos').value()) + height + 20
-        group_writes = [n for n in nuke.allNodes() if n.Class() == "Write"]
+        group_writes = [
+            n for n in nuke.allNodes() if n.Class() in {"Write", "DeepWrite"}
+        ]
         if group_writes != []:
             # there can be only 1 write node, taking first
             n = group_writes[0]
@@ -160,11 +167,15 @@ def write_to_read(gn,
                     'lastframe': int(lastFrame),
                     'new_xpos': new_xpos,
                     'new_ypos': new_ypos,
-                    'colorspace': n.knob('colorspace').getValue(),
-                    'rawdata': n.knob('raw').value(),
                     'write_frame_mode': str(n.knob('frame_mode').value()),
-                    'write_frame': n.knob('frame').value()
+                    'write_frame': n.knob('frame').value(),
+                    'node_class': n.Class(),
                 }
+                if n.Class() == "Write":
+                    ndata.update({
+                        'colorspace': n.knob('colorspace').getValue(),
+                        'rawdata': n.knob('raw').value(),
+                    })
                 group_read_nodes.append(ndata)
 
     # create reads in one go
