@@ -523,13 +523,14 @@ def get_avalon_knob_data(node, prefix="avalon:", create=True):
     return data
 
 
-def add_write_node(name, file_path, knobs, **kwarg):
+def add_write_node(name, file_path, knobs, node_class, **kwarg):
     """Adding nuke write node
 
     Arguments:
         name (str): nuke node name
         file_path (str): file path to write
         knobs (list[dict]): nuke knobs to be set from settings
+        node_class (str): nuke node class
         kwarg (dict): formatting attributes data for nuke knobs,
             must at least include `frame_range` key.
 
@@ -539,7 +540,7 @@ def add_write_node(name, file_path, knobs, **kwarg):
     use_range_limit = kwarg.get("use_range_limit", None)
 
     w = nuke.createNode(
-        "Write",
+        node_class,
         "name {}".format(name),
         inpanel=False
     )
@@ -1157,6 +1158,7 @@ def create_write_node(
     input=None,
     prenodes=None,
     linked_knobs=None,
+    node_class="Write",
     **kwargs
 ):
     """Creating write node which is group node
@@ -1214,7 +1216,7 @@ def create_write_node(
 
     # get knob settings for write node
     imageio_writes = get_imageio_node_setting(
-        node_class="Write",
+        node_class=node_class,
         plugin_name=plugin_name,
         product_name=product_name
     )
@@ -1299,6 +1301,7 @@ def create_write_node(
             "inside_{}".format(name),
             fpath,
             imageio_writes["knobs"],
+            node_class,
             **data
         )
         # connect to previous node
@@ -2339,7 +2342,9 @@ def get_write_node_template_attr(node):
     plugin_names_mapping = {
         "create_write_image": "CreateWriteImage",
         "create_write_prerender": "CreateWritePrerender",
-        "create_write_render": "CreateWriteRender"
+        "create_deepwrite_prerender": "CreateDeepWritePrerender",
+        "create_write_render": "CreateWriteRender",
+        "create_deepwrite_render": "CreateDeepWriteRender",
     }
     # get AYON data from node
     node_data = get_node_data(node, INSTANCE_DATA_KNOB)

@@ -327,6 +327,7 @@ class NukeWriteCreator(NukeCreator):
     product_type = "write"
     product_base_type = "write"
     icon = "sign-out"
+    node_class = "Write"
 
     # default to be applied if settings is missing
     temp_rendering_path_template = (
@@ -426,7 +427,9 @@ class NukeWriteCreator(NukeCreator):
         # Update values with new formatted path
         instance_node = created_inst.transient_data["node"]
         formatting_data = copy.deepcopy(data)
-        write_node = nuke.allNodes(group=instance_node, filter="Write")[0]
+        write_node = nuke.allNodes(
+            group=instance_node, filter=self.node_class
+        )[0]
         _, ext = os.path.splitext(write_node["file"].value())
         formatting_data.update({"ext": ext[1:]})
 
@@ -581,7 +584,10 @@ class NukeWriteCreator(NukeCreator):
             )
 
             exposed_write_knobs(
-                self.project_settings, self.__class__.__name__, instance_node
+                self.project_settings,
+                self.__class__.__name__,
+                instance_node,
+                self.node_class,
             )
 
             return instance
@@ -1711,11 +1717,11 @@ def _remove_old_knobs(node):
             pass
 
 
-def exposed_write_knobs(settings, plugin_name, instance_node):
+def exposed_write_knobs(settings, plugin_name, instance_node, node_class):
     exposed_knobs = settings["nuke"]["create"][plugin_name].get(
         "exposed_knobs", []
     )
     if exposed_knobs:
         instance_node.addKnob(nuke.Text_Knob('', 'Write Knobs'))
-    write_node = nuke.allNodes(group=instance_node, filter="Write")[0]
+    write_node = nuke.allNodes(group=instance_node, filter=node_class)[0]
     link_knobs(exposed_knobs, write_node, instance_node)
