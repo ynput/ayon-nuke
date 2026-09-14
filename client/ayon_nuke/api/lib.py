@@ -526,7 +526,7 @@ def get_avalon_knob_data(node, prefix="avalon:", create=True):
     return data
 
 
-def add_write_node(name, file_path, knobs, node_class, **kwarg):
+def add_write_node(name, file_path, knobs, node_class="Write", **kwarg):
     """Adding nuke write node
 
     Arguments:
