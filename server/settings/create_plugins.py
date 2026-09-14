@@ -265,6 +265,10 @@ class CreatorPluginsSettings(BaseSettingsModel):
         default_factory=DefaultPluginModel,
         title="Gizmo (group)"
     )
+    CreateShapes: DefaultPluginModel = SettingsField(
+        default_factory=DefaultPluginModel,
+        title="Shapes (Silhouette)"
+    )
     CreateModel: DefaultPluginModel = SettingsField(
         default_factory=DefaultPluginModel,
         title="Model (3d)"
@@ -371,6 +375,10 @@ DEFAULT_CREATE_SETTINGS = {
         "order": 100,
     },
     "CreateGizmo": {
+        "enabled": True,
+        "order": 100,
+    },
+    "CreateShapes": {
         "enabled": True,
         "order": 100,
     },
