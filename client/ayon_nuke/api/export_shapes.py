@@ -24,6 +24,7 @@ class ExportSilhouetteShapes:
     The original work is distributed under the BSD 3-Clause License.
     Its copyright notice, license terms, and disclaimer are retained in
     this project's third-party notices.
+    See: https://github.com/magnoborgo/NukeFXSExporter
 
 
     """
