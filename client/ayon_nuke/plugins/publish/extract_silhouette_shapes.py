@@ -10,7 +10,7 @@ from ayon_nuke.api.lib import (
     maintained_selection,
     select_nodes
 )
-from ayon_nuke.api.export_shapes import ExportSilhouetteShapes
+from ayon_nuke.vendor.NukeFXExporter import silhouetteFxsExporter
 
 
 class ExtractSilhouetteShapes(publish.Extractor):
@@ -42,13 +42,12 @@ class ExtractSilhouetteShapes(publish.Extractor):
         with maintained_selection():
             # select shapes node
             select_nodes([shape_node])
-            # TODO: export the data
-            export_shape = ExportSilhouetteShapes(
+            silhouetteFxsExporter(
+                filepath,
                 first_frame,
                 last_frame,
                 bake_shapes=bake_shapes
             )
-            export_shape.export(filepath)
 
         # create representation data
         if "representations" not in instance.data:
