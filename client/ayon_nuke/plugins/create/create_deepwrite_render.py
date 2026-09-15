@@ -15,7 +15,7 @@ class CreateDeepWriteRender(napi.NukeWriteCreator):
 
     instance_attributes = []
     default_variants = [
-        "DeepMain",
+        "Main",
     ]
 
     def create_instance_node(
