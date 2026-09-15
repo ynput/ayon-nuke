@@ -378,7 +378,7 @@ DEFAULT_CREATE_SETTINGS = {
         "enabled": True,
         "order": 100,
     },
-    "CreateShapes": {
+    "CreateSilhouetteShapes": {
         "enabled": True,
         "order": 100,
     },
