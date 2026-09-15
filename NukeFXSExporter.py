@@ -1,6 +1,6 @@
-import nuke, nukescripts, nuke.rotopaint as rp, nuke.splinewarp as sw, math
-import time, threading
-import sys, os, uuid
+import nuke, nukescripts, nuke.rotopaint as rp
+import time
+import uuid
 import xml.etree.ElementTree as ET
 
 def indent(elem, level=0):
@@ -96,7 +96,7 @@ def parseShapeFlags(flags):
             flaglist.append(NukeFlags[len(NukeFlags)-1-pos])
     return flaglist
 
-def createLayers(layer, fRange, rotoNode, rptsw_shapeList,task2,fxsExport,bakeshapes):
+def createLayers(layer, fRange, rotoNode, rptsw_shapeList,fxsExport,bakeshapes):
     '''
     Creates the layer xml and assigns it to the fxsExport parent
     #===========================================================================
@@ -104,10 +104,6 @@ def createLayers(layer, fRange, rotoNode, rptsw_shapeList,task2,fxsExport,bakesh
     #===========================================================================
     '''
     global cancel
-    rotoCurve = rotoNode['curves']
-    rotoRoot = rotoCurve.rootLayer
-    transf = layer[0].getTransform()
-    allAttributes = layer[0].getAttributes()
     #=*=*=*=*=*=*===========================================================
     task = nuke.ProgressTask('Layer Exporter')
     task.setMessage('Creating Layer: %s' % layer[0].name)   
@@ -157,7 +153,7 @@ def createLayers(layer, fRange, rotoNode, rptsw_shapeList,task2,fxsExport,bakesh
     # adds matrix data to the layer
     #===========================================================================
     if not bakeshapes:
-        matrixtoLayer(layer, fRange, rotoNode, rptsw_shapeList,task,fxsProperties)
+        matrixtoLayer(layer, fRange, rotoNode,fxsProperties)
     #===========================================================================
     # ADD empty object tag for the child shapes
     #===========================================================================
@@ -177,10 +173,10 @@ def createLayers(layer, fRange, rotoNode, rptsw_shapeList,task2,fxsExport,bakesh
             if cancel:
                 break
             #=*=*=*=*=*=*==task=related=code======================================== 
-            createShapes(item, fRange, rotoNode, rptsw_shapeList,task2, fxsExport,bakeshapes)
+            createShapes(item, fRange, rotoNode, rptsw_shapeList, fxsExport,bakeshapes)
             
    
-def createShapes(shape, fRange, rotoNode, rptsw_shapeList,task2,fxsExport,bakeshapes):
+def createShapes(shape, fRange, rotoNode, rptsw_shapeList,fxsExport,bakeshapes):
     #=*=*=*=*=*=*==task=related=code========================================    
     task = nuke.ProgressTask('Shape Exporter')
     task.setMessage('Creating Shape: %s' % shape[0].name)
@@ -477,15 +473,13 @@ def createShapes(shape, fRange, rotoNode, rptsw_shapeList,task2,fxsExport,bakesh
                     prop.remove(k)
                 keysn -=1
 
-def matrixtoLayer(item, fRange, rotoNode, rptsw_shapeList,task,fxsLayer):
+def matrixtoLayer(item, fRange, rotoNode, fxsLayer):
     '''
     Adds a transform Matrix to the Layer
     '''
     projectionMatrixTo = nuke.math.Matrix4()
     projectionMatrixFrom = nuke.math.Matrix4()
     nodeFormat = rotoNode['format'].value()
-    rotoCurve = rotoNode['curves']
-    rotoRoot = rotoCurve.rootLayer
     transf = item[0].getTransform()
     thematrix = ET.SubElement(fxsLayer,'Property',{'id':'transform.matrix'})
     for f in fRange:
@@ -530,7 +524,7 @@ def matrixtoLayer(item, fRange, rotoNode, rptsw_shapeList,task,fxsLayer):
         #=======================================================================
         matrixline = ""
         for n in range(len(theCornerpinAsMatrix)):
-            matrixline+= "%f" % theCornerpinAsMatrix[n]
+            matrixline+= "{:f}".format(theCornerpinAsMatrix[n])
             if n < 15:
                 matrixline+= ","
         matrixkey.text = "(" + matrixline + ")"
@@ -547,10 +541,13 @@ def matrixtoLayer(item, fRange, rotoNode, rptsw_shapeList,task,fxsLayer):
         for prop in layerProps:
             if prop.attrib.get('id') == "transform.matrix":
                 keys = prop.findall(".//Key")
-                for n in range(len(keys)):#[::-1]:
-                    if n > 0 and n < len(keys)-1:
-                        if keys[n].text ==  keys[n-1].text and keys[n].text == keys[n+1].text:
-                            removelist.append(n)
+                if (
+                    n > 0
+                    and n < len(keys) - 1
+                    and keys[n].text == keys[n - 1].text
+                    and keys[n].text == keys[n + 1].text
+                ):
+                    removelist.append(n)
         mainpath = fxsLayer.findall(".//Property")
         for prop in mainpath:
             if prop.attrib.get('id') == "transform.matrix":
@@ -566,16 +563,12 @@ def checkEqualTransform(shape1,shape2,fRange):
     Compares 2 shapes transform data
     Used to identify identical transforms and group shapes inside the same tracked layer
     '''
-    check = True
-    shape1Transf = shape1.getTransform()
-    shape2Transf = shape2.getTransform()    
     for f in fRange:
-        m1 = shape1Transf.evaluate(f).getMatrix()
-        m2 = shape2Transf.evaluate(f).getMatrix()
+        m1 = shape1.getTransform().evaluate(f).getMatrix()
+        m2 = shape2.getTransform().evaluate(f).getMatrix()
         if m1 != m2:
-            check = False
-            break
-    return check
+            return False
+    return True
     
 def manageTransforms(fRange, rotoNode, rptsw_shapeList):#,task):
     '''
@@ -603,8 +596,7 @@ def manageTransforms(fRange, rotoNode, rptsw_shapeList):#,task):
             #===================================================================
             sametransform = False
             for shape in createdShapes:
-                if shape[1].name == item[1].name: #share the same parent
-                    if checkEqualTransform(item[0],shape[0],fRange):
+                if shape[1].name == item[1].name and checkEqualTransform(item[0],shape[0],fRange):
                         sametransform = True
                         sameparent = shape[3]
                         break
@@ -650,50 +642,24 @@ def uniqueNames(list):
     Adds uuids to not unique Layer/Shapes names found
     Nuke doesn't allows repeated names, but other softwares like Silhouette may export repeated names to Nuke
     '''          
-    nameList = []
+    nameList = set()
     for item in list:
         if item[0].name not in nameList:
-            nameList.append(item[0].name)
+            nameList.add(item[0].name)
         else:
-            item[0].name = item[0].name + "_"+ item[2]
+            item[0].name = f"{item[0].name}_{item[2]}"
 
-def silhouetteFxsExporter():
+def silhouetteFxsExporter(path, frame_start, frame_end, bakeshapes=False):
     '''
     Main exporter code, UI 
     '''
-    try:
-        rotoNode = nuke.selectedNode()
-        if rotoNode.Class() not in ('Roto', 'RotoPaint'):
-            if nuke.GUI:
-                nuke.message( 'Unsupported node type. Selected Node must be Roto or RotoPaint' )
-            return
-    except:
-        if nuke.GUI:
-            nuke.message('Select a Roto or RotoPaint Node')
-            return
+    rotoNode = nuke.selectedNode()
     #===========================================================================
     # Nuke UI panel setup
     #===========================================================================
-    p = nukescripts.panels.PythonPanel("FXS Shape Exporter")
-    k = nuke.String_Knob("framerange","FrameRange")
-    k.setFlag(nuke.STARTLINE)    
-    k.setTooltip("Set the framerange to bake the shapes, by default its the project start-end. Example: 10-20")
-    p.addKnob(k)
-    k.setValue("%s-%s" % (nuke.root().firstFrame(), nuke.root().lastFrame()))    
-    k = nuke.Boolean_Knob("bake", "Bake Shapes")
-    k.setFlag(nuke.STARTLINE)
-    k.setTooltip("Export the shapes baking keyframes and transforms")
-    p.addKnob(k)
-    result = p.showModalDialog()    
- 
-    if result == 0:
-        return # Canceled
-    try:
-        fRange = nuke.FrameRange(p.knobs()["framerange"].getText())
-    except:
-        if nuke.GUI:
-            nuke.message( 'Framerange format is not correct, use startframe-endframe i.e.: 0-200' )
-        return
+
+    fRange = nuke.FrameRange("{}-{}".format(frame_start, frame_end))
+
     #===========================================================================
     # end of panel
     #===========================================================================
@@ -708,8 +674,6 @@ def silhouetteFxsExporter():
         #=======================================================================
         nukescripts.node_copypaste()
         #=======================================================================       
-        bakeshapes =  p.knobs()["bake"].value() 
-        rptsw_shapeList = []
         rotoNode = nuke.selectedNode()
         rotoCurve = rotoNode['curves']
         rotoRoot = rotoCurve.rootLayer
@@ -743,7 +707,7 @@ def silhouetteFxsExporter():
         # create the root layer first
         #=======================================================================
         item = [rotoRoot,rotoRoot]
-        createLayers(item,fRange, rotoNode, rptsw_shapeList,task, fxsExport,bakeshapes)
+        createLayers(item,fRange, rotoNode, rptsw_shapeList, fxsExport,bakeshapes)
         #=*=*=*=*=*=*==task=related=code========================================
         task.setMessage('Creating Layers')
         task.setProgress(30)
@@ -755,14 +719,13 @@ def silhouetteFxsExporter():
         #=======================================================================
         for item in rptsw_shapeList:
             taskCount +=1.0
-            x = (taskCount/taskLength)*10+30
             task.setProgress(30+int((taskCount/taskLength)*20))
             #=*=*=*=*=*=*==task=related=code========================================
             if cancel:
                 break
             #=*=*=*=*=*=*==task=related=code========================================
             if isinstance(item[0], nuke.rotopaint.Layer):
-                createLayers(item,fRange, rotoNode, rptsw_shapeList,task,fxsExport,bakeshapes)
+                createLayers(item,fRange, rotoNode, rptsw_shapeList,fxsExport,bakeshapes)
         #===================================================================
         # reorder layers/shapes
         #===================================================================
@@ -788,10 +751,12 @@ def silhouetteFxsExporter():
             for item in rptsw_shapeList[::-1]:
                 if item[1].name == name: #all items from same parent
                     for itemx in fxsExport.findall('.//*'):
-                        if itemx.get('label') != None:
-                            if item[0].name == itemx.get('label'):
-                                if itemx not in data:
-                                    data.append(itemx) #locate the elements of that parent
+                        if (
+                            itemx.get('label') != None and
+                            item[0].name == itemx.get('label') and
+                            itemx not in data
+                        ):
+                            data.append(itemx) #locate the elements of that parent
             for itemx in fxsExport.findall('.//*'):
                 if itemx.get('label') == name:
                     obj = itemx.findall("Properties/Property")
@@ -816,30 +781,8 @@ def silhouetteFxsExporter():
     #===========================================================================
     # EXPORT the fxs file
     #===========================================================================
-    path = os.getenv('FXSEXPORTPATH')
-    if path == None:
-         path = nuke.getFilename('Save the .fxs file', '*.fxs',"fxsExport.fxs")
-         if path == None:
-             if nuke.GUI:
-                 nuke.message('Aborting Script, you need to save the export to a file' ) 
-                 return
-         else:
-             base = os.path.split(path)[0]
-             ext = os.path.split(path)[1][-4:]
-             #==================================================================
-             # adds extension if not present on the filename
-             #==================================================================
-             if ext != ".fxs": 
-                 ext = ext + ".fxs"
-                 path =  os.path.join(base,ext)
-    else:
-        print("Saving file to: %s" % path )
-
     indent(fxsExport)
     ET.ElementTree(fxsExport).write(path)
     nuke.delete(rotoNode)
     task.setProgress(100)  
     print("Time elapsed: %s seconds" % (time.time() - start_time))
-
-if __name__ == '__main__':
-    silhouetteFxsExporter()
