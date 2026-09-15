@@ -14,7 +14,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
     order = pyblish.api.CollectorOrder + 0.0021
     label = "Collect Writes"
     hosts = ["nuke", "nukeassist"]
-    families = ["render", "prerender", "image", "deeprender", "deepprerender"]
+    families = ["render", "prerender", "image"]
 
     settings_category = "nuke"
 
