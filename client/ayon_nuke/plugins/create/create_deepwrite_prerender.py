@@ -8,7 +8,7 @@ class CreateDeepWritePrerender(napi.NukeWriteCreator):
 
     identifier = "create_deepwrite_prerender"
     label = "Prerender (deep write)"
-    product_base_type = "prerender"
+    product_base_type = "deepprerender"
     product_type = product_base_type
     icon = "sign-out"
     node_class = "DeepWrite"
