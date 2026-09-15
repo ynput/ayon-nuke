@@ -51,9 +51,9 @@ class AlembicCameraLoader(load.LoaderPlugin):
             "frameStart": first,
             "frameEnd": last,
             "version": version_entity["version"],
+            "source": version_attributes["source"],
+            "fps": version_attributes["fps"]
         }
-        for k in ["source", "fps"]:
-            data_imprint[k] = version_attributes[k]
 
         # getting file path
         file = self.filepath_from_context(context).replace("\\", "/")
@@ -63,34 +63,19 @@ class AlembicCameraLoader(load.LoaderPlugin):
             try:
                 camera_node = nuke.createNode(
                     "Camera3",
-                    "name {} file {} read_from_file True".format(
-                        object_name, file),
+                    f"name {object_name}",
                     inpanel=False,
                 )
             except RuntimeError: # older nuke version
                 camera_node = nuke.createNode(
                     "Camera2",
-                    "name {} file {} read_from_file True".format(
-                        object_name, file),
+                    f"name {object_name}",
                     inpanel=False,
                 )
 
-            # get the actual name of the camera node
-            # might be different if a the desired name is already in use
-            object_name = camera_node.name()
-
-            camera_node.forceValidate()
-            camera_node["frame_rate"].setValue(float(fps))
-
-            # workaround because nuke's bug is not adding
-            # animation keys properly
-            xpos = camera_node.xpos()
-            ypos = camera_node.ypos()
-            nuke.nodeCopy("%clipboard%")
-            nuke.delete(camera_node)
-            nuke.nodePaste("%clipboard%")
-            camera_node = nuke.toNode(object_name)
-            camera_node.setXYpos(xpos, ypos)
+        camera_node["read_from_file"].setValue(True)
+        camera_node["file"].setValue(file)  # set file after making sure "read_from_file" is True  # noqa: E501
+        camera_node["frame_rate"].setValue(float(fps))
 
         # color node by correct color by actual version
         self.node_version_color(
@@ -137,47 +122,18 @@ class AlembicCameraLoader(load.LoaderPlugin):
             "representation": repre_entity["id"],
             "frameStart": first,
             "frameEnd": last,
-            "version": version_entity["version"]
+            "version": version_entity["version"],
+            "source": version_attributes["source"],
+            "fps": version_attributes["fps"]
         }
-
-        # add attributes from the version to imprint to metadata knob
-        for k in ["source", "fps"]:
-            data_imprint[k] = version_attributes[k]
 
         # getting file path
         file = get_representation_path(repre_entity).replace("\\", "/")
 
-        with maintained_selection():
-            camera_node = container["node"]
-            camera_node['selected'].setValue(True)
-
-            # collect input output dependencies
-            dependencies = camera_node.dependencies()
-            dependent = camera_node.dependent()
-
-            camera_node["frame_rate"].setValue(float(fps))
-            camera_node["file"].setValue(file)
-
-            # workaround because nuke's bug is
-            # not adding animation keys properly
-            xpos = camera_node.xpos()
-            ypos = camera_node.ypos()
-            nuke.nodeCopy("%clipboard%")
-            camera_name = camera_node.name()
-            nuke.delete(camera_node)
-            nuke.nodePaste("%clipboard%")
-            camera_node = nuke.toNode(camera_name)
-            camera_node.setXYpos(xpos, ypos)
-
-            # link to original input nodes
-            for i, input in enumerate(dependencies):
-                camera_node.setInput(i, input)
-            # link to original output nodes
-            for d in dependent:
-                index = next((i for i, dpcy in enumerate(
-                              d.dependencies())
-                              if camera_node is dpcy), 0)
-                d.setInput(index, camera_node)
+        camera_node = container["node"]
+        camera_node["frame_rate"].setValue(float(fps))
+        camera_node["read_from_file"].setValue(True)
+        camera_node["file"].setValue(file)
 
         # color node by correct color by actual version
         self.node_version_color(
