@@ -8,7 +8,7 @@ class CreateDeepWriteRender(napi.NukeWriteCreator):
 
     identifier = "create_deepwrite_render"
     label = "Render (deep write)"
-    product_base_type = "render"
+    product_base_type = "deeprender"
     product_type = product_base_type
     icon = "sign-out"
     node_class = "DeepWrite"
