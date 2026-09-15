@@ -5,9 +5,7 @@ from ayon_core.pipeline.publish import get_errored_instances_from_context
 from ayon_nuke.api.lib import (
     get_write_node_template_attr,
     set_node_knobs_from_settings,
-    color_gui_to_int,
-    get_node_data,
-    INSTANCE_DATA_KNOB,
+    color_gui_to_int
 )
 
 from ayon_core.pipeline.publish import (
@@ -65,7 +63,7 @@ class ValidateNukeWriteNode(
 
     settings_category = "nuke"
 
-    plugin_names_mapping = {
+    creator_identifier_mapping = {
         "create_write_image": "CreateWriteImage",
         "create_write_prerender": "CreateWritePrerender",
         "create_write_render": "CreateWriteRender",
@@ -94,9 +92,8 @@ class ValidateNukeWriteNode(
             return
 
         # gather exposed knobs to remove them from knobs check.
-        node_data = get_node_data(write_group_node, INSTANCE_DATA_KNOB)
-        identifier = node_data["creator_identifier"]
-        plugin = self.plugin_names_mapping[identifier]
+        creator_identifier = instance.data["creator_identifier"]
+        plugin = self.creator_identifier_mapping[creator_identifier]
 
         nuke_settings = instance.context.data["project_settings"]["nuke"]
         create_settings = nuke_settings["create"][plugin]
