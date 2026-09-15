@@ -35,7 +35,6 @@ def set_context_favorites(favorites: list[FavoriteDef]) -> None:
     Arguments:
         favorites (list[FavoriteDef]): list of favorite definitions
     """
-    favorites = favorites or []
     icon_path = resources.get_resource("icons", "folder-favorite.png")
     for favorite in favorites:
         nuke.addFavoriteDir(
