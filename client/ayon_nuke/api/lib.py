@@ -2297,15 +2297,14 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         self.set_colorspace()
 
     def set_favorites(self):
-        from .utils import set_context_favorites
+        from .utils import set_context_favorites, FavoriteDef
 
         work_dir = os.getenv("AYON_WORKDIR")
         # TODO validate functionality
         # - does expect the structure is '{root}/{project}/{folder}'
-        # - this used asset name expecting it is unique in project
+        # - this used folder name expecting it is unique in project
         folder_path = get_current_folder_path()
         folder_name = folder_path.split("/")[-1]
-        favorite_items = OrderedDict()
 
         # project
         # get project's root and split to parts
@@ -2313,20 +2312,20 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             Context.project_name)[0])
         # add project name
         project_dir = os.path.join(projects_root, Context.project_name) + "/"
-        # add to favorites
-        favorite_items.update({"Project dir": project_dir.replace("\\", "/")})
 
         # folder
-        folder_root = os.path.normpath(work_dir.split(
-            folder_name)[0])
+        folder_root = os.path.normpath(work_dir.split(folder_name)[0])
         # add folder name
         folder_dir = os.path.join(folder_root, folder_name) + "/"
-        # add to favorites
-        favorite_items.update({"Shot dir": folder_dir.replace("\\", "/")})
 
         # workdir
-        favorite_items.update({"Work dir": work_dir.replace("\\", "/")})
-
+        favorite_items = [
+            FavoriteDef(
+                "Project dir", project_dir.replace("\\", "/")
+            ),
+            FavoriteDef("Shot dir", folder_dir.replace("\\", "/")),
+            FavoriteDef("Work dir", work_dir.replace("\\", "/")),
+        ]
         set_context_favorites(favorite_items)
 
 
