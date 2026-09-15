@@ -23,7 +23,7 @@ def render_single_frame(group_node: nuke.Node) -> None:
     nuke.execute(write_node.fullName(), frame, frame)
 
 
-@dataclass
+@dataclass(frozen=True)
 class FavoriteDef:
     name: str
     path: str
