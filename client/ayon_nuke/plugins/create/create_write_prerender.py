@@ -12,6 +12,7 @@ class CreateWritePrerender(napi.NukeWriteCreator):
     product_base_type = "prerender"
     product_type = product_base_type
     icon = "sign-out"
+    node_class = "Write"
 
     instance_attributes = [
         "use_range_limit"
@@ -84,7 +85,7 @@ class CreateWritePrerender(napi.NukeWriteCreator):
             return
 
         # get write node
-        w_node = nuke.allNodes(filter="Write", group=write_node)[-1]
+        w_node = nuke.allNodes(filter=self.node_class, group=write_node)[-1]
 
         w_node["use_limit"].setValue(True)
         w_node["first"].setValue(nuke.root()["first_frame"].value())
