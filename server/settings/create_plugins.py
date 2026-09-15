@@ -398,7 +398,7 @@ DEFAULT_CREATE_SETTINGS = {
         "order": 100,
         "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}",  # noqa: E501
         "default_variants": [
-            "Main",
+            "DeepMain",
         ],
         "instance_attributes": [
             "farm_rendering"
@@ -431,7 +431,7 @@ DEFAULT_CREATE_SETTINGS = {
         "order": 100,
         "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}",  # noqa: E501
         "default_variants": [
-            "Main",
+            "DeepMain",
         ],
         "instance_attributes": [
             "farm_rendering",

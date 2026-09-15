@@ -34,12 +34,12 @@ class CreateWritePrerender(napi.NukeWriteCreator):
         staging_dir=None,
         node_selection=None,
     ):
-        settings = self.project_settings["nuke"]["create"]
-        settings = settings["CreateWritePrerender"]
+        creator = self.__class__.__name__
+        settings = self.project_settings["nuke"]["create"][creator]
 
         # add fpath_template
         write_data = {
-            "creator": self.__class__.__name__,
+            "creator": creator,
             "productName": product_name,
             "fpath_template": self.temp_rendering_path_template,
             "staging_dir": staging_dir,
@@ -66,6 +66,7 @@ class CreateWritePrerender(napi.NukeWriteCreator):
             input=selected_node,
             prenodes=self.prenodes,
             linked_knobs=self.get_linked_knobs(),
+            node_class=self.node_class,
             **{
                 "width": width,
                 "height": height

@@ -23,13 +23,7 @@ class NukeRenderLocal(publish.Extractor,
     order = pyblish.api.ExtractorOrder
     label = "Render Local"
     hosts = ["nuke"]
-    families = [
-        "render.local",
-        "prerender.local",
-        "image.local",
-        "deeprender.local",
-        "deepprerender.local",
-    ]
+    families = ["render.local", "prerender.local", "image.local"]
 
     settings_category = "nuke"
 
