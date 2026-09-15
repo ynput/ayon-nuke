@@ -32,10 +32,12 @@ class RepairNukeWriteNodeAction(pyblish.api.Action):
             # get write node from inside of group
             write_node = None
             for x in child_nodes:
-                if x.Class() == "Write":
+                if x.Class() in {"Write", "DeepWrite"}:
                     write_node = x
 
-            correct_data = get_write_node_template_attr(write_group_node)
+            correct_data = get_write_node_template_attr(
+                node=write_group_node, node_class=write_node.Class()
+            )
 
             set_node_knobs_from_settings(write_node, correct_data["knobs"])
 
@@ -61,10 +63,12 @@ class ValidateNukeWriteNode(
 
     settings_category = "nuke"
 
-    product_base_types_mapping = {
-        "render": "CreateWriteRender",
-        "prerender": "CreateWritePrerender",
-        "image": "CreateWriteImage"
+    creator_identifier_mapping = {
+        "create_write_image": "CreateWriteImage",
+        "create_write_prerender": "CreateWritePrerender",
+        "create_write_render": "CreateWriteRender",
+        "create_deepwrite_render": "CreateDeepWriteRender",
+        "create_deepwrite_prerender": "CreateDeepWritePrerender",
     }
 
     def process(self, instance):
@@ -81,20 +85,23 @@ class ValidateNukeWriteNode(
         # get write node from inside of group
         write_node = None
         for x in child_nodes:
-            if x.Class() == "Write":
+            if x.Class() in {"Write", "DeepWrite"}:
                 write_node = x
 
         if write_node is None:
             return
 
         # gather exposed knobs to remove them from knobs check.
+        creator_identifier = instance.data["creator_identifier"]
+        plugin = self.creator_identifier_mapping[creator_identifier]
+
         nuke_settings = instance.context.data["project_settings"]["nuke"]
-        product_base_type: str = instance.data["productBaseType"]
-        plugin = self.product_base_types_mapping[product_base_type]
         create_settings = nuke_settings["create"][plugin]
         exposed_knobs = set(create_settings.get("exposed_knobs", []))
 
-        correct_data = get_write_node_template_attr(write_group_node)
+        correct_data = get_write_node_template_attr(
+            node=write_group_node, node_class=write_node.Class()
+        )
 
         check = []
 

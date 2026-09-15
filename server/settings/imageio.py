@@ -14,12 +14,17 @@ from .common import (
 def nuke_creator_plugins_enum():
     return [
         {"value": "CreateWritePrerender", "label": "Prerender (write)"},
+        {
+            "value": "CreateDeepWritePrerender",
+            "label": "Prerender (deep write)",
+        },
         {"value": "CreateCamera", "label": "Camera (3d)"},
         {"value": "CreateGizmo", "label": "Gizmo (group)"},
         {"value": "CreateWriteImage", "label": "Image (write)"},
         {"value": "CreateModel", "label": "Model (3d)"},
         {"value": "CreateBackdrop", "label": "Nukenodes (backdrop)"},
         {"value": "CreateWriteRender", "label": "Render (write)"},
+        {"value": "CreateDeepWriteRender", "label": "Render (deep write)"},
         {"value": "CreateSource", "label": "Source (read)"},
     ]
 
@@ -27,6 +32,7 @@ def nuke_creator_plugins_enum():
 def nuke_node_class_enum():
     return [
         {"value": "Write", "label": "Write [Image]"},
+        {"value": "DeepWrite", "label": "DeepWrite [Image]"},
         {"value": "Read", "label": "Read [Image]"},
         {"value": "Group", "label": "Group [Other]"},
         {"value": "Camera4", "label": "Camera [3D]"},
@@ -368,6 +374,30 @@ DEFAULT_IMAGEIO_SETTINGS = {
                 ],
             },
             {
+                "plugins": ["CreateDeepWriteRender"],
+                "nuke_node_class": "DeepWrite",
+                "custom_class": "",
+                "knobs": [
+                    {"type": "text", "name": "file_type", "text": "exr"},
+                    {
+                        "type": "text",
+                        "name": "datatype",
+                        "text": "16 bit half",
+                    },
+                    {
+                        "type": "color_gui",
+                        "name": "tile_color",
+                        "color_gui": [186, 35, 35],
+                    },
+                    {
+                        "type": "text",
+                        "name": "compression",
+                        "text": "Zip (1 scanline)",
+                    },
+                    {"type": "text", "name": "channels", "text": "all"},
+                ],
+            },
+            {
                 "plugins": ["CreateWritePrerender"],
                 "nuke_node_class": "Write",
                 "custom_class": "",
@@ -400,6 +430,30 @@ DEFAULT_IMAGEIO_SETTINGS = {
                         "name": "create_directories",
                         "boolean": True,
                     },
+                ],
+            },
+            {
+                "plugins": ["CreateDeepWritePrerender"],
+                "nuke_node_class": "DeepWrite",
+                "custom_class": "",
+                "knobs": [
+                    {"type": "text", "name": "file_type", "text": "exr"},
+                    {
+                        "type": "text",
+                        "name": "datatype",
+                        "text": "16 bit half",
+                    },
+                    {
+                        "type": "color_gui",
+                        "name": "tile_color",
+                        "color_gui": [171, 171, 10],
+                    },
+                    {
+                        "type": "text",
+                        "name": "compression",
+                        "text": "Zip (1 scanline)",
+                    },
+                    {"type": "text", "name": "channels", "text": "all"},
                 ],
             },
             {

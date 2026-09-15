@@ -26,13 +26,13 @@ class RepairExposedKnobs(pyblish.api.Action):
             # get write node from inside of group
             write_node = None
             for x in child_nodes:
-                if x.Class() == "Write":
+                if x.Class() in {"Write", "DeepWrite"}:
                     write_node = x
 
-            product_base_type = instance.data["productBaseType"]
-            plugin_name = plugin.product_base_types_mapping[product_base_type]
+            creator_identifier = instance.data["creator_identifier"]
+            plugin = plugin.creator_identifier_mapping[creator_identifier]
             nuke_settings = instance.context.data["project_settings"]["nuke"]
-            create_settings = nuke_settings["create"][plugin_name]
+            create_settings = nuke_settings["create"][plugin]
             exposed_knobs = create_settings["exposed_knobs"]
             link_knobs(exposed_knobs, write_node, write_group_node)
 
@@ -55,19 +55,22 @@ class ValidateExposedKnobs(
 
     settings_category = "nuke"
 
-    product_base_types_mapping = {
-        "render": "CreateWriteRender",
-        "prerender": "CreateWritePrerender",
-        "image": "CreateWriteImage"
+    creator_identifier_mapping = {
+        "create_write_image": "CreateWriteImage",
+        "create_write_prerender": "CreateWritePrerender",
+        "create_write_render": "CreateWriteRender",
+        "create_deepwrite_render": "CreateDeepWriteRender",
+        "create_deepwrite_prerender": "CreateDeepWritePrerender",
     }
 
     def process(self, instance):
         if not self.is_active(instance.data):
             return
 
-        product_base_type = instance.data["productBaseType"]
-        plugin = self.product_base_types_mapping[product_base_type]
         group_node = instance.data["transientData"]["node"]
+        creator_identifier = instance.data["creator_identifier"]
+        plugin = self.creator_identifier_mapping[creator_identifier]
+
         nuke_settings = instance.context.data["project_settings"]["nuke"]
         create_settings = nuke_settings["create"][plugin]
         exposed_knobs = create_settings.get("exposed_knobs", [])

@@ -278,7 +278,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
 
         write_node = None
         for node_ in child_nodes:
-            if node_.Class() == "Write":
+            if node_.Class() in {"Write", "DeepWrite"}:
                 write_node = node_
 
         if write_node:
