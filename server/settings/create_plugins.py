@@ -265,6 +265,13 @@ class CreatorPluginsSettings(BaseSettingsModel):
         default_factory=DefaultPluginModel,
         title="Gizmo (group)"
     )
+    CreateSilhouetteShapes: DefaultPluginModel = SettingsField(
+        default_factory=DefaultPluginModel,
+        title="Shapes (Silhouette .fxs)",
+        description=(
+            "Export .fxs shape format data file used by Boris FX Silhouette"
+        )
+    )
     CreateModel: DefaultPluginModel = SettingsField(
         default_factory=DefaultPluginModel,
         title="Model (3d)"
@@ -371,6 +378,10 @@ DEFAULT_CREATE_SETTINGS = {
         "order": 100,
     },
     "CreateGizmo": {
+        "enabled": True,
+        "order": 100,
+    },
+    "CreateSilhouetteShapes": {
         "enabled": True,
         "order": 100,
     },
