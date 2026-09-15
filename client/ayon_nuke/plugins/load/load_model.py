@@ -1,19 +1,17 @@
 import nuke
-import ayon_api
-
 from ayon_core.pipeline import (
-    load,
     get_representation_path,
 )
-from ayon_nuke.api.command import undo_chunk
-from ayon_nuke.api.lib import maintained_selection
 from ayon_nuke.api import (
     containerise,
+    plugin,
     update_container,
 )
+from ayon_nuke.api.command import undo_chunk
+from ayon_nuke.api.lib import color_to_int, maintained_selection
 
 
-class AlembicModelLoader(load.LoaderPlugin):
+class AlembicModelLoader(plugin.NukeLoader):
     """
     This will load alembic model or anim into script.
 
@@ -31,14 +29,14 @@ class AlembicModelLoader(load.LoaderPlugin):
     label = "Load Geo"
     icon = "cube"
     color = "orange"
-    node_color = "0x4ecd91ff"
+
+    node_color_latest   = color_to_int(78, 205, 145)   # 0x4ecd91ff
+    node_color_outdated = color_to_int(216, 132, 103)  # 0xd88467ff
 
     @undo_chunk("Load Alembic Geo")
     def load(self, context, name, namespace, data):
         # get main variables
-        project_name = context["project"]["name"]
         version_entity = context["version"]
-
         version_attributes = version_entity["attrib"]
         first = version_attributes.get("frameStart")
         last = version_attributes.get("frameEnd")
@@ -74,16 +72,16 @@ class AlembicModelLoader(load.LoaderPlugin):
             model_node = self._fix_scene_view_contents(model_node)
             self._set_fps(model_node, fps)
 
-        # color node by correct color by actual version
-        self.node_version_color(project_name, version_entity, model_node)
-
-        return containerise(
+        container = containerise(
             node=model_node,
             name=name,
             namespace=namespace,
             context=context,
             loader=self.__class__.__name__,
-            data=data_imprint)
+            data=data_imprint,
+        )
+        self.update_node_color(model_node)  # after containerise
+        return container
 
     @undo_chunk("Update Alembic Geo")
     def update(self, container, context):
@@ -103,7 +101,6 @@ class AlembicModelLoader(load.LoaderPlugin):
             None
         """
         # Get version from io
-        project_name = context["project"]["name"]
         version_entity = context["version"]
         repre_entity = context["representation"]
 
@@ -137,14 +134,13 @@ class AlembicModelLoader(load.LoaderPlugin):
             model_node = self._fix_scene_view_contents(model_node)
         self._set_fps(model_node, fps)
 
-        # color node by correct color by actual version
-        self.node_version_color(project_name, version_entity, model_node)
-
         self.log.info(
             "updated to version: {}".format(version_entity["version"])
         )
 
-        return update_container(model_node, data_imprint)
+        container = update_container(model_node, data_imprint)
+        self.update_node_color(model_node)  # after update_container
+        return container
 
     def _select_all_items(self, node):
         # Alembic
@@ -208,20 +204,6 @@ class AlembicModelLoader(load.LoaderPlugin):
         if knob is None:
             return
         knob.setValue(float(fps))
-
-    def node_version_color(self, project_name, version_entity, node):
-        """Coloring a node by correct color by actual version"""
-
-        last_version_entity = ayon_api.get_last_version_by_product_id(
-            project_name, version_entity["productId"], fields={"id"}
-        )
-
-        # change color of node
-        if version_entity["id"] == last_version_entity["id"]:
-            color_value = self.node_color
-        else:
-            color_value = "0xd88467ff"
-        node["tile_color"].setValue(int(color_value, 16))
 
     def switch(self, container, context):
         self.update(container, context)

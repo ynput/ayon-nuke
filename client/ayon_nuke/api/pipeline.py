@@ -221,6 +221,11 @@ def add_nuke_callbacks(project_settings: dict = None):
 
     nuke_settings = project_settings["nuke"]
 
+    # Set all workfile settings.'
+    nuke.addOnCreate(on_root_create, nodeClass="Root")
+    # set checker for last versions on loaded containers
+    nuke.addOnScriptLoad(check_inventory_versions)
+    # fix ffmpeg settings on script
     nuke.addOnCreate(on_root_create, nodeClass="Root")
 
     nuke.addOnScriptLoad(on_script_load)

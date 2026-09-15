@@ -1,19 +1,15 @@
 import nuke
-import ayon_api
-
-from ayon_core.pipeline import (
-    load,
-    get_representation_path,
-)
-from ayon_nuke.api.lib import get_avalon_knob_data
+from ayon_core.pipeline import get_representation_path
 from ayon_nuke.api import (
     containerise,
+    plugin,
     update_container,
 )
 from ayon_nuke.api.command import undo_chunk
+from ayon_nuke.api.lib import color_to_int, get_avalon_knob_data
 
 
-class LinkAsGroup(load.LoaderPlugin):
+class LinkAsGroup(plugin.NukeLoader):
     """Copy the published file to be pasted at the desired location"""
 
     product_base_types = {"workfile", "nukenodes"}
@@ -26,7 +22,9 @@ class LinkAsGroup(load.LoaderPlugin):
     label = "Load Precomp"
     order = 0
     icon = "file"
-    color = "#cc0000"
+
+    node_color_latest =   color_to_int(255, 255, 255)  # 0xff0ff0ff
+    node_color_outdated = color_to_int(216, 79, 32)    # 0xd84f20ff
 
     @undo_chunk("Load Precomp")
     def load(self, context, name, namespace, data):
@@ -95,15 +93,16 @@ class LinkAsGroup(load.LoaderPlugin):
                 p.show()
                 P["output"].setValue(p.value(panel_label))
 
-        P["tile_color"].setValue(0xff0ff0ff)
-
-        return containerise(
-                     node=P,
-                     name=name,
-                     namespace=namespace,
-                     context=context,
-                     loader=self.__class__.__name__,
-                     data=data_imprint)
+        container = containerise(
+            node=P,
+            name=name,
+            namespace=namespace,
+            context=context,
+            loader=self.__class__.__name__,
+            data=data_imprint,
+        )
+        self.update_node_color(P)  # after containerise
+        return container
 
     def switch(self, container, context):
         self.update(container, context)
@@ -118,8 +117,6 @@ class LinkAsGroup(load.LoaderPlugin):
 
         """
         node = container["node"]
-
-        project_name = context["project"]["name"]
         version_entity = context["version"]
         repre_entity = context["representation"]
 
@@ -145,19 +142,11 @@ class LinkAsGroup(load.LoaderPlugin):
 
         node["file"].setValue(root)
 
-        last_version_entity = ayon_api.get_last_version_by_product_id(
-            project_name, version_entity["productId"], fields={"id"}
-        )
-        # change color of node
-        if version_entity["id"] == last_version_entity["id"]:
-            color_value = "0xff0ff0ff"
-        else:
-            color_value = "0xd84f20ff"
-        node["tile_color"].setValue(int(color_value, 16))
-
+        self.update_node_color(node)  # after update_container
         self.log.info(
             "updated to version: {}".format(version_entity["version"])
         )
+        return container
 
     @undo_chunk("Remove Precomp")
     def remove(self, container):

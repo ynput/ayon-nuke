@@ -1,33 +1,24 @@
 from copy import deepcopy
 
 import nuke
-import ayon_api
-
-from ayon_core.lib import BoolDef, EnumDef
-from ayon_core.lib import Logger
-from ayon_core.pipeline import (
-    get_representation_path,
-)
+from ayon_core.lib import BoolDef, EnumDef, Logger
+from ayon_core.lib.transcoding import IMAGE_EXTENSIONS, VIDEO_EXTENSIONS
+from ayon_core.pipeline import get_representation_path
 from ayon_core.pipeline.colorspace import (
-    get_imageio_file_rules_colorspace_from_filepath,
     get_current_context_imageio_config_preset,
-)
-from ayon_nuke.api.lib import (
-    get_imageio_input_colorspace,
-    maintained_selection
+    get_imageio_file_rules_colorspace_from_filepath,
 )
 from ayon_nuke.api import (
+    colorspace_exists_on_node,
     containerise,
+    plugin,
     update_container,
-    colorspace_exists_on_node
 )
 from ayon_nuke.api.command import undo_chunk
-
-from ayon_core.lib.transcoding import (
-    VIDEO_EXTENSIONS,
-    IMAGE_EXTENSIONS
+from ayon_nuke.api.lib import (
+    get_imageio_input_colorspace,
+    maintained_selection,
 )
-from ayon_nuke.api import plugin
 
 
 class LoadClip(plugin.NukeLoader):
@@ -236,6 +227,8 @@ class LoadClip(plugin.NukeLoader):
             loader=self.__class__.__name__,
             data=data_imprint)
 
+        self.update_node_color(read_node)  # after containerise
+
         if add_retime and version_data.get("retime"):
             self._make_retimes(
                 read_node,
@@ -372,18 +365,9 @@ class LoadClip(plugin.NukeLoader):
             "fps": str(version_attributes.get("fps"))
         }
 
-        last_version_entity = ayon_api.get_last_version_by_product_id(
-            project_name, version_entity["productId"], fields={"id"}
-        )
-        # change color of read_node
-        if version_entity["id"] == last_version_entity["id"]:
-            color_value = "0x4ecd25ff"
-        else:
-            color_value = "0xd84f20ff"
-        read_node["tile_color"].setValue(int(color_value, 16))
-
         # Update the imprinted representation
         update_container(read_node, updated_dict)
+        self.update_node_color(read_node)
         self.log.info(f"updated to version: {version_name}")
 
         if add_retime and version_data.get("retime"):
