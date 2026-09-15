@@ -265,7 +265,7 @@ class CreatorPluginsSettings(BaseSettingsModel):
         default_factory=DefaultPluginModel,
         title="Gizmo (group)"
     )
-    CreateShapes: DefaultPluginModel = SettingsField(
+    CreateSilhouetteShapes: DefaultPluginModel = SettingsField(
         default_factory=DefaultPluginModel,
         title="Shapes (Silhouette)"
     )
