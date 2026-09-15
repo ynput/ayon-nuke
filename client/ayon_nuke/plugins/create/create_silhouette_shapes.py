@@ -16,7 +16,7 @@ class CreateSilhouetteShapes(NukeCreator):
     product_base_type = "matteshapes"
     product_type = product_base_type
     icon = "code-fork"
-
+    description = "Create .fxs shapes export for Silhouette"
 
     # plugin attributes
     node_color = "0xff9100ff"
