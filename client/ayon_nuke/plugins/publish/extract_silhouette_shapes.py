@@ -15,7 +15,7 @@ from ayon_nuke.api.export_shapes import ExportSilhouetteShapes
 
 class ExtractSilhouetteShapes(publish.Extractor):
     """Silhouette shapes extractor"""
-    label = 'Extract Shapes'
+    label = 'Extract Silhouette Shapes'
     order = pyblish.api.ExtractorOrder
     families = ["matteshapes"]
     hosts = ["nuke"]
