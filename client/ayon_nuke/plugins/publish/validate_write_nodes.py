@@ -5,7 +5,9 @@ from ayon_core.pipeline.publish import get_errored_instances_from_context
 from ayon_nuke.api.lib import (
     get_write_node_template_attr,
     set_node_knobs_from_settings,
-    color_gui_to_int
+    color_gui_to_int,
+    get_node_data,
+    INSTANCE_DATA_KNOB,
 )
 
 from ayon_core.pipeline.publish import (
@@ -56,18 +58,19 @@ class ValidateNukeWriteNode(
 
     order = pyblish.api.ValidatorOrder
     optional = False
-    families = ["render", "deeprender"]
+    families = ["render"]
     label = "Validate write node"
     actions = [RepairNukeWriteNodeAction]
     hosts = ["nuke"]
 
     settings_category = "nuke"
 
-    product_base_types_mapping = {
-        "render": "CreateWriteRender",
-        "prerender": "CreateWritePrerender",
-        "image": "CreateWriteImage",
-        "deeprender": "CreateDeepWriteRender",
+    plugin_names_mapping = {
+        "create_write_image": "CreateWriteImage",
+        "create_write_prerender": "CreateWritePrerender",
+        "create_write_render": "CreateWriteRender",
+        "create_deepwrite_render": "CreateDeepWriteRender",
+        "create_deepwrite_prerender": "CreateDeepWritePrerender",
     }
 
     def process(self, instance):
@@ -91,9 +94,11 @@ class ValidateNukeWriteNode(
             return
 
         # gather exposed knobs to remove them from knobs check.
+        node_data = get_node_data(write_group_node, INSTANCE_DATA_KNOB)
+        identifier = node_data["creator_identifier"]
+        plugin = self.plugin_names_mapping[identifier]
+
         nuke_settings = instance.context.data["project_settings"]["nuke"]
-        product_base_type: str = instance.data["productBaseType"]
-        plugin = self.product_base_types_mapping[product_base_type]
         create_settings = nuke_settings["create"][plugin]
         exposed_knobs = set(create_settings.get("exposed_knobs", []))
 
