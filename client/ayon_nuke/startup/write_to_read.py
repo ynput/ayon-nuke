@@ -108,10 +108,11 @@ def detect_file_on_disk(
 
 
 def create_read_node(ndata, comp_start):
+    filepath = ndata["filepath"]
     if ndata.get("node_class") == "DeepWrite":
-        read = nuke.createNode('DeepRead', 'file "' + ndata['filepath'] + '"')
+        read = nuke.createNode("DeepRead", f'file "{filepath}"')
     else:
-        read = nuke.createNode('Read', 'file "' + ndata['filepath'] + '"')
+        read = nuke.createNode("Read", f'file "{filepath}"')
         read.knob('colorspace').setValue(int(ndata['colorspace']))
         read.knob('raw').setValue(ndata['rawdata'])
     read.knob('first').setValue(int(ndata['firstframe']))
