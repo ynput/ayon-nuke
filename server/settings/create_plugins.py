@@ -267,7 +267,7 @@ class CreatorPluginsSettings(BaseSettingsModel):
     )
     CreateSilhouetteShapes: DefaultPluginModel = SettingsField(
         default_factory=DefaultPluginModel,
-        title="Shapes (Silhouette .fxs)"
+        title="Shapes (Silhouette .fxs)",
         description=(
             "Export .fxs shape format data file used by Boris FX Silhouette"
         )
