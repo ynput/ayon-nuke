@@ -1971,6 +1971,18 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             ):
                 continue
 
+            # Only set colorspace on write nodes, not on nodes such
+            # as DeepWrite, and return early when no write node is present.
+            write_node = None
+            node.begin()
+            for x in nuke.allNodes():
+                if x.Class() == "Write":
+                    write_node = x
+            node.end()
+
+            if not write_node:
+                return
+
             nuke_imageio_writes = None
             if avalon_knob_data:
                 # establish families
@@ -1993,21 +2005,11 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                     product_name=avalon_knob_data["productName"]
                 )
             elif node_data:
-                nuke_imageio_writes = get_write_node_template_attr(node)
+                nuke_imageio_writes = get_write_node_template_attr(
+                    node=node, node_class="Write"
+                )
 
             if not nuke_imageio_writes:
-                return
-
-            write_node = None
-
-            # get into the group node
-            node.begin()
-            for x in nuke.allNodes():
-                if x.Class() == "Write":
-                    write_node = x
-            node.end()
-
-            if not write_node:
                 return
 
             # Exclude exposed knobs from colorspace nodes.
@@ -2018,9 +2020,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             plugin_names_mapping = {
                 "create_write_image": "CreateWriteImage",
                 "create_write_prerender": "CreateWritePrerender",
-                "create_deepwrite_prerender": "CreateDeepWritePrerender",
                 "create_write_render": "CreateWriteRender",
-                "create_deepwrite_render": "CreateDeepWriteRender",
             }
             node_data = get_node_data(node, INSTANCE_DATA_KNOB)
             identifier = node_data["creator_identifier"]
@@ -2335,7 +2335,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         set_context_favorites(favorite_items)
 
 
-def get_write_node_template_attr(node):
+def get_write_node_template_attr(node, node_class="Write"):
     """Gets all defined data from presets"""
 
     # TODO: add identifiers to settings and rename settings key
@@ -2355,7 +2355,7 @@ def get_write_node_template_attr(node):
     if product_name is None:
         product_name = node_data["subset"]
     return get_imageio_node_setting(
-        node_class="Write",
+        node_class=node_class,
         plugin_name=plugin_names_mapping[identifier],
         product_name=product_name
     )

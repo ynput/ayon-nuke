@@ -32,10 +32,12 @@ class RepairNukeWriteNodeAction(pyblish.api.Action):
             # get write node from inside of group
             write_node = None
             for x in child_nodes:
-                if x.Class() == "Write":
+                if x.Class() in {"Write", "DeepWrite"}:
                     write_node = x
 
-            correct_data = get_write_node_template_attr(write_group_node)
+            correct_data = get_write_node_template_attr(
+                node=write_group_node, node_class=write_node.Class()
+            )
 
             set_node_knobs_from_settings(write_node, correct_data["knobs"])
 
@@ -54,7 +56,7 @@ class ValidateNukeWriteNode(
 
     order = pyblish.api.ValidatorOrder
     optional = False
-    families = ["render"]
+    families = ["render", "deeprender"]
     label = "Validate write node"
     actions = [RepairNukeWriteNodeAction]
     hosts = ["nuke"]
@@ -64,7 +66,8 @@ class ValidateNukeWriteNode(
     product_base_types_mapping = {
         "render": "CreateWriteRender",
         "prerender": "CreateWritePrerender",
-        "image": "CreateWriteImage"
+        "image": "CreateWriteImage",
+        "deeprender": "CreateDeepWriteRender",
     }
 
     def process(self, instance):
@@ -81,7 +84,7 @@ class ValidateNukeWriteNode(
         # get write node from inside of group
         write_node = None
         for x in child_nodes:
-            if x.Class() == "Write":
+            if x.Class() in {"Write", "DeepWrite"}:
                 write_node = x
 
         if write_node is None:
@@ -94,7 +97,9 @@ class ValidateNukeWriteNode(
         create_settings = nuke_settings["create"][plugin]
         exposed_knobs = set(create_settings.get("exposed_knobs", []))
 
-        correct_data = get_write_node_template_attr(write_group_node)
+        correct_data = get_write_node_template_attr(
+            node=write_group_node, node_class=write_node.Class()
+        )
 
         check = []
 

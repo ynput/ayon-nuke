@@ -23,7 +23,13 @@ class NukeRenderLocal(publish.Extractor,
     order = pyblish.api.ExtractorOrder
     label = "Render Local"
     hosts = ["nuke"]
-    families = ["render.local", "prerender.local", "image.local"]
+    families = [
+        "render.local",
+        "prerender.local",
+        "image.local",
+        "deeprender.local",
+        "deepprerender.local",
+    ]
 
     settings_category = "nuke"
 
@@ -35,7 +41,7 @@ class NukeRenderLocal(publish.Extractor,
 
         node = None
         for x in child_nodes:
-            if x.Class() == "Write":
+            if x.Class() in {"Write", "DeepWrite"}:
                 node = x
 
         self.log.debug("instance collected: {}".format(instance.data))

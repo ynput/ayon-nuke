@@ -602,6 +602,10 @@ def get_instance_group_node_children(instance):
 
 
 def get_colorspace_from_node(node):
+    # DeepWrite nodes do not have a colorspace, so return None.
+    if node.Class() == "DeepWrite":
+        return None
+
     # Add version data to instance
     colorspace = node["colorspace"].value()
 
