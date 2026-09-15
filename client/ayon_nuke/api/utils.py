@@ -32,8 +32,9 @@ class FavoriteDef:
 def set_context_favorites(favorites: list[FavoriteDef]) -> None:
     """Adding favorite folders to nuke's browser
 
-    Arguments:
+    Args:
         favorites (list[FavoriteDef]): list of favorite definitions
+
     """
     icon_path = resources.get_resource("icons", "folder-favorite.png")
     for favorite in favorites:
