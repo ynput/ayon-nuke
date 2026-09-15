@@ -6,11 +6,6 @@ class CreateDeepWriteRender(CreateWriteRender):
 
     identifier = "create_deepwrite_render"
     label = "Render (deep write)"
-    product_base_type = "render"
-    product_type = product_base_type
-    icon = "sign-out"
     node_class = "DeepWrite"
-
-    instance_attributes = []
     default_variants = ["DeepMain"]
 

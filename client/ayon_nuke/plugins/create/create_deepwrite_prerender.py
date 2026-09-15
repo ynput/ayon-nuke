@@ -8,14 +8,7 @@ class CreateDeepWritePrerender(CreateWritePrerender):
 
     identifier = "create_deepwrite_prerender"
     label = "Prerender (deep write)"
-    product_base_type = "prerender"
-    product_type = product_base_type
-    icon = "sign-out"
     node_class = "DeepWrite"
-
-    instance_attributes = ["use_range_limit"]
     default_variants = ["DeepMain"]
 
-    # Before write node render.
-    order = 90
 
