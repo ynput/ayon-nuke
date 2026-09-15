@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import os
 
 import nuke
@@ -22,20 +23,27 @@ def render_single_frame(group_node: nuke.Node) -> None:
     nuke.execute(write_node.fullName(), frame, frame)
 
 
-def set_context_favorites(favorites=None):
+@dataclass(frozen=True)
+class FavoriteDef:
+    name: str
+    path: str
+
+
+def set_context_favorites(favorites: list[FavoriteDef]) -> None:
     """Adding favorite folders to nuke's browser
 
-    Arguments:
-        favorites (dict): couples of {name:path}
+    Args:
+        favorites (list[FavoriteDef]): list of favorite definitions
+
     """
-    favorites = favorites or {}
     icon_path = resources.get_resource("icons", "folder-favorite.png")
-    for name, path in favorites.items():
+    for favorite in favorites:
         nuke.addFavoriteDir(
-            name,
-            path,
+            favorite.name,
+            favorite.path,
             nuke.IMAGE | nuke.SCRIPT | nuke.GEO,
-            icon=icon_path)
+            icon=icon_path
+        )
 
 
 def get_node_outputs(node):
