@@ -26,7 +26,7 @@ class RepairExposedKnobs(pyblish.api.Action):
             # get write node from inside of group
             write_node = None
             for x in child_nodes:
-                if x.Class() == "Write":
+                if x.Class() in {"Write", "DeepWrite"}:
                     write_node = x
 
             product_base_type = instance.data["productBaseType"]
@@ -48,7 +48,7 @@ class ValidateExposedKnobs(
 
     order = pyblish.api.ValidatorOrder
     optional = False
-    families = ["render", "prerender", "image"]
+    families = ["render", "prerender", "image", "deeprender", "deepprerender"]
     label = "Validate Exposed Knobs"
     actions = [RepairExposedKnobs]
     hosts = ["nuke"]
@@ -58,7 +58,9 @@ class ValidateExposedKnobs(
     product_base_types_mapping = {
         "render": "CreateWriteRender",
         "prerender": "CreateWritePrerender",
-        "image": "CreateWriteImage"
+        "image": "CreateWriteImage",
+        "deeprender": "CreateDeepWriteRender",
+        "deepprerender": "CreateDeepWritePrerender",
     }
 
     def process(self, instance):
