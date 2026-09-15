@@ -15,7 +15,7 @@ class CreateDeepWritePrerender(napi.NukeWriteCreator):
 
     instance_attributes = ["use_range_limit"]
     default_variants = [
-        "DeepMain",
+        "Main",
     ]
 
     # Before write node render.
