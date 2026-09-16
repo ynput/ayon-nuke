@@ -843,9 +843,12 @@ def check_inventory_versions(show_popup=False):
         return
 
     if show_popup:
-        if any_outdated_containers():
-            log.warning("Scene has outdated content.")
-            _show_outdated_content_popup()
+        try:
+            if any_outdated_containers():
+                log.warning("Scene has outdated content.")
+                _show_outdated_content_popup()
+        except Exception as error:
+            log.warning(error)
 
     # Colorize nodes
     try:
