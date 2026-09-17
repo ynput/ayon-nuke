@@ -314,7 +314,7 @@ def on_script_load() -> None:
         workfile_settings.set_colorspace()
 
     # set checker for last versions on loaded containers
-    check_inventory_versions()
+    check_inventory_versions(show_popup=True)
 
 
 def reload_config():
