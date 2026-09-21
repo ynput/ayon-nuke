@@ -191,7 +191,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
             "representation": repre_entity["id"],
             "version": version_entity["version"],
             "colorspaceInput": colorspace,
-            "project_name": context["project"]["name"],
+            "project_name": project_name,
         }
 
         for k in ["source", "fps"]:
