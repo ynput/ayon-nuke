@@ -63,13 +63,6 @@ class ValidateNukeWriteNode(
 
     settings_category = "nuke"
 
-    creator_identifier_mapping = {
-        "create_write_image": "CreateWriteImage",
-        "create_write_prerender": "CreateWritePrerender",
-        "create_write_render": "CreateWriteRender",
-        "create_deepwrite_render": "CreateDeepWriteRender",
-        "create_deepwrite_prerender": "CreateDeepWritePrerender",
-    }
 
     def process(self, instance):
         if not self.is_active(instance.data):
@@ -93,7 +86,10 @@ class ValidateNukeWriteNode(
 
         # gather exposed knobs to remove them from knobs check.
         creator_identifier = instance.data["creator_identifier"]
-        plugin = self.creator_identifier_mapping[creator_identifier]
+        creator = instance.context.data["create_context"].creators.get(
+            creator_identifier
+        )
+        plugin = creator.__class__.__name__
 
         nuke_settings = instance.context.data["project_settings"]["nuke"]
         create_settings = nuke_settings["create"][plugin]

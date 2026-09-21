@@ -30,7 +30,11 @@ class RepairExposedKnobs(pyblish.api.Action):
                     write_node = x
 
             creator_identifier = instance.data["creator_identifier"]
-            plugin = plugin.creator_identifier_mapping[creator_identifier]
+            creator = instance.context.data["create_context"].creators.get(
+                creator_identifier
+            )
+            plugin = creator.__class__.__name__
+
             nuke_settings = instance.context.data["project_settings"]["nuke"]
             create_settings = nuke_settings["create"][plugin]
             exposed_knobs = create_settings["exposed_knobs"]
@@ -55,21 +59,18 @@ class ValidateExposedKnobs(
 
     settings_category = "nuke"
 
-    creator_identifier_mapping = {
-        "create_write_image": "CreateWriteImage",
-        "create_write_prerender": "CreateWritePrerender",
-        "create_write_render": "CreateWriteRender",
-        "create_deepwrite_render": "CreateDeepWriteRender",
-        "create_deepwrite_prerender": "CreateDeepWritePrerender",
-    }
 
     def process(self, instance):
         if not self.is_active(instance.data):
             return
 
         group_node = instance.data["transientData"]["node"]
+
         creator_identifier = instance.data["creator_identifier"]
-        plugin = self.creator_identifier_mapping[creator_identifier]
+        creator = instance.context.data["create_context"].creators.get(
+            creator_identifier
+        )
+        plugin = creator.__class__.__name__
 
         nuke_settings = instance.context.data["project_settings"]["nuke"]
         create_settings = nuke_settings["create"][plugin]
