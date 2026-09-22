@@ -1680,7 +1680,7 @@ class WorkfileSettings(object):
             if viewer_process != v["viewerProcess"].value():
                 copy_inputs = v.dependencies()
                 copy_knobs = {
-                    knob_name: knob.value()
+                    knob_name: knob.toScript()
                     for knob_name, knob in v.knobs().items()
                     if knob_name not in filter_knobs
                 }
@@ -1698,7 +1698,14 @@ class WorkfileSettings(object):
 
                 # set copied knobs
                 for knob_name, knob_value in copy_knobs.items():
-                    nv[knob_name].setValue(knob_value)
+                    try:
+                        nv[knob_name].fromScript(knob_value)
+                    except Exception as e:
+                        log.warning(
+                            f"Failed to set knob '{knob_name}' with script "
+                            f"'{knob_value}' on new viewer node "
+                            f"'{nv['name'].value()}': {e}"
+                        )
 
                 # set viewerProcess
                 nv["viewerProcess"].setValue(viewer_process)
