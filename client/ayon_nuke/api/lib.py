@@ -1698,7 +1698,23 @@ class WorkfileSettings(object):
 
                 # set copied knobs
                 for knob_name, knob_value in copy_knobs.items():
-                    nv[knob_name].setValue(knob_value)
+                    # Skip knobs that have `None` value because they will
+                    # cause errors when setting them on the new node.
+                    if knob_value is None:
+                        log.warning(
+                            f"Skipping copy of knob '{knob_name}' with value "
+                            f"None to new viewer node '{nv['name'].value()}'."
+                        )
+                        continue
+
+                    try:
+                        nv[knob_name].setValue(knob_value)
+                    except Exception as e:
+                        log.warning(
+                            f"Failed to set knob '{knob_name}' with value "
+                            f"'{knob_value}' on new viewer node "
+                            f"'{nv['name'].value()}': {e}"
+                        )
 
                 # set viewerProcess
                 nv["viewerProcess"].setValue(viewer_process)
