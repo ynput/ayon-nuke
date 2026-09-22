@@ -49,7 +49,8 @@ from ayon_core.pipeline import (
     get_current_context,
 )
 from ayon_core.pipeline.create import CreateContext
-from ayon_core.pipeline.load import filter_containers
+from ayon_core.pipeline.load import filter_containers, any_outdated_containers
+
 from ayon_core.pipeline.colorspace import (
     get_current_context_imageio_config_preset
 )
@@ -832,12 +833,24 @@ def get_view_process_node():
         return duplicate_node(ipn_node)
 
 
-def check_inventory_versions():
+def check_inventory_versions(show_popup=False):
     """Update loaded container nodes' colors based on version state.
 
     This will group containers by their version to outdated, not found,
     invalid or latest and colorize the nodes based on the category.
     """
+    if not nuke.GUI:
+        return
+
+    if show_popup:
+        try:
+            if any_outdated_containers():
+                log.warning("Scene has outdated content.")
+                _show_outdated_content_popup()
+        except Exception as error:
+            log.warning(error, exc_info=True)
+
+    # Colorize nodes
     try:
         host = registered_host()
         containers = host.get_containers()
@@ -853,6 +866,29 @@ def check_inventory_versions():
                 container["node"]["tile_color"].setValue(color)
     except Exception as error:
         log.warning(error)
+
+
+def _show_outdated_content_popup():
+    # Get main window
+    parent = get_main_window()
+    if parent is None:
+        log.info("Skipping outdated content pop-up "
+                 "because Nuke window can't be found.")
+        return
+
+    from ayon_core.tools.utils import SimplePopup
+
+    # Show outdated pop-up
+    def _on_show_inventory():
+        from ayon_core.tools.utils import host_tools
+        host_tools.show_scene_inventory(parent=parent)
+
+    dialog = SimplePopup(parent=parent)
+    dialog.setWindowTitle("Nuke scene has outdated content")
+    dialog.set_message("There are outdated containers in "
+                      "your Nuke scene.")
+    dialog.on_clicked.connect(_on_show_inventory)
+    dialog.show()
 
 
 def writes_version_sync(write_node, log):
@@ -1644,7 +1680,7 @@ class WorkfileSettings(object):
             if viewer_process != v["viewerProcess"].value():
                 copy_inputs = v.dependencies()
                 copy_knobs = {
-                    knob_name: knob.value()
+                    knob_name: knob.toScript()
                     for knob_name, knob in v.knobs().items()
                     if knob_name not in filter_knobs
                 }
@@ -1662,7 +1698,14 @@ class WorkfileSettings(object):
 
                 # set copied knobs
                 for knob_name, knob_value in copy_knobs.items():
-                    nv[knob_name].setValue(knob_value)
+                    try:
+                        nv[knob_name].fromScript(knob_value)
+                    except Exception as e:
+                        log.warning(
+                            f"Failed to set knob '{knob_name}' with script "
+                            f"'{knob_value}' on new viewer node "
+                            f"'{nv['name'].value()}': {e}"
+                        )
 
                 # set viewerProcess
                 nv["viewerProcess"].setValue(viewer_process)
@@ -2286,15 +2329,14 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         self.set_colorspace()
 
     def set_favorites(self):
-        from .utils import set_context_favorites
+        from .utils import set_context_favorites, FavoriteDef
 
         work_dir = os.getenv("AYON_WORKDIR")
         # TODO validate functionality
         # - does expect the structure is '{root}/{project}/{folder}'
-        # - this used asset name expecting it is unique in project
+        # - this used folder name expecting it is unique in project
         folder_path = get_current_folder_path()
         folder_name = folder_path.split("/")[-1]
-        favorite_items = OrderedDict()
 
         # project
         # get project's root and split to parts
@@ -2302,20 +2344,20 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             Context.project_name)[0])
         # add project name
         project_dir = os.path.join(projects_root, Context.project_name) + "/"
-        # add to favorites
-        favorite_items.update({"Project dir": project_dir.replace("\\", "/")})
 
         # folder
-        folder_root = os.path.normpath(work_dir.split(
-            folder_name)[0])
+        folder_root = os.path.normpath(work_dir.split(folder_name)[0])
         # add folder name
         folder_dir = os.path.join(folder_root, folder_name) + "/"
-        # add to favorites
-        favorite_items.update({"Shot dir": folder_dir.replace("\\", "/")})
 
         # workdir
-        favorite_items.update({"Work dir": work_dir.replace("\\", "/")})
-
+        favorite_items = [
+            FavoriteDef(
+                "Project dir", project_dir.replace("\\", "/")
+            ),
+            FavoriteDef("Shot dir", folder_dir.replace("\\", "/")),
+            FavoriteDef("Work dir", work_dir.replace("\\", "/")),
+        ]
         set_context_favorites(favorite_items)
 
 

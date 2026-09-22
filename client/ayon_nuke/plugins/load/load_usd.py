@@ -70,6 +70,7 @@ class GeoImportLoader(load.LoaderPlugin):
             node,
             {
                 "representation": context["representation"]["id"],
+                "project_name": context["project"]["name"],
             },
         )
 
