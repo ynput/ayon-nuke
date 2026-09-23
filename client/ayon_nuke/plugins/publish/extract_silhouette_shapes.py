@@ -4,16 +4,18 @@ import os
 import nuke
 import pyblish.api
 
-from ayon_core.pipeline import publish
+from ayon_core.pipeline import publish, OptionalPyblishPluginMixin
 from ayon_core.lib import BoolDef
 from ayon_nuke.api.lib import (
     maintained_selection,
     select_nodes
 )
+
 from ayon_nuke.vendor.NukeFXExporter import silhouetteFxsExporter
 
 
-class ExtractSilhouetteShapes(publish.Extractor):
+class ExtractSilhouetteShapes(publish.Extractor,
+                              OptionalPyblishPluginMixin):
     """Silhouette shapes extractor"""
     label = 'Extract Silhouette Shapes'
     order = pyblish.api.ExtractorOrder
@@ -36,7 +38,6 @@ class ExtractSilhouetteShapes(publish.Extractor):
         # create file name and path
         filename = f"{product_name}.fxs"
         attr_values = self.get_attr_values_from_data(instance.data)
-        bake_shapes = attr_values.get("bake_shapes", False)
         filepath = os.path.join(staging_dir, filename)
 
         with maintained_selection():
@@ -46,7 +47,7 @@ class ExtractSilhouetteShapes(publish.Extractor):
                 filepath,
                 first_frame,
                 last_frame,
-                bake_shapes=bake_shapes
+                bakeshapes=attr_values.get("bake_shapes", False)
             )
 
         # create representation data
