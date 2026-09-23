@@ -32,10 +32,12 @@ class RepairNukeWriteNodeAction(pyblish.api.Action):
             # get write node from inside of group
             write_node = None
             for x in child_nodes:
-                if x.Class() == "Write":
+                if x.Class() in {"Write", "DeepWrite"}:
                     write_node = x
 
-            correct_data = get_write_node_template_attr(write_group_node)
+            correct_data = get_write_node_template_attr(
+                node=write_group_node, node_class=write_node.Class()
+            )
 
             set_node_knobs_from_settings(write_node, correct_data["knobs"])
 
@@ -61,11 +63,6 @@ class ValidateNukeWriteNode(
 
     settings_category = "nuke"
 
-    product_base_types_mapping = {
-        "render": "CreateWriteRender",
-        "prerender": "CreateWritePrerender",
-        "image": "CreateWriteImage"
-    }
 
     def process(self, instance):
         if not self.is_active(instance.data):
@@ -81,20 +78,26 @@ class ValidateNukeWriteNode(
         # get write node from inside of group
         write_node = None
         for x in child_nodes:
-            if x.Class() == "Write":
+            if x.Class() in {"Write", "DeepWrite"}:
                 write_node = x
 
         if write_node is None:
             return
 
         # gather exposed knobs to remove them from knobs check.
+        creator_identifier = instance.data["creator_identifier"]
+        creator = instance.context.data["create_context"].creators.get(
+            creator_identifier
+        )
+        plugin = creator.__class__.__name__
+
         nuke_settings = instance.context.data["project_settings"]["nuke"]
-        product_base_type: str = instance.data["productBaseType"]
-        plugin = self.product_base_types_mapping[product_base_type]
         create_settings = nuke_settings["create"][plugin]
         exposed_knobs = set(create_settings.get("exposed_knobs", []))
 
-        correct_data = get_write_node_template_attr(write_group_node)
+        correct_data = get_write_node_template_attr(
+            node=write_group_node, node_class=write_node.Class()
+        )
 
         check = []
 
