@@ -19,9 +19,20 @@ class CollectSyncWorkfileVersion(pyblish.api.InstancePlugin):
     def process(self, instance: pyblish.api.Instance):
         product_base_type: str = instance.data["productBaseType"]
         # sync workfile version
-        if product_base_type in self.sync_workfile_version_on_product_base_types:  # noqa: E501
-            self.log.debug(
-                f"Syncing version with workfile for '{product_base_type}'"
+        if product_base_type not in self.sync_workfile_version_on_product_base_types:  # noqa: E501
+            return
+
+        context = instance.context
+        if "version" not in context.data:
+            # This may happen is workfile is not saved
+            self.log.warning(
+                "Unable to sync workfile version because no context version "
+                "was found. Make sure the workfile is saved."
             )
-            # get version to instance for integration
-            instance.data['version'] = instance.context.data['version']
+            return
+
+        self.log.debug(
+            f"Syncing version with workfile for '{product_base_type}'"
+        )
+        # get version to instance for integration
+        instance.data['version'] = context.data['version']

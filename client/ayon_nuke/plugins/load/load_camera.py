@@ -8,12 +8,11 @@ from ayon_core.pipeline import (
 from ayon_nuke.api import (
     containerise,
     update_container,
-    viewer_update_and_undo_stop
 )
+from ayon_nuke.api.command import undo_chunk
 from ayon_nuke.api.lib import (
     maintained_selection
 )
-
 
 class AlembicCameraLoader(load.LoaderPlugin):
     """
@@ -33,6 +32,7 @@ class AlembicCameraLoader(load.LoaderPlugin):
     color = "orange"
     node_color = "0x3469ffff"
 
+    @undo_chunk("Load Alembic Camera")
     def load(self, context, name, namespace, data):
         # get main variables
         version_entity = context["version"]
@@ -105,6 +105,7 @@ class AlembicCameraLoader(load.LoaderPlugin):
             loader=self.__class__.__name__,
             data=data_imprint)
 
+    @undo_chunk("Update Alembic Camera")
     def update(self, container, context):
         """
             Called by Scene Inventory when look should be updated to current
@@ -136,7 +137,8 @@ class AlembicCameraLoader(load.LoaderPlugin):
             "representation": repre_entity["id"],
             "frameStart": first,
             "frameEnd": last,
-            "version": version_entity["version"]
+            "version": version_entity["version"],
+            "project_name": context["project"]["name"],
         }
 
         # add attributes from the version to imprint to metadata knob
@@ -207,10 +209,10 @@ class AlembicCameraLoader(load.LoaderPlugin):
     def switch(self, container, context):
         self.update(container, context)
 
+    @undo_chunk("Remove Alembic Camera")
     def remove(self, container):
         node = container["node"]
-        with viewer_update_and_undo_stop():
-            nuke.delete(node)
+        nuke.delete(node)
 
 
 class FbxCameraLoader(AlembicCameraLoader):
