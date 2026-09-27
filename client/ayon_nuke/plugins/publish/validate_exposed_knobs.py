@@ -2,6 +2,7 @@ import pyblish.api
 
 from ayon_core.pipeline.publish import get_errored_instances_from_context
 from ayon_nuke.api.lib import link_knobs
+from ayon_nuke.api.plugin import get_creator_class_name
 from ayon_core.pipeline.publish import (
     OptionalPyblishPluginMixin,
     PublishValidationError
@@ -29,11 +30,7 @@ class RepairExposedKnobs(pyblish.api.Action):
                 if x.Class() in {"Write", "DeepWrite"}:
                     write_node = x
 
-            creator_identifier = instance.data["creator_identifier"]
-            creator = instance.context.data["create_context"].creators.get(
-                creator_identifier
-            )
-            plugin = creator.__class__.__name__
+            plugin = plugin = get_creator_class_name(instance)
 
             nuke_settings = instance.context.data["project_settings"]["nuke"]
             create_settings = nuke_settings["create"][plugin]
@@ -66,11 +63,7 @@ class ValidateExposedKnobs(
 
         group_node = instance.data["transientData"]["node"]
 
-        creator_identifier = instance.data["creator_identifier"]
-        creator = instance.context.data["create_context"].creators.get(
-            creator_identifier
-        )
-        plugin = creator.__class__.__name__
+        plugin = get_creator_class_name(instance)
 
         nuke_settings = instance.context.data["project_settings"]["nuke"]
         create_settings = nuke_settings["create"][plugin]
