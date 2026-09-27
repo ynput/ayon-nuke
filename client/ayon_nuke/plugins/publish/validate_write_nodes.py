@@ -7,6 +7,7 @@ from ayon_nuke.api.lib import (
     set_node_knobs_from_settings,
     color_gui_to_int
 )
+from ayon_nuke.api.plugin import get_creator_class_name
 
 from ayon_core.pipeline.publish import (
     PublishXmlValidationError,
@@ -85,11 +86,7 @@ class ValidateNukeWriteNode(
             return
 
         # gather exposed knobs to remove them from knobs check.
-        creator_identifier = instance.data["creator_identifier"]
-        creator = instance.context.data["create_context"].creators.get(
-            creator_identifier
-        )
-        plugin = creator.__class__.__name__
+        plugin = get_creator_class_name(instance)
 
         nuke_settings = instance.context.data["project_settings"]["nuke"]
         create_settings = nuke_settings["create"][plugin]

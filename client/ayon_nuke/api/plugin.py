@@ -6,6 +6,7 @@ import copy
 import pathlib
 import random
 import string
+from typing import TYPE_CHECKING
 from collections import defaultdict
 
 import ayon_api
@@ -59,6 +60,10 @@ from .colorspace import (
     get_formatted_display_and_view_as_dict,
     get_formatted_colorspace
 )
+
+
+if TYPE_CHECKING:
+    import pyblish.api
 
 
 def _collect_and_cache_nodes(creator):
@@ -635,6 +640,25 @@ def get_review_presets_config():
 def get_publish_config():
     settings = get_current_project_settings()
     return settings["nuke"].get("publish", {})
+
+
+def get_creator_class_name(instance: pyblish.api.Instance) -> str:
+    """Return creator class name from publish instance.
+
+    Often used as lookup in settings for creator-specific overrides.
+
+    Args:
+        instance (pyblish.api.Instance): Instance to process.
+
+    Returns:
+        str: The creator class name.
+
+    """
+    creator_identifier = instance.data["creator_identifier"]
+    creator = instance.context.data["create_context"].creators.get(
+        creator_identifier
+    )
+    return creator.__class__.__name__
 
 
 class NukeLoader(LoaderPlugin):
