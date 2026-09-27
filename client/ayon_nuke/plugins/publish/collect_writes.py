@@ -85,8 +85,9 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             instance, collected_frames
         )
 
-        # Inject colorspace data only when files were collected
-        if representation.get("files"):
+        # Inject colorspace data only if files were collected and a colorspace
+        # is available (e.g., Deep does not define a colorspace).
+        if representation.get("files") and colorspace:
             self.set_representation_colorspace(
                 representation, instance.context,
                 colorspace=colorspace
@@ -228,12 +229,16 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "path": write_file_path,
             "outputDir": output_dir,
             "ext": ext,
-            "colorspace": colorspace,
             "color_channels": color_channels,
             "resolutionWidth": write_node.width(),
             "resolutionHeight": write_node.height(),
             "pixelAspect": write_node.pixelAspect(),
         })
+
+        if colorspace:
+            instance.data.update({
+                "colorspace": colorspace,
+            })
 
         if product_base_type == "render":
             instance.data.update({
