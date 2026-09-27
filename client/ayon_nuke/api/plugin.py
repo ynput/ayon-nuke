@@ -6,7 +6,6 @@ import copy
 import pathlib
 import random
 import string
-from typing import TYPE_CHECKING
 from collections import defaultdict
 
 import ayon_api
@@ -33,6 +32,9 @@ from ayon_core.pipeline.colorspace import (
 from ayon_core.lib.transcoding import (
     VIDEO_EXTENSIONS
 )
+
+import pyblish.api
+
 from .lib import (
     INSTANCE_DATA_KNOB,
     Knobby,
@@ -60,10 +62,6 @@ from .colorspace import (
     get_formatted_display_and_view_as_dict,
     get_formatted_colorspace
 )
-
-
-if TYPE_CHECKING:
-    import pyblish.api
 
 
 def _collect_and_cache_nodes(creator):
