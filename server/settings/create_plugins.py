@@ -405,7 +405,25 @@ DEFAULT_CREATE_SETTINGS = {
         ],
         "render_target": "local",
         "exposed_knobs": [],
-        "prenodes": [],
+        "prenodes": [
+            {
+                "name": "DeepReformat01",
+                "nodeclass": "DeepReformat",
+                "dependent": "",
+                "knobs": [
+                    {
+                        "type": "text",
+                        "name": "resize",
+                        "text": "none"
+                    },
+                    {
+                        "type": "boolean",
+                        "name": "black_outside",
+                        "boolean": True
+                    }
+                ]
+            }
+        ]
     },
     "CreateWritePrerender": {
         "enabled": True,
