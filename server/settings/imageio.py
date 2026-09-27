@@ -387,7 +387,7 @@ DEFAULT_IMAGEIO_SETTINGS = {
                     {
                         "type": "color_gui",
                         "name": "tile_color",
-                        "color_gui": [186, 35, 35],
+                        "color_gui": [0, 3, 92],
                     },
                     {
                         "type": "text",
@@ -446,7 +446,7 @@ DEFAULT_IMAGEIO_SETTINGS = {
                     {
                         "type": "color_gui",
                         "name": "tile_color",
-                        "color_gui": [171, 171, 10],
+                        "color_gui": [0, 3, 92],
                     },
                     {
                         "type": "text",
