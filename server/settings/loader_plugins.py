@@ -102,6 +102,58 @@ class LoaderPluginsModel(BaseSettingsModel):
         default_factory=LoaderEnabledModel,
         title="Load GeoReference"
     )
+    AlembicCameraLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load AlembicCamera"
+    )
+    AlembicModelLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load AlembicModel"
+    )
+    FbxCameraLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load FbxCamera"
+    )
+    LinkAsGroup: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load LinkAsGroup"
+    )
+    LoadEffects: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load Effects"
+    )
+    LoadEffectsInputProcess: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load Effects Input Process"
+    )
+    LoadGizmo: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load Gizmo"
+    )
+    LoadGizmoInputProcess: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load Gizmo Input Process"
+    )
+    LoadOcioLookNodes: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load Ocio Look Nodes"
+    )
+    MatchmoveLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load Matchmove"
+    )
+    SetFrameRangeLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Set Frame Range"
+    )
+    SetFrameRangeWithHandlesLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Set Frame Range With Handles"
+    )
+    UsdCameraLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load USD Camera"
+    )
 
 
 DEFAULT_LOADER_PLUGINS_SETTINGS = {
@@ -129,5 +181,44 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
     },
     "GeoReferenceLoader": {
         "enabled": True
-    }
+    },
+    "AlembicCameraLoader": {
+        "enabled": True
+    },
+    "AlembicModelLoader": {
+        "enabled": True
+    },
+    "FbxCameraLoader": {
+        "enabled": True
+    },
+    "LinkAsGroup": {
+        "enabled": True
+    },
+    "LoadEffects": {
+        "enabled": True
+    },
+    "LoadEffectsInputProcess": {
+        "enabled": True
+    },
+    "LoadGizmo": {
+        "enabled": True
+    },
+    "LoadGizmoInputProcess": {
+        "enabled": True
+    },
+    "LoadOcioLookNodes": {
+        "enabled": True
+    },
+    "MatchmoveLoader": {
+        "enabled": True
+    },
+    "SetFrameRangeLoader": {
+        "enabled": True
+    },
+    "SetFrameRangeWithHandlesLoader": {
+        "enabled": True
+    },
+    "UsdCameraLoader": {
+        "enabled": True
+    },
 }
