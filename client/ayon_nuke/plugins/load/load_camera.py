@@ -124,7 +124,7 @@ class AlembicCameraLoader(load.LoaderPlugin):
             "frameEnd": last,
             "version": version_entity["version"],
             "source": version_attributes["source"],
-            "fps": version_attributes["fps"]
+            "fps": version_attributes["fps"],
             "project_name": context["project"]["name"],
         }
 
