@@ -1,5 +1,6 @@
 import nuke
 from ayon_core.pipeline import load
+from ayon_nuke.api.command import undo_chunk
 
 
 class MatchmoveLoader(load.LoaderPlugin):
@@ -20,6 +21,7 @@ class MatchmoveLoader(load.LoaderPlugin):
     icon = "empire"
     color = "orange"
 
+    @undo_chunk(label)
     def load(self, context, name, namespace, data):
         path = self.filepath_from_context(context)
         if path.lower().endswith(".py"):

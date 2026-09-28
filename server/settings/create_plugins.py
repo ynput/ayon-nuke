@@ -8,7 +8,6 @@ from .common import KnobModel
 
 INSTANCE_ATTRIBUTES_DESCRIPTION: str = (
     """Allows to enable or disable certain features for the instance:
-
     - Reviewable: Mark the output as reviewable, allowing transcoding and
         e.g. uploading as reviewable to production tracker (depending on
         what tags are sets for reviewables)
@@ -21,6 +20,9 @@ INSTANCE_ATTRIBUTES_DESCRIPTION: str = (
     - Render On Farm: Adds a button on the Nuke node that will submit the
         render of the write node to the farm **without** triggering the
         regular publish logic. This is useful for quick test renders.
+    - Slate Generation: When enabled, a slate frame is generated and
+        prepended to the rendered sequence before publishing.
+        Slater addon is required
     """
 )
 
@@ -41,10 +43,8 @@ def instance_attributes_enum():
         {"value": "reviewable", "label": "Reviewable"},
         {"value": "farm_rendering", "label": "Farm rendering"},
         {"value": "use_range_limit", "label": "Use range limit"},
-        {
-            "value": "render_on_farm",
-            "label": "Render On Farm"
-        }
+        {"value": "render_on_farm", "label": "Render On Farm"},
+        {"value": "slate_gen", "label": "Slate Generation"}
     ]
 
 
@@ -265,6 +265,13 @@ class CreatorPluginsSettings(BaseSettingsModel):
         default_factory=DefaultPluginModel,
         title="Gizmo (group)"
     )
+    CreateSilhouetteShapes: DefaultPluginModel = SettingsField(
+        default_factory=DefaultPluginModel,
+        title="Shapes (Silhouette .fxs)",
+        description=(
+            "Export .fxs shape format data file used by Boris FX Silhouette"
+        )
+    )
     CreateModel: DefaultPluginModel = SettingsField(
         default_factory=DefaultPluginModel,
         title="Model (3d)"
@@ -371,6 +378,10 @@ DEFAULT_CREATE_SETTINGS = {
         "order": 100,
     },
     "CreateGizmo": {
+        "enabled": True,
+        "order": 100,
+    },
+    "CreateSilhouetteShapes": {
         "enabled": True,
         "order": 100,
     },

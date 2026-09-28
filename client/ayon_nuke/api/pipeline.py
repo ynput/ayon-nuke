@@ -17,7 +17,7 @@ from ayon_core.host import (
 
 from ayon_core.host.interfaces import SaveWorkfileContext
 
-from ayon_core.lib import register_event_callback, Logger
+from ayon_core.lib import Logger
 from ayon_core.pipeline import (
     register_loader_plugin_path,
     register_creator_plugin_path,
@@ -28,7 +28,6 @@ from ayon_core.pipeline import (
     AVALON_CONTAINER_ID,
     get_current_folder_path,
     get_current_task_name,
-    registered_host,
 )
 from ayon_core.pipeline.workfile import BuildWorkfile
 from ayon_nuke import NUKE_ROOT_DIR
@@ -53,12 +52,10 @@ from .lib import (
     INSTANCE_DATA_KNOB,
     get_main_window,
     WorkfileSettings,
-    start_workfile_template_builder,
     launch_workfiles_app,
     check_inventory_versions,
     set_avalon_knob_data,
     read_avalon_data,
-    on_script_load,
     prompt_reset_context,
     dirmap_file_name_filter,
     add_scripts_menu,
@@ -71,7 +68,7 @@ from .workfile_template_builder import (
     build_workfile_template,
     create_placeholder,
     update_placeholder,
-    NukeTemplateBuilder,
+    open_template,
 )
 from .workio import (
     open_file,
@@ -143,9 +140,6 @@ class NukeHost(
         register_inventory_action_path(INVENTORY_PATH)
         register_workfile_build_plugin_path(WORKFILE_BUILD_PATH)
 
-        # Register AYON event for workfiles loading.
-        register_event_callback("workio.open_file", check_inventory_versions)
-
     def setup_ui_callbacks_and_menu(self):
         """Setup AYON menus."""
         if not nuke.GUI:
@@ -153,6 +147,7 @@ class NukeHost(
 
         project_settings = get_current_project_settings()
         add_nuke_callbacks(project_settings)
+
         _install_menu(project_settings)
 
         add_scripts_menu()
@@ -166,7 +161,6 @@ class NukeHost(
     def update_context_data(self, data, changes):
         root_node = nuke.root()
         set_node_data(root_node, ROOT_DATA_KNOB, data)
-
 
     def _before_workfile_save(
         self, save_workfile_context: SaveWorkfileContext
@@ -226,27 +220,13 @@ def add_nuke_callbacks(project_settings: dict = None):
         project_settings = get_current_project_settings()
 
     nuke_settings = project_settings["nuke"]
-    workfile_settings = WorkfileSettings()
 
-    # Set context settings.
-    nuke.addOnCreate(
-        workfile_settings.set_context_settings, nodeClass="Root")
+    nuke.addOnCreate(on_root_create, nodeClass="Root")
 
-    # adding favorites to file browser
-    nuke.addOnCreate(workfile_settings.set_favorites, nodeClass="Root")
-
-    # template builder callbacks
-    nuke.addOnCreate(start_workfile_template_builder, nodeClass="Root")
-
-    # fix ffmpeg settings on script
     nuke.addOnScriptLoad(on_script_load)
 
     # set checker for last versions on loaded containers
-    nuke.addOnScriptLoad(check_inventory_versions)
     nuke.addOnScriptSave(check_inventory_versions)
-
-    # set apply all workfile settings on script load and save
-    nuke.addOnScriptLoad(WorkfileSettings().set_context_settings)
 
     if nuke_settings["dirmap"]["enabled"]:
         log.info("Added Nuke's dir-mapping callback ...")
@@ -254,6 +234,87 @@ def add_nuke_callbacks(project_settings: dict = None):
         nuke.addFilenameFilter(dirmap_file_name_filter)
 
     log.info("Added Nuke callbacks ...")
+
+
+def on_root_create() -> None:
+    """Callback function for on root node create."""
+    # adding favorites to file browser
+    workfile_settings = WorkfileSettings()
+    workfile_settings.set_favorites()
+
+    # Root created callback is also triggered on scene load because that also
+    # creates a new root node. So we check if current file is None to run
+    # logic that we only want to apply on new scene creation.
+    if current_file() is None:
+        on_script_create_settings = (
+            workfile_settings.project_settings
+            ["nuke"]
+            ["workfile_callbacks"]
+            ["on_script_create"]
+        )
+
+        if on_script_create_settings["set_resolution"]:
+            workfile_settings.reset_resolution()
+
+        if on_script_create_settings["set_frame_range"]:
+            workfile_settings.reset_frame_range_handles()
+
+        if on_script_create_settings["set_colorspace"]:
+            workfile_settings.set_colorspace()
+
+        start_workfile_template_builder()
+
+
+def start_workfile_template_builder() -> None:
+    """Trigger workfile template builder when a new file is created."""
+    from .workfile_template_builder import (
+        trigger_on_app_launch,
+        trigger_on_new_file,
+    )
+    if not os.getenv("AYON_NUKE_INITIALIZED"):
+        log.info("Triggering workfile template builder on application launch.")
+        trigger_on_app_launch()
+        # Track this at process level because the host instance may be
+        # recreated or reloaded during Nuke's lifetime.
+        # The environment marker persists across those reloads and ensures
+        # the application-launch trigger runs only once.
+        os.environ["AYON_NUKE_INITIALIZED"] = "True"
+    else:
+        log.info("Triggering workfile template builder on new file.")
+        trigger_on_new_file()
+
+
+def on_script_load() -> None:
+    """Callback function for on script load."""
+    log.info("On script load...")
+    # fix ffmpeg settings on script
+    if nuke.env["LINUX"]:
+        nuke.tcl('load ffmpegReader')
+        nuke.tcl('load ffmpegWriter')
+    else:
+        nuke.tcl('load movReader')
+        nuke.tcl('load movWriter')
+
+    # set apply all workfile settings on script load and save
+    workfile_settings = WorkfileSettings()
+    on_script_load_settings = (
+        workfile_settings.project_settings
+        ["nuke"]
+        ["workfile_callbacks"]
+        ["on_script_open"]
+    )
+
+    if on_script_load_settings["set_resolution"]:
+        workfile_settings.reset_resolution()
+
+    if on_script_load_settings["set_frame_range"]:
+        workfile_settings.reset_frame_range_handles()
+
+    if on_script_load_settings["set_colorspace"]:
+        workfile_settings.set_colorspace()
+
+    # set checker for last versions on loaded containers
+    check_inventory_versions(show_popup=True)
 
 
 def reload_config():
@@ -292,7 +353,6 @@ def _install_menu(project_settings: dict):
     """Install AYON menu into Nuke's main menu bar."""
     # local imports, modules not available in non-GUI mode
     from ayon_core.tools.utils import host_tools
-    from ayon_core.tools.workfile_template_build import open_template_ui
 
     # uninstall original AYON menu
     main_window = get_main_window()
@@ -404,9 +464,7 @@ def _install_menu(project_settings: dict):
         menu_template.addSeparator()
         menu_template.addCommand(
             "Open template",
-            lambda: open_template_ui(
-                NukeTemplateBuilder(registered_host()), get_main_window()
-            )
+            lambda: open_template()
         )
         menu_template.addCommand(
             "Create Place Holder",

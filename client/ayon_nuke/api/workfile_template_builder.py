@@ -4,6 +4,7 @@ import nuke
 
 from ayon_core.pipeline import registered_host
 from ayon_core.pipeline.workfile.workfile_template_builder import (
+    TemplateLoadFailed,
     AbstractTemplateBuilder,
     PlaceholderPlugin,
     PlaceholderItem
@@ -160,9 +161,26 @@ class NukePlaceholderPlugin(PlaceholderPlugin):
         return output
 
 
-def build_workfile_template(*args, **kwargs):
+def trigger_on_app_launch() -> None:
+    """Build the workfile template during application launch."""
     builder = NukeTemplateBuilder(registered_host())
-    builder.build_template(*args, **kwargs)
+    builder.trigger_on_app_launch()
+    WorkfileSettings().set_context_settings()
+
+
+def trigger_on_new_file() -> None:
+    """Build the workfile template when a new file is created."""
+    builder = NukeTemplateBuilder(registered_host())
+    builder.trigger_on_new_file()
+    WorkfileSettings().set_context_settings()
+
+
+def build_workfile_template():
+    builder = NukeTemplateBuilder(registered_host())
+    preset = builder.get_template_preset()
+    if not preset.has_valid_path():
+        raise TemplateLoadFailed(f"Invalid template path: {preset.path}")
+    builder.build_template(preset=preset)
 
     # set all settings to shot context default
     WorkfileSettings().set_context_settings()
@@ -171,6 +189,13 @@ def build_workfile_template(*args, **kwargs):
 def update_workfile_template(*args):
     builder = NukeTemplateBuilder(registered_host())
     builder.rebuild_template()
+
+
+def open_template() -> None:
+    """Open the workfile template UI for Nuke."""
+    from ayon_core.tools.workfile_template_build import open_template_ui
+    builder = NukeTemplateBuilder(registered_host())
+    open_template_ui(builder, main_window=get_main_window())
 
 
 def create_placeholder(*args):

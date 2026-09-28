@@ -7,6 +7,10 @@ from .general import (
     GeneralSettings,
     DEFAULT_GENERAL_SETTINGS
 )
+from .workfile_callbacks import (
+    WorkfileCallbacks,
+    DEFAULT_WORKFILE_CALLBACKS_SETTINGS
+)
 from .imageio import (
     ImageIOSettings,
     DEFAULT_IMAGEIO_SETTINGS
@@ -50,6 +54,11 @@ class NukeSettings(BaseSettingsModel):
     general: GeneralSettings = SettingsField(
         default_factory=GeneralSettings,
         title="General",
+    )
+
+    workfile_callbacks: WorkfileCallbacks = SettingsField(
+        default_factory=WorkfileCallbacks,
+        title="Workfile Callbacks",
     )
 
     imageio: ImageIOSettings = SettingsField(
@@ -98,6 +107,7 @@ class NukeSettings(BaseSettingsModel):
 
 DEFAULT_VALUES = {
     "general": DEFAULT_GENERAL_SETTINGS,
+    "workfile_callbacks": DEFAULT_WORKFILE_CALLBACKS_SETTINGS,
     "imageio": DEFAULT_IMAGEIO_SETTINGS,
     "dirmap": DEFAULT_DIRMAP_SETTINGS,
     "scriptsmenu": DEFAULT_SCRIPTSMENU_SETTINGS,

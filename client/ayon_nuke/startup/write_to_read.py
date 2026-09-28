@@ -1,7 +1,6 @@
-import re
 import os
-import glob
 import nuke
+import clique
 from ayon_core.lib import Logger
 log = Logger.get_logger(__name__)
 
@@ -9,76 +8,99 @@ SINGLE_FILE_FORMATS = ['avi', 'mp4', 'mxf', 'mov', 'mpg', 'mpeg', 'wmv', 'm4v',
                        'm2v']
 
 
-def evaluate_filepath_new(
-        k_value, k_eval, project_dir, first_frame, allow_relative):
+def detect_file_on_disk(
+        k_value: str,
+        k_eval: str,
+        project_dir: str,
+        first_frame: int,
+        allow_relative: bool
+) -> tuple[str | None, int, int]:
+    """Detects a file or image sequence on disk and returns its path along
+    with the first and last frame numbers.
 
-    # get combined relative path
+    Args:
+        k_value (str): The original file path pattern, potentially
+        containing frame padding token "%04d".
+        k_eval (str): The evaluated file path potentially with a specific
+        frame number.
+        project_dir (str): The root directory of the project.
+        first_frame (int): The first frame number to consider when detecting
+        the file sequence.
+        allow_relative (bool): Whether to return the file path as relative to
+        the project directory.
+
+    Returns:
+        tuple[str, int, int] | None: A tuple containing the file path,
+        first frame number, and last frame number if the file or sequence
+        is detected; otherwise, None.
+    """
     combined_relative_path = None
+    filepath = None
+    firstframe = first_frame
+    lastframe = first_frame
+    if not os.path.exists(k_eval):
+        raise FileNotFoundError(
+            "Cannot create Read node as the "
+            f"file does not exist: `{k_eval}`"
+        )
     if k_eval is not None and project_dir is not None:
         combined_relative_path = os.path.abspath(
-            os.path.join(project_dir, k_eval))
-        combined_relative_path = combined_relative_path.replace('\\', '/')
-        filetype = combined_relative_path.split('.')[-1]
-        frame_number = re.findall(r'\d+', combined_relative_path)[-1]
-        basename = combined_relative_path[: combined_relative_path.rfind(
-            frame_number)]
-        filepath_glob = basename + '*' + filetype
-        glob_search_results = glob.glob(filepath_glob)
-        if len(glob_search_results) <= 0:
-            combined_relative_path = None
+            os.path.join(project_dir, k_eval)
+        )
+    directory = os.path.dirname(k_eval)
+    if directory and not os.path.isdir(directory):
+        return None, 0, 0
 
-    try:
-        # k_value = k_value % first_frame
-        if os.path.isdir(os.path.basename(k_value)):
-            # doesn't check for file, only parent dir
-            filepath = k_value
-        elif os.path.exists(k_eval):
+    # Handle single file case (no frame padding)
+    if k_eval == k_value:
+        # If the evaluated path is the same as the original pattern,
+        # this means it does not contain any frame token
+        if os.path.exists(k_eval):
             filepath = k_eval
-        elif not isinstance(project_dir, type(None)) and \
-                not isinstance(combined_relative_path, type(None)):
-            filepath = combined_relative_path
 
-        filepath = os.path.abspath(filepath)
-    except Exception as E:
-        log.error("Cannot create Read node. Perhaps it needs to be \
-                  rendered first :) Error: `{}`".format(E))
-        return None
+        elif project_dir is not None:
+            # Try with project directory
+            combined_path = os.path.abspath(os.path.join(project_dir, k_eval))
+            if os.path.exists(combined_path):
+                filepath = combined_path
 
+        if filepath and allow_relative and project_dir is not None:
+            filepath = os.path.relpath(filepath, project_dir)
+
+        return filepath, firstframe, lastframe
+
+    collections, _ = clique.assemble(
+        [combined_relative_path],
+        assume_padded_when_ambiguous=True,
+        minimum_items=1,
+        patterns=[clique.PATTERNS['frames']]
+    )
+
+    collection = collections[0] if collections else None
+    if collection:
+        # Get all files in the directory to find all frames
+        files_in_dir = [
+            os.path.join(directory, f)
+            for f in os.listdir(directory)
+            if os.path.isfile(os.path.join(directory, f))
+        ]
+
+        if files_in_dir:
+            # Assemble all files in directory to find the complete sequence
+            coll = clique.assemble(
+                files_in_dir,
+                assume_padded_when_ambiguous=True,
+                patterns=[clique.PATTERNS['frames']]
+            )[0][0]
+            if coll.padding == collection.padding:
+                # Found matching sequence
+                firstframe = min(coll.indexes)
+                lastframe = max(coll.indexes)
+                filepath = f"{coll.head}{'#' * coll.padding}{coll.tail}"
+    # Convert to relative path if requested
+    if filepath and allow_relative and project_dir:
+        filepath = os.path.relpath(filepath, project_dir)
     filepath = filepath.replace('\\', '/')
-    # assumes last number is a sequence counter
-    current_frame = re.findall(r'\d+', filepath)[-1]
-    padding = len(current_frame)
-    basename = filepath[: filepath.rfind(current_frame)]
-    filetype = filepath.split('.')[-1]
-
-    # sequence or not?
-    if filetype in SINGLE_FILE_FORMATS:
-        pass
-    else:
-        # Image sequence needs hashes
-        # to do still with no number not handled
-        filepath = basename + '#' * padding + '.' + filetype
-
-    # relative path? make it relative again
-    if allow_relative:
-        if (not isinstance(project_dir, type(None))) and project_dir != "":
-            filepath = filepath.replace(project_dir, '.')
-
-    # get first and last frame from disk
-    frames = []
-    firstframe = 0
-    lastframe = 0
-    filepath_glob = basename + '*' + filetype
-    glob_search_results = glob.glob(filepath_glob)
-    for f in glob_search_results:
-        frame = re.findall(r'\d+', f)[-1]
-        frames.append(frame)
-    frames = sorted(frames)
-    firstframe = frames[0]
-    lastframe = frames[len(frames) - 1]
-
-    if int(lastframe) < 0:
-        lastframe = firstframe
 
     return filepath, firstframe, lastframe
 
@@ -121,7 +143,7 @@ def write_to_read(gn,
             n = group_writes[0]
 
             if n.knob('file') is not None:
-                myfile, firstFrame, lastFrame = evaluate_filepath_new(
+                myfile, firstFrame, lastFrame = detect_file_on_disk(
                     n.knob('file').getValue(),
                     n.knob('file').evaluate(),
                     project_dir,
