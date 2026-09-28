@@ -82,26 +82,6 @@ class LoadClipModel(BaseSettingsModel):
 
 
 class LoaderPluginsModel(BaseSettingsModel):
-    LoadImage: LoadImageModel = SettingsField(
-        default_factory=LoadImageModel,
-        title="Load Image"
-    )
-    LoadClip: LoadClipModel = SettingsField(
-        default_factory=LoadClipModel,
-        title="Load Clip"
-    )
-    LoadBackdropNodes: LoadBackdropNodesModel = SettingsField(
-        default_factory=LoadBackdropNodesModel,
-        title="Load Backdrop Nodes"
-    )
-    GeoImportLoader: LoaderEnabledModel = SettingsField(
-        default_factory=LoaderEnabledModel,
-        title="Load GeoImport"
-    )
-    GeoReferenceLoader: LoaderEnabledModel = SettingsField(
-        default_factory=LoaderEnabledModel,
-        title="Load GeoReference"
-    )
     AlembicCameraLoader: LoaderEnabledModel = SettingsField(
         default_factory=LoaderEnabledModel,
         title="Load AlembicCamera"
@@ -114,9 +94,25 @@ class LoaderPluginsModel(BaseSettingsModel):
         default_factory=LoaderEnabledModel,
         title="Load FbxCamera"
     )
+    GeoImportLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load GeoImport"
+    )
+    GeoReferenceLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load GeoReference"
+    )
     LinkAsGroup: LoaderEnabledModel = SettingsField(
         default_factory=LoaderEnabledModel,
         title="Load LinkAsGroup"
+    )
+    LoadBackdropNodes: LoadBackdropNodesModel = SettingsField(
+        default_factory=LoadBackdropNodesModel,
+        title="Load Backdrop Nodes"
+    )
+    LoadClip: LoadClipModel = SettingsField(
+        default_factory=LoadClipModel,
+        title="Load Clip"
     )
     LoadEffects: LoaderEnabledModel = SettingsField(
         default_factory=LoaderEnabledModel,
@@ -133,6 +129,10 @@ class LoaderPluginsModel(BaseSettingsModel):
     LoadGizmoInputProcess: LoaderEnabledModel = SettingsField(
         default_factory=LoaderEnabledModel,
         title="Load Gizmo Input Process"
+    )
+    LoadImage: LoadImageModel = SettingsField(
+        default_factory=LoadImageModel,
+        title="Load Image"
     )
     LoadOcioLookNodes: LoaderEnabledModel = SettingsField(
         default_factory=LoaderEnabledModel,
@@ -157,10 +157,26 @@ class LoaderPluginsModel(BaseSettingsModel):
 
 
 DEFAULT_LOADER_PLUGINS_SETTINGS = {
-    "LoadImage": {
-        "enabled": True,
-        "representations_include": [],
-        "node_name_template": "{class_name}_{ext}"
+    "AlembicCameraLoader": {
+        "enabled": True
+    },
+    "AlembicModelLoader": {
+        "enabled": True
+    },
+    "FbxCameraLoader": {
+        "enabled": True
+    },
+    "GeoImportLoader": {
+        "enabled": True
+    },
+    "GeoReferenceLoader": {
+        "enabled": True
+    },
+    "LinkAsGroup": {
+        "enabled": True
+    },
+    "LoadBackdropNodes": {
+        "remove_nodes_from_backdrop": False
     },
     "LoadClip": {
         "enabled": True,
@@ -173,27 +189,6 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
             "node_type": "auto"
         }
     },
-    "LoadBackdropNodes": {
-        "remove_nodes_from_backdrop": False
-    },
-    "GeoImportLoader": {
-        "enabled": True
-    },
-    "GeoReferenceLoader": {
-        "enabled": True
-    },
-    "AlembicCameraLoader": {
-        "enabled": True
-    },
-    "AlembicModelLoader": {
-        "enabled": True
-    },
-    "FbxCameraLoader": {
-        "enabled": True
-    },
-    "LinkAsGroup": {
-        "enabled": True
-    },
     "LoadEffects": {
         "enabled": True
     },
@@ -205,6 +200,11 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
     },
     "LoadGizmoInputProcess": {
         "enabled": True
+    },
+    "LoadImage": {
+        "enabled": True,
+        "representations_include": [],
+        "node_name_template": "{class_name}_{ext}"
     },
     "LoadOcioLookNodes": {
         "enabled": True
