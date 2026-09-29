@@ -5,10 +5,7 @@ class LoaderEnabledModel(BaseSettingsModel):
     enabled: bool = SettingsField(True, title="Enabled")
 
 
-class LoadImageModel(BaseSettingsModel):
-    enabled: bool = SettingsField(
-        title="Enabled"
-    )
+class LoadImageModel(LoaderEnabledModel):
     representations_include: list[str] = SettingsField(
         default_factory=list,
         title="Include representations"
@@ -57,16 +54,14 @@ class LoadClipOptionsModel(BaseSettingsModel):
     )
 
 
-class LoadBackdropNodesModel(BaseSettingsModel):
+class LoadBackdropNodesModel(LoaderEnabledModel):
+
     remove_nodes_from_backdrop: bool = SettingsField(
         title="Remove existing AYON backdrops when removing container"
     )
 
 
-class LoadClipModel(BaseSettingsModel):
-    enabled: bool = SettingsField(
-        title="Enabled"
-    )
+class LoadClipModel(LoaderEnabledModel):
     representations_include: list[str] = SettingsField(
         default_factory=list,
         title="Include representations"
@@ -176,6 +171,7 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
         "enabled": True
     },
     "LoadBackdropNodes": {
+        "enabled": True,
         "remove_nodes_from_backdrop": False
     },
     "LoadClip": {
