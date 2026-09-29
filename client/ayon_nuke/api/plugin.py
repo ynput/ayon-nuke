@@ -337,6 +337,9 @@ class NukeWriteCreator(NukeCreator):
 
     render_target = "local"  # default to be applied if settings is missing
 
+    # task types for which the Review toggle is forced on and locked
+    disable_review_toggle_for_task_types = []
+
     def get_linked_knobs(self):
         linked_knobs = []
         if "channels" in self.instance_attributes:
@@ -454,11 +457,18 @@ class NukeWriteCreator(NukeCreator):
 
         # add reviewable attribute
         if "reviewable" in self.instance_attributes:
+            tooltip = (
+                "Review is always enabled for this task type"
+                " (set by studio settings)."
+            )
+            review_toggle_disabled = self._is_review_toggle_disabled()
             attr_defs.append(
                 BoolDef(
                     "review",
                     default=True,
-                    label="Review"
+                    label="Review",
+                    tooltip=tooltip if review_toggle_disabled else "",
+                    enabled=not review_toggle_disabled
                 )
             )
         if "slate_gen" in self.instance_attributes:
@@ -471,6 +481,21 @@ class NukeWriteCreator(NukeCreator):
             )
 
         return attr_defs
+
+    def _is_review_toggle_disabled(self):
+        """Return whether the Review toggle is disabled for the current task type.
+
+        The Review toggle is disabled when the current task type is included in
+        ``disable_review_toggle_for_task_types``.
+        """
+        if not self.disable_review_toggle_for_task_types:
+            return False
+
+        task_type = self.create_context.get_current_task_type()
+
+        return bool(
+            task_type in self.disable_review_toggle_for_task_types
+        )
 
     def _get_render_target_enum(self):
         rendering_targets = {
@@ -569,6 +594,9 @@ class NukeWriteCreator(NukeCreator):
         # individual attributes
         self.instance_attributes = plugin_settings.get(
             "instance_attributes") or self.instance_attributes
+        self.disable_review_toggle_for_task_types = plugin_settings.get(
+            "disable_review_toggle_for_task_types", []
+        )
         self.prenodes = plugin_settings["prenodes"]
         self.default_variants = plugin_settings.get(
             "default_variants") or self.default_variants

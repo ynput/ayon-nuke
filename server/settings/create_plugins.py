@@ -2,7 +2,8 @@ from pydantic import validator
 from ayon_server.settings import (
     BaseSettingsModel,
     SettingsField,
-    ensure_unique_names
+    ensure_unique_names,
+    task_types_enum,
 )
 from .common import KnobModel
 
@@ -34,6 +35,12 @@ RENDER_TARGET_DESCRIPTION: str = (
     "Set default render target for renders.\n\n"
     "Note: The *farm* related options are only valid if instance attributes "
     "includes 'Farm Rendering'."
+)
+
+DISABLE_REVIEW_TOGGLE_DESCRIPTION: str = (
+    "For instances on these task types the 'Review' toggle in the "
+    "publisher is always enabled and locked, so artists cannot turn it "
+    "off. Only applies when instance attributes include 'Reviewable'."
 )
 
 
@@ -133,6 +140,12 @@ class CreateWriteRenderModel(DefaultPluginModel):
         enum_resolver=instance_attributes_enum,
         title="Instance attributes",
         description=INSTANCE_ATTRIBUTES_DESCRIPTION
+    )
+    disable_review_toggle_for_task_types: list[str] = SettingsField(
+        default_factory=list,
+        enum_resolver=task_types_enum,
+        title="Disable review toggle for task types",
+        description=DISABLE_REVIEW_TOGGLE_DESCRIPTION,
     )
     render_target: str = SettingsField(
         enum_resolver=render_target_enum,
@@ -299,6 +312,7 @@ DEFAULT_CREATE_SETTINGS = {
             "reviewable",
             "farm_rendering"
         ],
+        "disable_review_toggle_for_task_types": [],
         "render_target": "local",
         "exposed_knobs": [],
         "prenodes": [
