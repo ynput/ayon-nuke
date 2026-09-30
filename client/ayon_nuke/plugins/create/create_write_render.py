@@ -74,3 +74,12 @@ class CreateWriteRender(napi.NukeWriteCreator):
         self.integrate_links(node_selection, created_node, outputs=False)
 
         return created_node
+
+
+class CreateDeepWriteRender(CreateWriteRender):
+    settings_category = "nuke"
+
+    identifier = "create_deepwrite_render"
+    label = "Render (deep write)"
+    node_class = "DeepWrite"
+    default_variants = ["DeepMain"]
