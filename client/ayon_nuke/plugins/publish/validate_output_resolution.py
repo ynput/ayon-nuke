@@ -91,11 +91,10 @@ class ValidateOutputResolution(
         grp_node = instance.data["transientData"]["node"]
 
         reformat = cls.get_reformat(instance)
-        plugin = get_creator_class_name(instance)
         reformat_class = (
             "Reformat"
-            if plugin
-            not in {"CreateDeepWritePrerender", "CreateDeepWriteRender"}
+            if instance.creator_identifier
+            not in {"create_deepwrite_prerender", "create_deepwrite_render"}
             else "DeepReformat"
         )
         if cls.missing_msg == invalid:
