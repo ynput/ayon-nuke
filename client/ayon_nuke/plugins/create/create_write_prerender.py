@@ -99,8 +99,6 @@ class CreateWritePrerender(napi.NukeWriteCreator):
 
 
 class CreateDeepWritePrerender(CreateWritePrerender):
-    settings_category = "nuke"
-
     identifier = "create_deepwrite_prerender"
     label = "Prerender (deep write)"
     node_class = "DeepWrite"
