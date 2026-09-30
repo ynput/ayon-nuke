@@ -88,3 +88,12 @@ class CreateWriteRender(napi.NukeWriteCreator):
         w_node["last"].setValue(nuke.root()["last_frame"].value())
 
         return write_node
+
+
+class CreateDeepWriteRender(CreateWriteRender):
+    settings_category = "nuke"
+
+    identifier = "create_deepwrite_render"
+    label = "Render (deep write)"
+    node_class = "DeepWrite"
+    default_variants = ["DeepMain"]
