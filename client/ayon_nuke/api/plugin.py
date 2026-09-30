@@ -9,6 +9,8 @@ import string
 from collections import defaultdict
 
 import ayon_api
+import pyblish.api
+
 from ayon_core.settings import get_current_project_settings
 from ayon_core.lib import (
     BoolDef,
@@ -32,8 +34,6 @@ from ayon_core.pipeline.colorspace import (
 from ayon_core.lib.transcoding import (
     VIDEO_EXTENSIONS
 )
-
-import pyblish.api
 
 from .lib import (
     INSTANCE_DATA_KNOB,
