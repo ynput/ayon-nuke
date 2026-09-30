@@ -86,10 +86,10 @@ class ValidateNukeWriteNode(
             return
 
         # gather exposed knobs to remove them from knobs check.
-        plugin = get_creator_class_name(instance)
+        plugin_name = get_creator_class_name(instance)
 
         nuke_settings = instance.context.data["project_settings"]["nuke"]
-        create_settings = nuke_settings["create"][plugin]
+        create_settings = nuke_settings["create"][plugin_name]
         exposed_knobs = set(create_settings.get("exposed_knobs", []))
 
         correct_data = get_write_node_template_attr(
