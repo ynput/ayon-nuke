@@ -235,9 +235,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         })
 
         if colorspace:
-            instance.data.update({
-                "colorspace": colorspace,
-            })
+            instance.data["colorspace"] = colorspace
 
         if product_base_type == "render":
             instance.data.update({
