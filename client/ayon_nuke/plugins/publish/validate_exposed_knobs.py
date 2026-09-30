@@ -30,10 +30,10 @@ class RepairExposedKnobs(pyblish.api.Action):
                 if x.Class() in {"Write", "DeepWrite"}:
                     write_node = x
 
-            plugin = plugin = get_creator_class_name(instance)
+            plugin_name = get_creator_class_name(instance)
 
             nuke_settings = instance.context.data["project_settings"]["nuke"]
-            create_settings = nuke_settings["create"][plugin]
+            create_settings = nuke_settings["create"][plugin_name]
             exposed_knobs = create_settings["exposed_knobs"]
             link_knobs(exposed_knobs, write_node, write_group_node)
 
@@ -63,10 +63,10 @@ class ValidateExposedKnobs(
 
         group_node = instance.data["transientData"]["node"]
 
-        plugin = get_creator_class_name(instance)
+        plugin_name = get_creator_class_name(instance)
 
         nuke_settings = instance.context.data["project_settings"]["nuke"]
-        create_settings = nuke_settings["create"][plugin]
+        create_settings = nuke_settings["create"][plugin_name]
         exposed_knobs = create_settings.get("exposed_knobs", [])
         unexposed_knobs = []
         for knob in exposed_knobs:
