@@ -1,7 +1,6 @@
 import pyblish.api
 
 from ayon_nuke import api as napi
-from ayon_nuke.api.plugin import get_creator_class_name
 from ayon_core.pipeline.publish import RepairAction
 from ayon_core.pipeline import (
     PublishXmlValidationError,
