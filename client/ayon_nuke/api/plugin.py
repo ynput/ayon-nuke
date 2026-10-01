@@ -337,8 +337,8 @@ class NukeWriteCreator(NukeCreator):
 
     render_target = "local"  # default to be applied if settings is missing
 
-    # task types for which the Review toggle is forced on and locked
-    disable_review_toggle_for_task_types = []
+    # conditional reviewable
+    conditional_reviewable = []
 
     def get_linked_knobs(self):
         linked_knobs = []
@@ -457,11 +457,19 @@ class NukeWriteCreator(NukeCreator):
 
         # add reviewable attribute
         if "reviewable" in self.instance_attributes:
+            attr_defs.append(
+                BoolDef(
+                    "review",
+                    default=True,
+                    label="Review"
+                )
+            )
+        if "conditional_reviewable" in self.instance_attributes:
+            review_toggle_disabled = self._is_review_toggle_disabled()
             tooltip = (
                 "Review is always enabled for this task type"
                 " (set by studio settings)."
             )
-            review_toggle_disabled = self._is_review_toggle_disabled()
             attr_defs.append(
                 BoolDef(
                     "review",
@@ -483,19 +491,18 @@ class NukeWriteCreator(NukeCreator):
         return attr_defs
 
     def _is_review_toggle_disabled(self):
-        """Return whether the Review toggle is disabled for the current task type.
+        """Return whether the Review toggle is disabled for the
+        current task type.
 
         The Review toggle is disabled when the current task type is included in
-        ``disable_review_toggle_for_task_types``.
+        ``conditional_reviewable``.
         """
-        if not self.disable_review_toggle_for_task_types:
-            return False
+        if not self.conditional_reviewable:
+            return True
 
         task_type = self.create_context.get_current_task_type()
 
-        return bool(
-            task_type in self.disable_review_toggle_for_task_types
-        )
+        return bool(task_type in self.conditional_reviewable)
 
     def _get_render_target_enum(self):
         rendering_targets = {
@@ -594,8 +601,11 @@ class NukeWriteCreator(NukeCreator):
         # individual attributes
         self.instance_attributes = plugin_settings.get(
             "instance_attributes") or self.instance_attributes
-        self.disable_review_toggle_for_task_types = plugin_settings.get(
-            "disable_review_toggle_for_task_types", []
+        # conditional reviewable
+        self.conditional_reviewable = plugin_settings.get(
+            "conditional_reviewable") or self.conditional_reviewable
+        self.conditional_reviewable = plugin_settings.get(
+            "conditional_reviewable", []
         )
         self.prenodes = plugin_settings["prenodes"]
         self.default_variants = plugin_settings.get(
