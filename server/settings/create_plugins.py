@@ -24,6 +24,8 @@ INSTANCE_ATTRIBUTES_DESCRIPTION: str = (
     - Slate Generation: When enabled, a slate frame is generated and
         prepended to the rendered sequence before publishing.
         Slater addon is required
+    - Conditional Reviewable: When enabled, the output is marked as reviewable
+    only under certain conditions.
     """
 )
 
@@ -36,12 +38,21 @@ RENDER_TARGET_DESCRIPTION: str = (
     "Note: The *farm* related options are only valid if instance attributes "
     "includes 'Farm Rendering'."
 )
-
 DISABLE_REVIEW_TOGGLE_DESCRIPTION: str = (
     "For instances on these task types the 'Review' toggle in the "
     "publisher is always enabled and locked, so artists cannot turn it "
     "off. Only applies when instance attributes include 'Reviewable'."
 )
+
+
+def validate_instance_attributes(value):
+    """Ensure reviewable and conditional_reviewable are exclusive."""
+    if "reviewable" in value and "conditional_reviewable" in value:
+        raise ValueError(
+            "'Reviewable' and 'Conditional Reviewable' cannot be "
+            "selected together."
+        )
+    return value
 
 
 def instance_attributes_enum():
@@ -51,7 +62,8 @@ def instance_attributes_enum():
         {"value": "farm_rendering", "label": "Farm rendering"},
         {"value": "use_range_limit", "label": "Use range limit"},
         {"value": "render_on_farm", "label": "Render On Farm"},
-        {"value": "slate_gen", "label": "Slate Generation"}
+        {"value": "slate_gen", "label": "Slate Generation"},
+        {"value": "conditional_reviewable", "label": "Conditional Reviewable"}
     ]
 
 
@@ -63,6 +75,14 @@ def render_target_enum():
         {"value": "frames_farm", "label": "Use existing frames - farm"},
         {"value": "farm", "label": "Farm rendering"}
     ]
+
+
+class ConditionalReviewableModel(BaseSettingsModel):
+    task_types: list[str] = SettingsField(
+        default_factory=list,
+        title="Task types",
+        enum_resolver=task_types_enum
+    )
 
 
 class PrenodeModel(BaseSettingsModel):
@@ -139,12 +159,11 @@ class CreateWriteRenderModel(DefaultPluginModel):
         default_factory=list,
         enum_resolver=instance_attributes_enum,
         title="Instance attributes",
-        description=INSTANCE_ATTRIBUTES_DESCRIPTION
+        description=INSTANCE_ATTRIBUTES_DESCRIPTION,
     )
-    disable_review_toggle_for_task_types: list[str] = SettingsField(
-        default_factory=list,
-        enum_resolver=task_types_enum,
-        title="Disable review toggle for task types",
+    conditional_reviewable: ConditionalReviewableModel = SettingsField(
+        default_factory=ConditionalReviewableModel,
+        title="Conditional Reviewable Profiles",
         description=DISABLE_REVIEW_TOGGLE_DESCRIPTION,
     )
     render_target: str = SettingsField(
@@ -169,6 +188,11 @@ class CreateWriteRenderModel(DefaultPluginModel):
         ensure_unique_names(value)
         return value
 
+    @validator("instance_attributes")
+    def validate_instance_attributes(cls, value):
+        """Ensure reviewable and conditional_reviewable are exclusive."""
+        return validate_instance_attributes(value)
+
 
 class CreateWritePrerenderModel(DefaultPluginModel):
     temp_rendering_path_template: str = SettingsField(
@@ -183,6 +207,12 @@ class CreateWritePrerenderModel(DefaultPluginModel):
         enum_resolver=instance_attributes_enum,
         title="Instance attributes",
         description = INSTANCE_ATTRIBUTES_DESCRIPTION
+    )
+    conditional_reviewable: ConditionalReviewableModel = SettingsField(
+        default_factory=ConditionalReviewableModel,
+        title="Conditional Reviewable Profiles",
+        description=DISABLE_REVIEW_TOGGLE_DESCRIPTION,
+        conditional_enum=True,
     )
     render_target: str = SettingsField(
         enum_resolver=render_target_enum,
@@ -205,6 +235,11 @@ class CreateWritePrerenderModel(DefaultPluginModel):
         ensure_unique_names(value)
         return value
 
+    @validator("instance_attributes")
+    def validate_instance_attributes(cls, value):
+        """Ensure reviewable and conditional_reviewable are exclusive."""
+        return validate_instance_attributes(value)
+
 
 class CreateWriteImageModel(DefaultPluginModel):
     temp_rendering_path_template: str = SettingsField(
@@ -218,6 +253,12 @@ class CreateWriteImageModel(DefaultPluginModel):
         default_factory=list,
         enum_resolver=instance_attributes_enum,
         title="Instance attributes"
+    )
+    conditional_reviewable: ConditionalReviewableModel = SettingsField(
+        default_factory=ConditionalReviewableModel,
+        title="Conditional Reviewable Profiles",
+        description=DISABLE_REVIEW_TOGGLE_DESCRIPTION,
+        conditional_enum=True,
     )
     render_target: str = SettingsField(
         enum_resolver=render_target_enum,
@@ -240,6 +281,11 @@ class CreateWriteImageModel(DefaultPluginModel):
         """Ensure name fields within the lists have unique names."""
         ensure_unique_names(value)
         return value
+
+    @validator("instance_attributes")
+    def validate_instance_attributes(cls, value):
+        """Ensure reviewable and conditional_reviewable are exclusive."""
+        return validate_instance_attributes(value)
 
 
 class CreateWorkfileModel(BaseSettingsModel):
@@ -314,6 +360,7 @@ DEFAULT_CREATE_SETTINGS = {
         ],
         "disable_review_toggle_for_task_types": [],
         "render_target": "local",
+        "conditional_reviewable": [],
         "exposed_knobs": [],
         "prenodes": [
             {
@@ -350,6 +397,7 @@ DEFAULT_CREATE_SETTINGS = {
             "farm_rendering",
             "use_range_limit"
         ],
+        "conditional_reviewable": [],
         "render_target": "local",
         "exposed_knobs": [],
         "prenodes": []
@@ -366,6 +414,7 @@ DEFAULT_CREATE_SETTINGS = {
         "instance_attributes": [
             "use_range_limit"
         ],
+        "conditional_reviewable": [],
         "render_target": "local",
         "exposed_knobs": [],
         "prenodes": [
