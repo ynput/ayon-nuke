@@ -2469,24 +2469,29 @@ def find_free_space_to_paste_nodes(
     group_ypos = list()
 
     # get local coordinates of all nodes
-    nodes_xpos = [n.xpos() for n in nodes] + \
-                 [n.xpos() + n.screenWidth() for n in nodes]
-
-    nodes_ypos = [n.ypos() for n in nodes] + \
-                 [n.ypos() + n.screenHeight() for n in nodes]
+    nodes_xpos = list()
+    nodes_ypos = list()
+    for node in nodes:
+        xpos = node.xpos()
+        ypos = node.ypos()
+        nodes_xpos.extend((xpos, xpos + node.screenWidth()))
+        nodes_ypos.extend((ypos, ypos + node.screenHeight()))
 
     # get complete screen size of all nodes to be placed in
     nodes_screen_width = max(nodes_xpos) - min(nodes_xpos)
     nodes_screen_heigth = max(nodes_ypos) - min(nodes_ypos)
 
     # get screen size (r,l,t,b) of all nodes in `group`
+    # use a set to exclude the nodes with a fast lookup
+    exclude_nodes = set(nodes)
     with group:
-        group_xpos = [n.xpos() for n in nuke.allNodes() if n not in nodes] + \
-                     [n.xpos() + n.screenWidth() for n in nuke.allNodes()
-                      if n not in nodes]
-        group_ypos = [n.ypos() for n in nuke.allNodes() if n not in nodes] + \
-                     [n.ypos() + n.screenHeight() for n in nuke.allNodes()
-                      if n not in nodes]
+        for node in nuke.allNodes():
+            if node in exclude_nodes:
+                continue
+            xpos = node.xpos()
+            ypos = node.ypos()
+            group_xpos.extend((xpos, xpos + node.screenWidth()))
+            group_ypos.extend((ypos, ypos + node.screenHeight()))
 
         if len(group_xpos) == 0:
             group_xpos = [0]
