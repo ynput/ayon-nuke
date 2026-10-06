@@ -466,6 +466,7 @@ class NukeWriteCreator(NukeCreator):
             )
         if "conditional_reviewable" in self.instance_attributes:
             review_toggle_disabled = self._is_review_toggle_disabled()
+            print()
             tooltip = (
                 "Review is always enabled for this task type"
                 " (set by studio settings)."
@@ -473,10 +474,10 @@ class NukeWriteCreator(NukeCreator):
             attr_defs.append(
                 BoolDef(
                     "review",
-                    default=True,
+                    default=review_toggle_disabled,
                     label="Review",
                     tooltip=tooltip if review_toggle_disabled else "",
-                    enabled=not review_toggle_disabled
+                    visible=review_toggle_disabled,
                 )
             )
         if "slate_gen" in self.instance_attributes:
@@ -497,12 +498,12 @@ class NukeWriteCreator(NukeCreator):
         The Review toggle is disabled when the current task type is included in
         ``conditional_reviewable``.
         """
-        if not self.conditional_reviewable:
+        reviewable_task_types = self.conditional_reviewable.get("task_types")
+        if not reviewable_task_types:
             return True
 
         task_type = self.create_context.get_current_task_type()
-
-        return bool(task_type in self.conditional_reviewable)
+        return bool(task_type in reviewable_task_types)
 
     def _get_render_target_enum(self):
         rendering_targets = {
