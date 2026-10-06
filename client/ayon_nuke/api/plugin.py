@@ -338,7 +338,7 @@ class NukeWriteCreator(NukeCreator):
     render_target = "local"  # default to be applied if settings is missing
 
     # conditional reviewable
-    conditional_reviewable = []
+    conditional_reviewable = {}
 
     def get_linked_knobs(self):
         linked_knobs = []
@@ -452,7 +452,10 @@ class NukeWriteCreator(NukeCreator):
 
         return attrs_defs
 
-    def get_instance_attr_defs(self):
+    def get_attr_defs_for_instance(self, instance):
+        if instance.get("creator_identifier") != self.identifier:
+            return []
+
         attr_defs = [self._get_render_target_enum()]
 
         # add reviewable attribute
@@ -465,8 +468,7 @@ class NukeWriteCreator(NukeCreator):
                 )
             )
         if "conditional_reviewable" in self.instance_attributes:
-            review_toggle_disabled = self._is_review_toggle_disabled()
-            print()
+            is_review_enabled = self._is_review_enabled(instance)
             tooltip = (
                 "Review is always enabled for this task type"
                 " (set by studio settings)."
@@ -474,10 +476,10 @@ class NukeWriteCreator(NukeCreator):
             attr_defs.append(
                 BoolDef(
                     "review",
-                    default=review_toggle_disabled,
+                    default=is_review_enabled,
                     label="Review",
-                    tooltip=tooltip if review_toggle_disabled else "",
-                    visible=review_toggle_disabled,
+                    tooltip=tooltip if is_review_enabled else "",
+                    visible=is_review_enabled,
                 )
             )
         if "slate_gen" in self.instance_attributes:
@@ -491,18 +493,22 @@ class NukeWriteCreator(NukeCreator):
 
         return attr_defs
 
-    def _is_review_toggle_disabled(self):
-        """Return whether the Review toggle is disabled for the
+    def _is_review_enabled(self, instance)-> bool:
+        """Return whether the Review toggle is enabled for the
         current task type.
 
-        The Review toggle is disabled when the current task type is included in
+        The Review toggle is enabled when the current task type is included in
         ``conditional_reviewable``.
         """
         reviewable_task_types = self.conditional_reviewable.get("task_types")
         if not reviewable_task_types:
             return True
-
-        task_type = self.create_context.get_current_task_type()
+        folder_path = instance.get("folderPath")
+        task_name = instance.get("task")
+        task_entity = self.create_context.get_task_entity(
+            folder_path, task_name
+        )
+        task_type = task_entity.get("taskType")
         return bool(task_type in reviewable_task_types)
 
     def _get_render_target_enum(self):
