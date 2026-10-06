@@ -39,9 +39,8 @@ RENDER_TARGET_DESCRIPTION: str = (
     "includes 'Farm Rendering'."
 )
 DISABLE_REVIEW_TOGGLE_DESCRIPTION: str = (
-    "For instances on these task types the 'Review' toggle in the "
-    "publisher is always enabled and locked, so artists cannot turn it "
-    "off. Only applies when instance attributes include 'Reviewable'."
+    "At which task types context should the `Review` toggle be is showing. "
+    "Select no Task Type to show it on all of them."
 )
 
 
