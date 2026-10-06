@@ -18,7 +18,7 @@ class LoadEffects(plugin.NukeGroupLoader):
     icon = "cc"
     color = "white"
 
-    def on_load(self, group_node, namespace, context):
+    def on_load(self, group_node, namespace, context, options=None):
         assign_to = self._load_effects_to_group(context, group_node=group_node)
         self.connect_read_node(group_node, namespace, assign_to)
 
