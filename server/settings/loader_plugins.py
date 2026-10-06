@@ -76,6 +76,13 @@ class LoadClipModel(LoaderEnabledModel):
     )
 
 
+class LoadEffectsModel(LoaderEnabledModel):
+    attach_to_read_node: bool = SettingsField(
+        title="Attach to Read Node",
+        default=True,
+    )
+
+
 class LoaderPluginsModel(BaseSettingsModel):
     AlembicCameraLoader: LoaderEnabledModel = SettingsField(
         default_factory=LoaderEnabledModel,
@@ -109,8 +116,8 @@ class LoaderPluginsModel(BaseSettingsModel):
         default_factory=LoadClipModel,
         title="Load Clip"
     )
-    LoadEffects: LoaderEnabledModel = SettingsField(
-        default_factory=LoaderEnabledModel,
+    LoadEffects: LoadEffectsModel = SettingsField(
+        default_factory=LoadEffectsModel,
         title="Load Effects"
     )
     LoadEffectsInputProcess: LoaderEnabledModel = SettingsField(
@@ -186,7 +193,8 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
         }
     },
     "LoadEffects": {
-        "enabled": True
+        "enabled": True,
+        "attach_to_read_node": True,
     },
     "LoadEffectsInputProcess": {
         "enabled": True
