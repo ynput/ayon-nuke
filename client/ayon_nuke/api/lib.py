@@ -620,24 +620,6 @@ def set_avalon_knob_data(node, data=None, prefix="avalon:"):
             'productName': 'productMain'
         }
     """
-    return _write_legacy_knob_data(node, data, prefix)
-
-
-def _write_legacy_knob_data(node, data=None, prefix="avalon:"):
-    """Write data into the legacy data knobs of the node.
-
-    Each key is stored in its own knob, named with the prefix. Releases
-    before the container data knob (`CONTAINER_DATA_KNOB`) can only read
-    containers that are stored like this.
-
-    Arguments:
-        node (nuke.Node): Nuke node to imprint with data,
-        data (dict, optional): Data to be imprinted
-        prefix (str, optional): prefix of the knob names
-
-    Returns:
-        node (nuke.Node)
-    """
     data = data or dict()
     create = OrderedDict()
 
