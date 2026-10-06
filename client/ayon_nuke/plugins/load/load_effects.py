@@ -174,7 +174,7 @@ class LoadEffectsInputProcess(LoadEffects):
     icon = "eye"
     color = "#cc0000"
 
-    def on_load(self, group_node, namespace, context):
+    def on_load(self, group_node, namespace, context, options=None):
         # try to place it under Viewer1
         self._load_effects_to_group(context, group_node=group_node)
         if not self.connect_active_viewer(group_node):
