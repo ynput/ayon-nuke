@@ -1,3 +1,4 @@
+import abc
 import json
 
 import nuke
@@ -6,76 +7,25 @@ from ayon_core.lib import BoolDef
 from ayon_nuke.api import plugin
 
 
-class LoadEffects(plugin.NukeGroupLoader):
-    """Loading colorspace soft effect exported from nukestudio"""
+class _BaseEffectsLoader(
+    abc.ABC,
+    plugin.NukeGroupLoader,
+):
+    """Base class for loading effects"""
 
     product_base_types = {"effect"}
     product_types = product_base_types
     representations = {"*"}
     extensions = {"json"}
 
-    label = "Load Effects - nodes"
+    label = "Load Effects"
     order = 0
     icon = "cc"
     color = "white"
 
-    attach_to_read_node = True
-
-    @classmethod
-    def get_options(cls, *args):
-        return [
-            BoolDef(
-                "attach_to_read_node",
-                label="Attach to Read Node",
-                default=cls.attach_to_read_node,
-            ),
-        ]
-
+    @abc.abstractmethod
     def on_load(self, group_node, namespace, context, options=None):
-        assign_to = self._load_effects_to_group(context, group_node=group_node)
-        options = options or {}
-        if options.get("attach_to_read_node", False):
-            self.connect_read_node(group_node, namespace, assign_to)
-
-    def on_update(self, group_node, namespace, context):
-        # Do the exact same os on load
-        self.on_load(group_node, namespace, context)
-        return group_node
-
-    def connect_read_node(self, group_node, namespace, product_name):
-        """
-        Finds read node and selects it
-
-        Arguments:
-            group_node (nuke.Node): Group node to connect to.
-            namespace (str): namespace name to search read node for.
-            product_name (str): product name to search read node for.
-
-        Returns:
-            nuke node: node is selected
-            None: if nothing found
-        """
-        search_name = "{0}_{1}".format(namespace, product_name)
-
-        read_node = next(
-            (
-                n for n in nuke.allNodes(filter="Read")
-                if search_name in n["file"].value()
-            ),
-            None
-        )
-
-        # Parent read node has been found
-        # solving connections
-        if read_node:
-            dep_nodes = read_node.dependent()
-
-            if len(dep_nodes) > 0:
-                for dn in dep_nodes:
-                    dn.setInput(0, group_node)
-
-            group_node.setInput(0, read_node)
-            group_node.autoplace()
+        pass
 
     def _load_effects_to_group(
             self, context: dict, group_node: nuke.Node) -> str:
@@ -166,8 +116,74 @@ class LoadEffects(plugin.NukeGroupLoader):
                 if track_index == val["trackIndex"]}
 
 
+class LoadEffects(_BaseEffectsLoader):
+    """Loading colorspace soft effect exported from nukestudio"""
 
-class LoadEffectsInputProcess(LoadEffects):
+    label = "Load Effects - nodes"
+    order = 0
+    icon = "cc"
+    color = "white"
+
+    attach_to_read_node = True
+
+    @classmethod
+    def get_options(cls, *args):
+        return [
+            BoolDef(
+                "attach_to_read_node",
+                label="Attach to Read Node",
+                default=cls.attach_to_read_node,
+            ),
+        ]
+
+    def on_load(self, group_node, namespace, context, options=None):
+        assign_to = self._load_effects_to_group(context, group_node=group_node)
+        options = options or {}
+        if options.get("attach_to_read_node", False):
+            self.connect_read_node(group_node, namespace, assign_to)
+
+    def on_update(self, group_node, namespace, context):
+        # Do the exact same os on load
+        self.on_load(group_node, namespace, context)
+        return group_node
+
+    def connect_read_node(self, group_node, namespace, product_name):
+        """
+        Finds read node and selects it
+
+        Arguments:
+            group_node (nuke.Node): Group node to connect to.
+            namespace (str): namespace name to search read node for.
+            product_name (str): product name to search read node for.
+
+        Returns:
+            nuke node: node is selected
+            None: if nothing found
+        """
+        search_name = "{0}_{1}".format(namespace, product_name)
+
+        read_node = next(
+            (
+                n for n in nuke.allNodes(filter="Read")
+                if search_name in n["file"].value()
+            ),
+            None
+        )
+
+        # Parent read node has been found
+        # solving connections
+        if read_node:
+            dep_nodes = read_node.dependent()
+
+            if len(dep_nodes) > 0:
+                for dn in dep_nodes:
+                    dn.setInput(0, group_node)
+
+            group_node.setInput(0, read_node)
+            group_node.autoplace()
+
+
+class LoadEffectsInputProcess(_BaseEffectsLoader):
     """Loading colorspace soft effect exported from nukestudio"""
 
     label = "Load Effects - Input Process"
