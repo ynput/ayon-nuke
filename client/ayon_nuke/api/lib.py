@@ -166,7 +166,7 @@ def set_node_data(node, knob_name, data):
         data (dict): data to be stored in knob
     """
     # if exists then update data
-    if knob_name in node.knobs():
+    if node.knob(knob_name) is not None:
         update_node_data(node, knob_name, data)
         return
 
@@ -188,10 +188,11 @@ def get_node_data(node, knob_name):
     Returns:
         dict: data stored in knob
     """
-    if knob_name not in node.knobs():
+    knob = node.knob(knob_name)
+    if knob is None:
         return {}
 
-    rawdata = node[knob_name].getValue()
+    rawdata = knob.getValue()
     if (
         isinstance(rawdata, str)
         and rawdata.startswith(JSON_PREFIX)
@@ -403,8 +404,9 @@ def imprint(node, data, tab=None):
         # If knob name exists we set the value. Technically there could be
         # multiple knobs with the same name, but the intent is not to have
         # duplicated knobs so we do not account for that.
-        if knob.name() in node.knobs().keys():
-            node[knob.name()].setValue(knob.value())
+        existing_knob = node.knob(knob.name())
+        if existing_knob is not None:
+            existing_knob.setValue(knob.value())
         else:
             node.addKnob(knob)
 
@@ -499,7 +501,7 @@ def get_avalon_knob_data(node, prefix="avalon:", create=True):
     """
 
     data = {}
-    if NODE_TAB_NAME not in node.knobs():
+    if node.knob(NODE_TAB_NAME) is None:
         return data
 
     # check if lists
