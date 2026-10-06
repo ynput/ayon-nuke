@@ -297,7 +297,8 @@ DEFAULT_CREATE_SETTINGS = {
         ],
         "instance_attributes": [
             "reviewable",
-            "farm_rendering"
+            "farm_rendering",
+            "use_range_limit",
         ],
         "render_target": "local",
         "exposed_knobs": [],
