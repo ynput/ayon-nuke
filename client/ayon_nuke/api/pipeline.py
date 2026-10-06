@@ -24,8 +24,7 @@ from ayon_core.pipeline import (
     register_inventory_action_path,
     register_workfile_build_plugin_path,
     AYON_INSTANCE_ID,
-    AVALON_INSTANCE_ID,
-    AVALON_CONTAINER_ID,
+    AYON_CONTAINER_ID,
     get_current_folder_path,
     get_current_task_name,
 )
@@ -62,6 +61,7 @@ from .lib import (
     add_scripts_gizmo,
     get_node_data,
     set_node_data,
+    get_instance_data,
     MENU_LABEL,
 )
 from .workfile_template_builder import (
@@ -160,7 +160,9 @@ class NukeHost(
 
     def update_context_data(self, data, changes):
         root_node = nuke.root()
-        set_node_data(root_node, ROOT_DATA_KNOB, data)
+        # Overwrite what was stored so that keys which are not in the
+        # context data anymore, like legacy keys, are not preserved.
+        set_node_data(root_node, ROOT_DATA_KNOB, data, overwrite=True)
 
     def _before_workfile_save(
         self, save_workfile_context: SaveWorkfileContext
@@ -576,7 +578,7 @@ def containerise(node,
     data = OrderedDict(
         [
             ("schema", "ayon:container-3.0"),
-            ("id", AVALON_CONTAINER_ID),
+            ("id", AYON_CONTAINER_ID),
             ("name", name),
             ("namespace", namespace),
             ("loader", str(loader)),
@@ -645,6 +647,8 @@ def update_container(node, keys=None):
         raise TypeError("Not a valid container node.")
 
     container.update(keys)
+    # Containers loaded with the legacy container id are converted on update
+    container["id"] = AYON_CONTAINER_ID
     node = set_avalon_knob_data(node, container)
 
     return node
@@ -670,7 +674,8 @@ def ls():
 def list_instances(creator_id=None):
     """List all created instances to publish from current workfile.
 
-    For SubsetManager
+    Instance data stored by OpenPype is returned as AYON instance data. It
+    is only converted on the node once the instance data is stored again.
 
     Args:
         creator_id (Optional[str]): creator identifier
@@ -694,16 +699,13 @@ def list_instances(creator_id=None):
             # pass if disable knob doesn't exist
             pass
 
-        # get data from avalon knob
-        instance_data = get_node_data(
-            node, INSTANCE_DATA_KNOB)
+        # get data from instance data knob
+        instance_data = get_instance_data(node)
 
         if not instance_data:
             continue
 
-        if instance_data["id"] not in {
-            AYON_INSTANCE_ID, AVALON_INSTANCE_ID
-        }:
+        if instance_data["id"] != AYON_INSTANCE_ID:
             continue
 
         if creator_id and instance_data["creator_identifier"] != creator_id:
@@ -734,8 +736,6 @@ def list_instances(creator_id=None):
         instances_by_product = defaultdict(list)
         for node, data_ in instances_by_order[key]:
             product_name = data_.get("productName")
-            if product_name is None:
-                product_name = data_.get("subset")
             instances_by_product[product_name].append((node, data_))
         for subkey in sorted(instances_by_product.keys()):
             ordered_instances.extend(instances_by_product[subkey])
@@ -743,8 +743,6 @@ def list_instances(creator_id=None):
     instances_by_product = defaultdict(list)
     for node, data_ in product_instances:
         product_name = data_.get("productName")
-        if product_name is None:
-            product_name = data_.get("subset")
         instances_by_product[product_name].append((node, data_))
     for key in sorted(instances_by_product.keys()):
         ordered_instances.extend(instances_by_product[key])
@@ -761,8 +759,6 @@ def _update_product_name_data(instance_data, node):
     """
     # make sure node name is product name
     old_product_name = instance_data.get("productName")
-    if old_product_name is None:
-        old_product_name = instance_data.get("subset")
     old_variant = instance_data["variant"]
     product_name_root = old_product_name.replace(old_variant, "")
 
@@ -776,10 +772,8 @@ def _update_product_name_data(instance_data, node):
 def remove_instance(instance):
     """Remove instance from current workfile metadata.
 
-    For SubsetManager
-
     Args:
-        instance (dict): instance representation from subsetmanager model
+        instance (CreatedInstance): The instance to remove.
     """
     instance_node = instance.transient_data["node"]
     instance_knob = instance_node.knobs()[INSTANCE_DATA_KNOB]
@@ -792,7 +786,7 @@ def select_instance(instance):
         Select instance in Node View
 
         Args:
-            instance (dict): instance representation from subsetmanager model
+            instance (CreatedInstance): The instance to select.
     """
     instance_node = instance.transient_data["node"]
     instance_node["selected"].setValue(True)

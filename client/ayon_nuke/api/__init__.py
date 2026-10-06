@@ -43,6 +43,7 @@ from .lib import (
     get_node_data,
     set_node_data,
     update_node_data,
+    get_instance_data,
     create_write_node,
     link_knobs
 )
@@ -95,6 +96,7 @@ __all__ = (
     "get_node_data",
     "set_node_data",
     "update_node_data",
+    "get_instance_data",
     "create_write_node",
     "link_knobs",
 

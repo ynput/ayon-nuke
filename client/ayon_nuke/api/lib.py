@@ -79,6 +79,12 @@ EXCLUDED_KNOB_TYPE_ON_READ = (
 JSON_PREFIX = "JSON:::"
 ROOT_DATA_KNOB = "publish_context"
 INSTANCE_DATA_KNOB = "publish_instance"
+# Publish instance data keys used by OpenPype and the AYON key replacing it
+LEGACY_INSTANCE_DATA_KEYS = {
+    "subset": "productName",
+    "family": "productType",
+    "asset": "folderPath",
+}
 
 
 class DeprecatedWarning(DeprecationWarning):
@@ -154,7 +160,7 @@ def get_main_window():
     return Context.main_window
 
 
-def set_node_data(node, knob_name, data):
+def set_node_data(node, knob_name, data, overwrite=False):
     """Write data to an invisible node knob.
 
     Will create a new one if it doesn't exist,
@@ -164,10 +170,17 @@ def set_node_data(node, knob_name, data):
         node (nuke.Node): node object
         knob_name (str): knob name
         data (dict): data to be stored in knob
+        overwrite (bool): Replace the data already stored in the knob
+            instead of updating it. Keys that are not in `data` are then
+            removed from the knob.
     """
     # if exists then update data
-    if knob_name in node.knobs():
+    if not overwrite and knob_name in node.knobs():
         update_node_data(node, knob_name, data)
+        return
+
+    if knob_name in node.knobs():
+        node[knob_name].setValue(JSON_PREFIX + json.dumps(data))
         return
 
     # else create new
@@ -216,6 +229,50 @@ def update_node_data(node, knob_name, data):
     node_data.update(data)
     knob_value = JSON_PREFIX + json.dumps(node_data)
     knob.setValue(knob_value)
+
+
+def convert_legacy_instance_data(data):
+    """Convert legacy (OpenPype) publish instance data to AYON data.
+
+    The legacy instance id and the legacy `subset`, `family` and `asset`
+    keys are replaced by what AYON uses now. Data that is not legacy data
+    is left as it is.
+
+    Args:
+        data (dict): Publish instance data, which is changed in-place.
+
+    Returns:
+        dict: The converted publish instance data.
+    """
+    if data.get("id") == AVALON_INSTANCE_ID:
+        data["id"] = AYON_INSTANCE_ID
+
+    for legacy_key, key in LEGACY_INSTANCE_DATA_KEYS.items():
+        if legacy_key not in data:
+            continue
+        value = data.pop(legacy_key)
+        if data.get(key) is None:
+            data[key] = value
+    return data
+
+
+def get_instance_data(node):
+    """Read publish instance data from node.
+
+    Instance data stored by OpenPype is returned converted to AYON instance
+    data. The data on the node itself is not changed by this, that is
+    converted once the instance data is written to the node again, like
+    when saving changes in the publisher.
+
+    Args:
+        node (nuke.Node): node object
+
+    Returns:
+        dict: Publish instance data stored on the node.
+    """
+    return convert_legacy_instance_data(
+        get_node_data(node, INSTANCE_DATA_KNOB)
+    )
 
 
 class Knobby(object):
@@ -1186,7 +1243,7 @@ def create_write_node(
 
 
     Return:
-        node (obj): group node with avalon data as Knobs
+        node (obj): group node with AYON data as Knobs
     """
     # Ensure name does not contain any invalid characters.
     special_chars = re.escape("!@#$%^&*()=[]{}|\\;',.<>/?~+-")
@@ -1968,7 +2025,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
 
             # get data from avalon knob
             avalon_knob_data = read_avalon_data(node)
-            node_data = get_node_data(node, INSTANCE_DATA_KNOB)
+            node_data = get_instance_data(node)
 
             if (
                 # backward compatibility
@@ -1981,9 +2038,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                 continue
             elif (
                 node_data
-                and node_data.get("id") not in {
-                    AYON_INSTANCE_ID, AVALON_INSTANCE_ID
-                }
+                and node_data.get("id") != AYON_INSTANCE_ID
             ):
                 continue
 
@@ -2371,17 +2426,14 @@ def get_write_node_template_attr(node):
         "create_write_render": "CreateWriteRender"
     }
     # get AYON data from node
-    node_data = get_node_data(node, INSTANCE_DATA_KNOB)
+    node_data = get_instance_data(node)
     identifier = node_data["creator_identifier"]
 
     # return template data
-    product_name = node_data.get("productName")
-    if product_name is None:
-        product_name = node_data["subset"]
     return get_imageio_node_setting(
         node_class="Write",
         plugin_name=plugin_names_mapping[identifier],
-        product_name=product_name
+        product_name=node_data["productName"]
     )
 
 

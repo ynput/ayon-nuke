@@ -41,6 +41,7 @@ from .lib import (
     set_node_knobs_from_settings,
     set_node_data,
     get_node_data,
+    convert_legacy_instance_data,
     get_view_process_node,
     get_filenames_without_hash,
     get_work_default_directory,
@@ -296,10 +297,14 @@ class NukeCreator(Creator):
                     changes["productName"].new_value
                 )
 
+            # Overwrite what was stored on the node so that keys which are
+            # not in the instance data anymore, like the legacy keys of an
+            # instance created with OpenPype, are not preserved.
             set_node_data(
                 instance_node,
                 INSTANCE_DATA_KNOB,
-                created_inst.data_to_store()
+                created_inst.data_to_store(),
+                overwrite=True
             )
 
     def remove_instances(self, instances):
@@ -1690,7 +1695,10 @@ def convert_to_valid_instaces():
 
         # add new instance knob with transfer data
         set_node_data(
-            node, INSTANCE_DATA_KNOB, transfer_data)
+            node,
+            INSTANCE_DATA_KNOB,
+            convert_legacy_instance_data(transfer_data)
+        )
 
     nuke.scriptSave()
 

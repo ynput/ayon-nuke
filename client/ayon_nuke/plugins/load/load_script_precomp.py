@@ -52,7 +52,7 @@ class LinkAsGroup(load.LoaderPlugin):
             "frameEnd": last,
             "version": version_entity["version"]
         }
-        # add additional metadata from the version to imprint to Avalon knob
+        # add additional metadata from the version to imprint to metadata knob
         for k in [
             "frameStart",
             "frameEnd",
