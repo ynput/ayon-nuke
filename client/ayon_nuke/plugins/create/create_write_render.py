@@ -82,7 +82,7 @@ class CreateWriteRender(napi.NukeWriteCreator):
         write_node.begin()
         for n in nuke.allNodes():
             # get write node
-            if n.Class() in "Write":
+            if n.Class() == "Write":
                 w_node = n
         write_node.end()
 
