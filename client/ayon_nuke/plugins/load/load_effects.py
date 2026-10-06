@@ -2,6 +2,7 @@ import json
 
 import nuke
 
+from ayon_core.lib import BoolDef
 from ayon_nuke.api import plugin
 
 
@@ -18,9 +19,23 @@ class LoadEffects(plugin.NukeGroupLoader):
     icon = "cc"
     color = "white"
 
+    attach_to_read_node = True
+
+    @classmethod
+    def get_options(cls, *args):
+        return [
+            BoolDef(
+                "attach_to_read_node",
+                label="Attach to Read Node",
+                default=cls.attach_to_read_node,
+            ),
+        ]
+
     def on_load(self, group_node, namespace, context, options=None):
         assign_to = self._load_effects_to_group(context, group_node=group_node)
-        self.connect_read_node(group_node, namespace, assign_to)
+        options = options or {}
+        if options.get("attach_to_read_node", False):
+            self.connect_read_node(group_node, namespace, assign_to)
 
     def on_update(self, group_node, namespace, context):
         # Do the exact same os on load
