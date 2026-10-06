@@ -34,13 +34,16 @@ from ayon_core.lib.transcoding import (
 )
 from .lib import (
     INSTANCE_DATA_KNOB,
+    NODE_TAB_NAME,
     Knobby,
     create_backdrop,
     maintained_selection,
-    get_avalon_knob_data,
+    read_legacy_knob_data,
+    remove_legacy_knob_data,
     set_node_knobs_from_settings,
     set_node_data,
     get_node_data,
+    convert_legacy_instance_data,
     get_view_process_node,
     get_filenames_without_hash,
     get_work_default_directory,
@@ -296,10 +299,14 @@ class NukeCreator(Creator):
                     changes["productName"].new_value
                 )
 
+            # Overwrite what was stored on the node so that keys which are
+            # not in the instance data anymore, like the legacy keys of an
+            # instance created with OpenPype, are not preserved.
             set_node_data(
                 instance_node,
                 INSTANCE_DATA_KNOB,
-                created_inst.data_to_store()
+                created_inst.data_to_store(),
+                overwrite=True
             )
 
     def remove_instances(self, instances):
@@ -1616,33 +1623,35 @@ def convert_to_valid_instaces():
         if get_node_data(node, INSTANCE_DATA_KNOB):
             continue
 
-        # get data from avalon knob
-        avalon_knob_data = get_avalon_knob_data(
-            node, ["avalon:", "ak:"])
-
-        if not avalon_knob_data:
+        # get data from the legacy data knobs
+        if node.knob(NODE_TAB_NAME) is None:
             continue
 
-        if avalon_knob_data["id"] not in {
+        legacy_knob_data = read_legacy_knob_data(node)
+
+        if not legacy_knob_data:
+            continue
+
+        if legacy_knob_data.get("id") not in {
             AYON_INSTANCE_ID, AVALON_INSTANCE_ID
         }:
             continue
 
         transfer_data.update({
-            k: v for k, v in avalon_knob_data.items()
+            k: v for k, v in legacy_knob_data.items()
             if k not in ["families", "creator"]
         })
 
         transfer_data["task"] = task_name
 
         product_base_type = (
-            avalon_knob_data.get("productBaseType")
-            or avalon_knob_data.get("productType")
-            or avalon_knob_data.get("family")
+            legacy_knob_data.get("productBaseType")
+            or legacy_knob_data.get("productType")
+            or legacy_knob_data.get("family")
         )
 
         # establish families
-        families_ak = avalon_knob_data.get("families", [])
+        families_ak = legacy_knob_data.get("families", [])
 
         if "suspend_publish" in node.knobs():
             creator_attr["suspended_publish"] = (
@@ -1690,7 +1699,10 @@ def convert_to_valid_instaces():
 
         # add new instance knob with transfer data
         set_node_data(
-            node, INSTANCE_DATA_KNOB, transfer_data)
+            node,
+            INSTANCE_DATA_KNOB,
+            convert_legacy_instance_data(transfer_data)
+        )
 
     nuke.scriptSave()
 
@@ -1702,12 +1714,13 @@ def _remove_old_knobs(node):
         "Deadline"
     ]
 
+    # remove the legacy data knobs
+    remove_legacy_knob_data(node)
+
     # remove all old knobs
     for knob in node.allKnobs():
         try:
             if knob.name() in remove_knobs:
-                node.removeKnob(knob)
-            elif "avalon" in knob.name():
                 node.removeKnob(knob)
         except ValueError:
             pass

@@ -71,14 +71,20 @@ log = Logger.get_logger(__name__)
 MENU_LABEL = os.getenv("AYON_MENU_LABEL") or "AYON"
 NODE_TAB_NAME = MENU_LABEL
 DATA_GROUP_KEY = "{}DataGroup".format(MENU_LABEL.capitalize())
-EXCLUDED_KNOB_TYPE_ON_READ = (
-    20,  # Tab Knob
-    26,  # Text Knob (But for backward compatibility, still be read
-         #  if value is not an empty string.)
-)
 JSON_PREFIX = "JSON:::"
 ROOT_DATA_KNOB = "publish_context"
 INSTANCE_DATA_KNOB = "publish_instance"
+CONTAINER_DATA_KNOB = "ayon_container"
+# Prefixes of the knobs that container and instance data were stored in
+# before, with a knob for each key. Those are only read for backwards
+# compatibility, see `read_legacy_knob_data`.
+LEGACY_KNOB_PREFIXES = ("avalon:", "ak:")
+# Publish instance data keys used by OpenPype and the AYON key replacing it
+LEGACY_INSTANCE_DATA_KEYS = {
+    "subset": "productName",
+    "family": "productType",
+    "asset": "folderPath",
+}
 
 
 class DeprecatedWarning(DeprecationWarning):
@@ -154,7 +160,7 @@ def get_main_window():
     return Context.main_window
 
 
-def set_node_data(node, knob_name, data):
+def set_node_data(node, knob_name, data, overwrite=False):
     """Write data to an invisible node knob.
 
     Will create a new one if it doesn't exist,
@@ -164,10 +170,21 @@ def set_node_data(node, knob_name, data):
         node (nuke.Node): node object
         knob_name (str): knob name
         data (dict): data to be stored in knob
+        overwrite (bool): Replace the data already stored in the knob
+            instead of updating it. Keys that are not in `data` are then
+            removed from the knob.
     """
+    # Look up the knob by name, because `node.knobs()` builds a dictionary
+    # of all knobs of the node on each call.
+    knob = node.knob(knob_name)
+
     # if exists then update data
-    if knob_name in node.knobs():
-        update_node_data(node, knob_name, data)
+    if knob is not None:
+        if not overwrite:
+            stored_data = _read_knob_data(knob)
+            stored_data.update(data)
+            data = stored_data
+        knob.setValue(JSON_PREFIX + json.dumps(data))
         return
 
     # else create new
@@ -188,10 +205,22 @@ def get_node_data(node, knob_name):
     Returns:
         dict: data stored in knob
     """
-    if knob_name not in node.knobs():
+    knob = node.knob(knob_name)
+    if knob is None:
         return {}
+    return _read_knob_data(knob)
 
-    rawdata = node[knob_name].getValue()
+
+def _read_knob_data(knob):
+    """Read data from a knob that was written by `set_node_data`.
+
+    Args:
+        knob (nuke.Knob): knob object
+
+    Returns:
+        dict: data stored in knob
+    """
+    rawdata = knob.getValue()
     if (
         isinstance(rawdata, str)
         and rawdata.startswith(JSON_PREFIX)
@@ -211,11 +240,171 @@ def update_node_data(node, knob_name, data):
         knob_name (str): knob name
         data (dict): data to update knob value
     """
-    knob = node[knob_name]
-    node_data = get_node_data(node, knob_name)
-    node_data.update(data)
-    knob_value = JSON_PREFIX + json.dumps(node_data)
-    knob.setValue(knob_value)
+    set_node_data(node, knob_name, data)
+
+
+def get_legacy_knob_id(node):
+    """Return the `id` stored in the legacy data knobs of the node.
+
+    This is a cheap way to tell whether a node has legacy container or
+    instance data, without reading all of it.
+
+    Args:
+        node (nuke.Node): node object
+
+    Returns:
+        Optional[str]: The id, or None if the node has no legacy data.
+    """
+    for prefix in LEGACY_KNOB_PREFIXES:
+        knob = node.knob(prefix + "id")
+        if knob is not None:
+            return knob.value()
+    return None
+
+
+def read_legacy_knob_data(node):
+    """Read data stored in the legacy data knobs of the node.
+
+    Container data, and long ago also instance data, used to be stored with
+    a knob for each key, named like `avalon:{key}`. Data is not written
+    like that anymore, see `set_node_data`, but scripts that have it must
+    still be readable.
+
+    Args:
+        node (nuke.Node): node object
+
+    Returns:
+        dict: Data stored in the legacy data knobs.
+    """
+    data = {}
+    for knob in node.allKnobs():
+        knob_name = knob.name()
+        if not knob_name.startswith(LEGACY_KNOB_PREFIXES):
+            continue
+
+        key = knob_name.split(":", 1)[-1]
+        knob_class = knob.Class()
+        if key in data or knob_class == "Tab_Knob":
+            continue
+
+        try:
+            value = knob.value()
+        except Exception:
+            log.debug(
+                f"Error in knob {knob_name}, node {node['name'].value()}")
+            continue
+
+        # Read-only data was at some point imprinted as text knobs. Those
+        # are still read, unless they have no value.
+        if knob_class == "Text_Knob" and not value:
+            continue
+        data[key] = value
+
+    return data
+
+
+def remove_legacy_knob_data(node):
+    """Remove the legacy data knobs from the node.
+
+    The knobs group and the tab that the legacy data knobs were created in
+    are removed as well. The tab only if no other knobs are left in it.
+
+    Args:
+        node (nuke.Node): node object
+
+    Returns:
+        bool: Whether any legacy data knobs were removed.
+    """
+    knobs = node.allKnobs()
+    names = [knob.name() for knob in knobs]
+    remove_indices = {
+        index for index, name in enumerate(names)
+        if name.startswith(LEGACY_KNOB_PREFIXES)
+    }
+    if not remove_indices:
+        return False
+
+    # The legacy data knobs were created in a knobs group as:
+    #   {tab}, {group}, "warn", "divd", {data knobs}, {group}_End
+    # Where the group was named after the tab, e.g. the tab "AYON" has
+    # the group "AyonDataGroup".
+    index = min(remove_indices) - 1
+    group_indices = set()
+    while index > 0 and names[index] in {"warn", "divd"}:
+        group_indices.add(index)
+        index -= 1
+
+    group_name = names[index]
+    if (
+        index > 0
+        and knobs[index].Class() == "Tab_Knob"
+        and group_name.endswith("DataGroup")
+    ):
+        group_indices.add(index)
+        remove_indices.update(group_indices)
+        group_end_name = f"{group_name}_End"
+        if group_end_name in names:
+            remove_indices.add(names.index(group_end_name))
+
+        # Remove the tab if no knobs remain after it. Nuke does not remove
+        # a tab that still has knobs in it.
+        tab_index = index - 1
+        if (
+            knobs[tab_index].Class() == "Tab_Knob"
+            and f"{names[tab_index]}DataGroup".lower() == group_name.lower()
+            and remove_indices.issuperset(range(index, len(knobs)))
+        ):
+            remove_indices.add(tab_index)
+
+    # Remove in reverse order, because the knobs inside a group need to be
+    # removed before the group itself.
+    for index in sorted(remove_indices, reverse=True):
+        node.removeKnob(knobs[index])
+    return True
+
+
+def convert_legacy_instance_data(data):
+    """Convert legacy (OpenPype) publish instance data to AYON data.
+
+    The legacy instance id and the legacy `subset`, `family` and `asset`
+    keys are replaced by what AYON uses now. Data that is not legacy data
+    is left as it is.
+
+    Args:
+        data (dict): Publish instance data, which is changed in-place.
+
+    Returns:
+        dict: The converted publish instance data.
+    """
+    if data.get("id") == AVALON_INSTANCE_ID:
+        data["id"] = AYON_INSTANCE_ID
+
+    for legacy_key, key in LEGACY_INSTANCE_DATA_KEYS.items():
+        if legacy_key not in data:
+            continue
+        value = data.pop(legacy_key)
+        if data.get(key) is None:
+            data[key] = value
+    return data
+
+
+def get_instance_data(node):
+    """Read publish instance data from node.
+
+    Instance data stored by OpenPype is returned converted to AYON instance
+    data. The data on the node itself is not changed by this, that is
+    converted once the instance data is written to the node again, like
+    when saving changes in the publisher.
+
+    Args:
+        node (nuke.Node): node object
+
+    Returns:
+        dict: Publish instance data stored on the node.
+    """
+    return convert_legacy_instance_data(
+        get_node_data(node, INSTANCE_DATA_KNOB)
+    )
 
 
 class Knobby(object):
@@ -413,7 +602,7 @@ def imprint(node, data, tab=None):
 def set_avalon_knob_data(node, data=None, prefix="avalon:"):
     """[DEPRECATED] Sets data into nodes's avalon knob
 
-    This function is still used but soon will be deprecated.
+    This function is not used by ayon-nuke anymore and will be removed.
     Use `set_node_data` instead.
 
     Arguments:
@@ -430,6 +619,24 @@ def set_avalon_knob_data(node, data=None, prefix="avalon:"):
             'productBaseType': 'render',
             'productName': 'productMain'
         }
+    """
+    return _write_legacy_knob_data(node, data, prefix)
+
+
+def _write_legacy_knob_data(node, data=None, prefix="avalon:"):
+    """Write data into the legacy data knobs of the node.
+
+    Each key is stored in its own knob, named with the prefix. Releases
+    before the container data knob (`CONTAINER_DATA_KNOB`) can only read
+    containers that are stored like this.
+
+    Arguments:
+        node (nuke.Node): Nuke node to imprint with data,
+        data (dict, optional): Data to be imprinted
+        prefix (str, optional): prefix of the knob names
+
+    Returns:
+        node (nuke.Node)
     """
     data = data or dict()
     create = OrderedDict()
@@ -460,7 +667,9 @@ def set_avalon_knob_data(node, data=None, prefix="avalon:"):
         else:
             # New knob
             name = (knob_name, gui_name)  # Hide prefix on GUI
-            if key in editable:
+            # Keep booleans as boolean knob, so these are not read back
+            # as the string "True" or "False".
+            if key in editable or isinstance(value, bool):
                 create[name] = value
             else:
                 create[name] = Knobby("String_Knob",
@@ -487,8 +696,9 @@ def set_avalon_knob_data(node, data=None, prefix="avalon:"):
 def get_avalon_knob_data(node, prefix="avalon:", create=True):
     """[DEPRECATED]  Gets a data from nodes's avalon knob
 
-    This function is still used but soon will be deprecated.
-    Use `get_node_data` instead.
+    This function is not used by ayon-nuke anymore and will be removed.
+    Use `get_node_data` instead, or `read_legacy_knob_data` to read the
+    data of scripts that still have the avalon knobs.
 
     Arguments:
         node (obj): Nuke node to search for data,
@@ -561,59 +771,21 @@ def add_write_node(name, file_path, knobs, **kwarg):
     return w
 
 
+@deprecated("ayon_nuke.api.lib.read_legacy_knob_data")
 def read_avalon_data(node):
-    """Return user-defined knobs from given `node`
+    """[DEPRECATED] Return data from the avalon knobs of given `node`
+
+    This function is not used by ayon-nuke anymore and will be removed.
+    Use `read_legacy_knob_data` instead.
 
     Args:
         node (nuke.Node): Nuke node object
 
     Returns:
-        list: A list of nuke.Knob object
+        dict: Data stored in the avalon knobs.
 
     """
-    def compat_prefixed(knob_name):
-        if knob_name.startswith("avalon:"):
-            return knob_name[len("avalon:"):]
-        elif knob_name.startswith("ak:"):
-            return knob_name[len("ak:"):]
-
-    data = dict()
-
-    pattern = ("(?<=addUserKnob {)"
-               "([0-9]*) (\\S*)"  # Matching knob type and knob name
-               "(?=[ |}])")
-    tcl_script = node.writeKnobs(nuke.WRITE_USER_KNOB_DEFS)
-    result = re.search(pattern, tcl_script)
-
-    if result:
-        first_user_knob = result.group(2)
-        # Collect user knobs from the end of the knob list
-        for knob in reversed(node.allKnobs()):
-            knob_name = knob.name()
-            if not knob_name:
-                # Ignore unnamed knob
-                continue
-            try:
-                knob_type = nuke.knob(knob.fullyQualifiedName(), type=True)
-                value = knob.value()
-            except Exception:
-                log.debug(
-                    f"Error in knob {knob_name}, node {node['name'].value()}")
-                continue
-            if (
-                knob_type not in EXCLUDED_KNOB_TYPE_ON_READ or
-                # For compating read-only string data that imprinted
-                # by `nuke.Text_Knob`.
-                (knob_type == 26 and value)
-            ):
-                key = compat_prefixed(knob_name)
-                if key is not None:
-                    data[key] = value
-
-            if knob_name == first_user_knob:
-                break
-
-    return data
+    return read_legacy_knob_data(node)
 
 
 def get_node_path(path, padding=4):
@@ -1186,7 +1358,7 @@ def create_write_node(
 
 
     Return:
-        node (obj): group node with avalon data as Knobs
+        node (obj): group node with AYON data as Knobs
     """
     # Ensure name does not contain any invalid characters.
     special_chars = re.escape("!@#$%^&*()=[]{}|\\;',.<>/?~+-")
@@ -1966,9 +2138,15 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         for node in nuke.allNodes(filter="Group", group=self._root_node):
             log.info("Setting colorspace to `{}`".format(node.name()))
 
-            # get data from avalon knob
-            avalon_knob_data = read_avalon_data(node)
-            node_data = get_node_data(node, INSTANCE_DATA_KNOB)
+            # get data from the legacy data knobs
+            avalon_knob_data = {}
+            if get_legacy_knob_id(node) is not None:
+                avalon_knob_data = read_legacy_knob_data(node)
+            node_data = get_instance_data(node)
+
+            # Skip nodes that are no instance, e.g. loaded containers
+            if not avalon_knob_data and not node_data:
+                continue
 
             if (
                 # backward compatibility
@@ -1981,9 +2159,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                 continue
             elif (
                 node_data
-                and node_data.get("id") not in {
-                    AYON_INSTANCE_ID, AVALON_INSTANCE_ID
-                }
+                and node_data.get("id") != AYON_INSTANCE_ID
             ):
                 continue
 
@@ -2371,17 +2547,14 @@ def get_write_node_template_attr(node):
         "create_write_render": "CreateWriteRender"
     }
     # get AYON data from node
-    node_data = get_node_data(node, INSTANCE_DATA_KNOB)
+    node_data = get_instance_data(node)
     identifier = node_data["creator_identifier"]
 
     # return template data
-    product_name = node_data.get("productName")
-    if product_name is None:
-        product_name = node_data["subset"]
     return get_imageio_node_setting(
         node_class="Write",
         plugin_name=plugin_names_mapping[identifier],
-        product_name=product_name
+        product_name=node_data["productName"]
     )
 
 

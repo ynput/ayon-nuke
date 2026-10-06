@@ -125,7 +125,7 @@ class AlembicModelLoader(load.LoaderPlugin):
             "project_name": project_name,
         }
 
-        # add additional metadata from the version to imprint to Avalon knob
+        # add additional metadata from the version to imprint to metadata knob
         for k in ["source", "fps"]:
             data_imprint[k] = version_attributes[k]
 
