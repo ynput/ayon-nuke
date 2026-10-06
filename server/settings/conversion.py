@@ -300,6 +300,29 @@ def _convert_collect_sync_workfile_version_model_0_4_5(overrides: dict) -> None:
     ] = sync_workfile_version_on_product_base_types
 
 
+def _convert_create_write_render_instance_attributes_0_4_17(
+        overrides: dict[str, Any], version: VersionInfo
+    ) -> None:
+    """Add the range limit attribute to existing write render overrides."""
+    if (version.major, version.minor, version.patch) > (0, 4, 17):
+        return
+    create_write_render = (
+        overrides
+        .get("create", {})
+        .get("CreateWriteRender", {})
+    )
+    instance_attributes = create_write_render.get("instance_attributes")
+    if (
+        not isinstance(instance_attributes, list)
+        or not instance_attributes
+        or "use_range_limit" in instance_attributes
+    ):
+        return
+
+    if "use_range_limit" not in instance_attributes:
+        instance_attributes.append("use_range_limit")
+
+
 def _convert_review_intermediates_model_0_4_11(
         overrides: dict, version: VersionInfo) -> None:
     """Convert review intermediates extension model to include
@@ -352,5 +375,6 @@ def convert_settings_overrides(
     _convert_baking_stream_filter_product_base_type_0_4_0(overrides)
     _convert_collect_instance_data_model_0_4_0(overrides)
     _convert_collect_sync_workfile_version_model_0_4_5(overrides)
+    _convert_create_write_render_instance_attributes_0_4_17(overrides, version)
     _convert_review_intermediates_model_0_4_11(overrides, version)
     return overrides
