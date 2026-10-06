@@ -159,6 +159,7 @@ class CreateWriteRenderModel(DefaultPluginModel):
         enum_resolver=instance_attributes_enum,
         title="Instance attributes",
         description=INSTANCE_ATTRIBUTES_DESCRIPTION,
+        conditional_enum=True,
     )
     conditional_reviewable: ConditionalReviewableModel = SettingsField(
         default_factory=ConditionalReviewableModel,
