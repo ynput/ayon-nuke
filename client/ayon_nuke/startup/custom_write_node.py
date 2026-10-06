@@ -73,7 +73,7 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
         """Process the panel values."""
         write_selected_nodes = [
             selected_nodes for selected_nodes in nuke.selectedNodes()
-            if selected_nodes.Class() == "Write"]
+            if selected_nodes.Class() in {"Write", "DeepWrite"}]
 
         selected_preset = self.selected_preset_name.value()
         ext = None

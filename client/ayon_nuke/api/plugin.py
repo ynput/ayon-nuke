@@ -9,6 +9,8 @@ import string
 from collections import defaultdict
 
 import ayon_api
+import pyblish.api
+
 from ayon_core.settings import get_current_project_settings
 from ayon_core.lib import (
     BoolDef,
@@ -32,6 +34,7 @@ from ayon_core.pipeline.colorspace import (
 from ayon_core.lib.transcoding import (
     VIDEO_EXTENSIONS
 )
+
 from .lib import (
     INSTANCE_DATA_KNOB,
     Knobby,
@@ -330,6 +333,7 @@ class NukeWriteCreator(NukeCreator):
     product_type = "write"
     product_base_type = "write"
     icon = "sign-out"
+    node_class = "Write"
 
     # default to be applied if settings is missing
     temp_rendering_path_template = (
@@ -426,7 +430,9 @@ class NukeWriteCreator(NukeCreator):
         # Update values with new formatted path
         instance_node = created_inst.transient_data["node"]
         formatting_data = copy.deepcopy(data)
-        write_node = nuke.allNodes(group=instance_node, filter="Write")[0]
+        write_node = nuke.allNodes(
+            group=instance_node, filter=self.node_class
+        )[0]
         _, ext = os.path.splitext(write_node["file"].value())
         formatting_data.update({"ext": ext[1:]})
 
@@ -545,7 +551,10 @@ class NukeWriteCreator(NukeCreator):
             )
 
             exposed_write_knobs(
-                self.project_settings, self.__class__.__name__, instance_node
+                self.project_settings,
+                self.__class__.__name__,
+                instance_node,
+                self.node_class,
             )
 
             return instance
@@ -596,6 +605,10 @@ def get_instance_group_node_children(instance):
 
 
 def get_colorspace_from_node(node):
+    # DeepWrite nodes do not have a colorspace, so return None.
+    if node.Class() == "DeepWrite":
+        return None
+
     # Add version data to instance
     colorspace = node["colorspace"].value()
 
@@ -625,6 +638,25 @@ def get_review_presets_config():
 def get_publish_config():
     settings = get_current_project_settings()
     return settings["nuke"].get("publish", {})
+
+
+def get_creator_class_name(instance: pyblish.api.Instance) -> str:
+    """Return creator class name from publish instance.
+
+    Often used as lookup in settings for creator-specific overrides.
+
+    Args:
+        instance (pyblish.api.Instance): Instance to process.
+
+    Returns:
+        str: The creator class name.
+
+    """
+    creator_identifier = instance.data["creator_identifier"]
+    creator = instance.context.data["create_context"].creators.get(
+        creator_identifier
+    )
+    return creator.__class__.__name__
 
 
 class NukeLoader(LoaderPlugin):
@@ -1668,11 +1700,11 @@ def _remove_old_knobs(node):
             pass
 
 
-def exposed_write_knobs(settings, plugin_name, instance_node):
+def exposed_write_knobs(settings, plugin_name, instance_node, node_class):
     exposed_knobs = settings["nuke"]["create"][plugin_name].get(
         "exposed_knobs", []
     )
     if exposed_knobs:
         instance_node.addKnob(nuke.Text_Knob('', 'Write Knobs'))
-    write_node = nuke.allNodes(group=instance_node, filter="Write")[0]
+    write_node = nuke.allNodes(group=instance_node, filter=node_class)[0]
     link_knobs(exposed_knobs, write_node, instance_node)

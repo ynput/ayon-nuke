@@ -49,7 +49,7 @@ class ValidateOutputResolution(
 
         reformat = None
         for inode in child_nodes:
-            if inode.Class() != "Reformat":
+            if inode.Class() not in {"Reformat", "DeepReformat"}:
                 continue
             reformat = inode
 
@@ -89,6 +89,13 @@ class ValidateOutputResolution(
         invalid = cls.get_invalid(instance)
         grp_node = instance.data["transientData"]["node"]
 
+        reformat = cls.get_reformat(instance)
+        reformat_class = (
+            "Reformat"
+            if instance.creator_identifier
+            not in {"create_deepwrite_prerender", "create_deepwrite_render"}
+            else "DeepReformat"
+        )
         if cls.missing_msg == invalid:
             # make sure we are inside of the group node
             with grp_node:
@@ -101,8 +108,10 @@ class ValidateOutputResolution(
 
                 # add reformat node under it
                 with napi.maintained_selection():
-                    _input['selected'].setValue(True)
-                    _rfn = nuke.createNode("Reformat", "name Reformat01")
+                    _input["selected"].setValue(True)
+                    _rfn = nuke.createNode(
+                        reformat_class, f"name {reformat_class}01"
+                    )
                     _rfn["resize"].setValue(0)
                     _rfn["black_outside"].setValue(1)
 
