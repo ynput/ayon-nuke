@@ -245,7 +245,7 @@ class NukePlaceholderCreatePlugin(
             node.knob("y_init").setVisible(False)
             width = node.screenWidth()
             height = node.screenHeight()
-            if "bdwidth" in node.knobs():
+            if node.knob("bdwidth") is not None:
                 imprint(node, {"w_init": width, "h_init": height})
                 node.knob("w_init").setVisible(False)
                 node.knob("h_init").setVisible(False)
@@ -361,8 +361,9 @@ class NukePlaceholderCreatePlugin(
                 new_node.knob("bdheight").setValue(h_init)
                 refresh_node(node)
 
-            if "repre_id" in node.knobs().keys():
-                node.removeKnob(node.knob("repre_id"))
+            repre_id_knob = node.knob("repre_id")
+            if repre_id_knob is not None:
+                node.removeKnob(repre_id_knob)
             copies[node.name()] = new_node
         return copies
 
