@@ -49,12 +49,15 @@ from .lib import (
     Context,
     ROOT_DATA_KNOB,
     INSTANCE_DATA_KNOB,
+    CONTAINER_DATA_KNOB,
     get_main_window,
     WorkfileSettings,
     launch_workfiles_app,
     check_inventory_versions,
-    set_avalon_knob_data,
-    read_avalon_data,
+    get_legacy_knob_id,
+    read_legacy_knob_data,
+    remove_legacy_knob_data,
+    _write_legacy_knob_data,
     prompt_reset_context,
     dirmap_file_name_filter,
     add_scripts_menu,
@@ -589,12 +592,65 @@ def containerise(node,
         **data or dict()
     )
 
-    set_avalon_knob_data(node, data)
+    imprint_container(node, data)
 
     # set tab to first native
     node.setTab(0)
 
     return node
+
+
+def imprint_container(node, data):
+    """Imprint container data on the node.
+
+    The container data is still imprinted in the legacy data knobs, with a
+    knob for each key, because older releases can only read containers that
+    are stored like that. Next releases will store it in the container data
+    knob (`CONTAINER_DATA_KNOB`) instead, which is already read.
+
+    A container that already has the container data knob, because the
+    script was saved with such a next release, is updated in that knob.
+    Otherwise the node would end up with both, of which one is outdated.
+
+    Arguments:
+        node (nuke.Node): Nuke's node object to imprint as container
+        data (dict): The container data to imprint.
+
+    """
+    data = {
+        key: value
+        for key, value in data.items()
+        # Data added by `parse_container` that should not be stored
+        if key not in ("node", "objectName")
+    }
+    # Containers loaded with the legacy container id are converted
+    data["id"] = AYON_CONTAINER_ID
+
+    if node.knob(CONTAINER_DATA_KNOB) is not None:
+        set_node_data(node, CONTAINER_DATA_KNOB, data, overwrite=True)
+        remove_legacy_knob_data(node)
+        return
+
+    _write_legacy_knob_data(node, data)
+
+
+def remove_container_data(node):
+    """Remove the imprinted container data from the node.
+
+    Arguments:
+        node (nuke.Node): Nuke's node object to remove container data from
+
+    """
+    knob = node.knob(CONTAINER_DATA_KNOB)
+    if knob is not None:
+        node.removeKnob(knob)
+    remove_legacy_knob_data(node)
+
+    # Nuke adds a "User" tab for a knob that is not added to a tab, like the
+    # container data knob. Do not leave that tab behind if it is empty now.
+    last_knob = node.knob(node.numKnobs() - 1)
+    if last_knob.Class() == "Tab_Knob" and last_knob.name() == "User":
+        node.removeKnob(last_knob)
 
 
 def parse_container(node):
@@ -609,7 +665,14 @@ def parse_container(node):
         dict: The container schema data for this container node.
 
     """
-    data = read_avalon_data(node)
+    data = get_node_data(node, CONTAINER_DATA_KNOB)
+    if not data:
+        # Backwards compatibility for containers imprinted in legacy data
+        # knobs. Skip nodes without a legacy id knob early, because reading
+        # all legacy data is expensive to do for each node in the script.
+        if get_legacy_knob_id(node) is None:
+            return
+        data = read_legacy_knob_data(node)
 
     # If not all required data return the empty container
     required = ["schema", "id", "name",
@@ -647,9 +710,7 @@ def update_container(node, keys=None):
         raise TypeError("Not a valid container node.")
 
     container.update(keys)
-    # Containers loaded with the legacy container id are converted on update
-    container["id"] = AYON_CONTAINER_ID
-    node = set_avalon_knob_data(node, container)
+    imprint_container(node, container)
 
     return node
 

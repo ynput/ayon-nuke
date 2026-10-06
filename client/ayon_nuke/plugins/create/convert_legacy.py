@@ -3,7 +3,7 @@ from ayon_core.pipeline.create.creator_plugins import ProductConvertorPlugin
 from ayon_nuke.api.lib import (
     INSTANCE_DATA_KNOB,
     get_node_data,
-    get_avalon_knob_data,
+    get_legacy_knob_id,
     NODE_TAB_NAME,
 )
 from ayon_nuke.api.plugin import convert_to_valid_instaces
@@ -28,14 +28,8 @@ class LegacyConverted(ProductConvertorPlugin):
             if NODE_TAB_NAME not in node.knobs():
                 continue
 
-            # get data from avalon knob
-            avalon_knob_data = get_avalon_knob_data(
-                node, ["avalon:", "ak:"], create=False)
-
-            if not avalon_knob_data:
-                continue
-
-            if avalon_knob_data["id"] not in {
+            # get instance id from the legacy data knobs
+            if get_legacy_knob_id(node) not in {
                 AYON_INSTANCE_ID, AVALON_INSTANCE_ID
             }:
                 continue
