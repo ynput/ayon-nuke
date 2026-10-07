@@ -5,10 +5,7 @@ class LoaderEnabledModel(BaseSettingsModel):
     enabled: bool = SettingsField(True, title="Enabled")
 
 
-class LoadImageModel(BaseSettingsModel):
-    enabled: bool = SettingsField(
-        title="Enabled"
-    )
+class LoadImageModel(LoaderEnabledModel):
     representations_include: list[str] = SettingsField(
         default_factory=list,
         title="Include representations"
@@ -57,16 +54,14 @@ class LoadClipOptionsModel(BaseSettingsModel):
     )
 
 
-class LoadBackdropNodesModel(BaseSettingsModel):
+class LoadBackdropNodesModel(LoaderEnabledModel):
+
     remove_nodes_from_backdrop: bool = SettingsField(
         title="Remove existing AYON backdrops when removing container"
     )
 
 
-class LoadClipModel(BaseSettingsModel):
-    enabled: bool = SettingsField(
-        title="Enabled"
-    )
+class LoadClipModel(LoaderEnabledModel):
     representations_include: list[str] = SettingsField(
         default_factory=list,
         title="Include representations"
@@ -82,17 +77,17 @@ class LoadClipModel(BaseSettingsModel):
 
 
 class LoaderPluginsModel(BaseSettingsModel):
-    LoadImage: LoadImageModel = SettingsField(
-        default_factory=LoadImageModel,
-        title="Load Image"
+    AlembicCameraLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load AlembicCamera"
     )
-    LoadClip: LoadClipModel = SettingsField(
-        default_factory=LoadClipModel,
-        title="Load Clip"
+    AlembicModelLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load AlembicModel"
     )
-    LoadBackdropNodes: LoadBackdropNodesModel = SettingsField(
-        default_factory=LoadBackdropNodesModel,
-        title="Load Backdrop Nodes"
+    FbxCameraLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load FbxCamera"
     )
     GeoImportLoader: LoaderEnabledModel = SettingsField(
         default_factory=LoaderEnabledModel,
@@ -102,13 +97,82 @@ class LoaderPluginsModel(BaseSettingsModel):
         default_factory=LoaderEnabledModel,
         title="Load GeoReference"
     )
+    LinkAsGroup: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load LinkAsGroup"
+    )
+    LoadBackdropNodes: LoadBackdropNodesModel = SettingsField(
+        default_factory=LoadBackdropNodesModel,
+        title="Load Backdrop Nodes"
+    )
+    LoadClip: LoadClipModel = SettingsField(
+        default_factory=LoadClipModel,
+        title="Load Clip"
+    )
+    LoadEffects: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load Effects"
+    )
+    LoadEffectsInputProcess: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load Effects Input Process"
+    )
+    LoadGizmo: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load Gizmo"
+    )
+    LoadGizmoInputProcess: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load Gizmo Input Process"
+    )
+    LoadImage: LoadImageModel = SettingsField(
+        default_factory=LoadImageModel,
+        title="Load Image"
+    )
+    LoadOcioLookNodes: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load Ocio Look Nodes"
+    )
+    MatchmoveLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load Matchmove"
+    )
+    SetFrameRangeLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Set Frame Range"
+    )
+    SetFrameRangeWithHandlesLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Set Frame Range With Handles"
+    )
+    UsdCameraLoader: LoaderEnabledModel = SettingsField(
+        default_factory=LoaderEnabledModel,
+        title="Load USD Camera"
+    )
 
 
 DEFAULT_LOADER_PLUGINS_SETTINGS = {
-    "LoadImage": {
+    "AlembicCameraLoader": {
+        "enabled": True
+    },
+    "AlembicModelLoader": {
+        "enabled": True
+    },
+    "FbxCameraLoader": {
+        "enabled": True
+    },
+    "GeoImportLoader": {
+        "enabled": True
+    },
+    "GeoReferenceLoader": {
+        "enabled": True
+    },
+    "LinkAsGroup": {
+        "enabled": True
+    },
+    "LoadBackdropNodes": {
         "enabled": True,
-        "representations_include": [],
-        "node_name_template": "{class_name}_{ext}"
+        "remove_nodes_from_backdrop": False
     },
     "LoadClip": {
         "enabled": True,
@@ -121,13 +185,36 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
             "node_type": "auto"
         }
     },
-    "LoadBackdropNodes": {
-        "remove_nodes_from_backdrop": False
-    },
-    "GeoImportLoader": {
+    "LoadEffects": {
         "enabled": True
     },
-    "GeoReferenceLoader": {
+    "LoadEffectsInputProcess": {
         "enabled": True
-    }
+    },
+    "LoadGizmo": {
+        "enabled": True
+    },
+    "LoadGizmoInputProcess": {
+        "enabled": True
+    },
+    "LoadImage": {
+        "enabled": True,
+        "representations_include": [],
+        "node_name_template": "{class_name}_{ext}"
+    },
+    "LoadOcioLookNodes": {
+        "enabled": True
+    },
+    "MatchmoveLoader": {
+        "enabled": True
+    },
+    "SetFrameRangeLoader": {
+        "enabled": True
+    },
+    "SetFrameRangeWithHandlesLoader": {
+        "enabled": True
+    },
+    "UsdCameraLoader": {
+        "enabled": True
+    },
 }

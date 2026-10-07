@@ -108,9 +108,6 @@ class NukeCreator(Creator):
         """
 
         for node in nuke.allNodes(recurseGroups=True):
-            # make sure testing node is having instance knob
-            if INSTANCE_DATA_KNOB not in node.knobs().keys():
-                continue
             node_data = get_node_data(node, INSTANCE_DATA_KNOB)
 
             if not node_data:
@@ -337,6 +334,9 @@ class NukeWriteCreator(NukeCreator):
 
     render_target = "local"  # default to be applied if settings is missing
 
+    # conditional reviewable
+    conditional_reviewable = {}
+
     def get_linked_knobs(self):
         linked_knobs = []
         if "channels" in self.instance_attributes:
@@ -449,7 +449,10 @@ class NukeWriteCreator(NukeCreator):
 
         return attrs_defs
 
-    def get_instance_attr_defs(self):
+    def get_attr_defs_for_instance(self, instance):
+        if instance.get("creator_identifier") != self.identifier:
+            return []
+
         attr_defs = [self._get_render_target_enum()]
 
         # add reviewable attribute
@@ -459,6 +462,21 @@ class NukeWriteCreator(NukeCreator):
                     "review",
                     default=True,
                     label="Review"
+                )
+            )
+        if "conditional_reviewable" in self.instance_attributes:
+            is_review_enabled = self._is_review_enabled(instance)
+            tooltip = (
+                "Review is always enabled for this task type"
+                " (set by studio settings)."
+            )
+            attr_defs.append(
+                BoolDef(
+                    "review",
+                    default=is_review_enabled,
+                    label="Review",
+                    tooltip=tooltip if is_review_enabled else "",
+                    visible=is_review_enabled,
                 )
             )
         if "slate_gen" in self.instance_attributes:
@@ -471,6 +489,24 @@ class NukeWriteCreator(NukeCreator):
             )
 
         return attr_defs
+
+    def _is_review_enabled(self, instance)-> bool:
+        """Return whether the Review toggle is enabled for the
+        current task type.
+
+        The Review toggle is enabled when the current task type is included in
+        ``conditional_reviewable``.
+        """
+        reviewable_task_types = self.conditional_reviewable.get("task_types")
+        if not reviewable_task_types:
+            return True
+        folder_path = instance.get("folderPath")
+        task_name = instance.get("task")
+        task_entity = self.create_context.get_task_entity(
+            folder_path, task_name
+        )
+        task_type = task_entity.get("taskType")
+        return bool(task_type in reviewable_task_types)
 
     def _get_render_target_enum(self):
         rendering_targets = {
@@ -569,6 +605,12 @@ class NukeWriteCreator(NukeCreator):
         # individual attributes
         self.instance_attributes = plugin_settings.get(
             "instance_attributes") or self.instance_attributes
+        # conditional reviewable
+        self.conditional_reviewable = plugin_settings.get(
+            "conditional_reviewable") or self.conditional_reviewable
+        self.conditional_reviewable = plugin_settings.get(
+            "conditional_reviewable", []
+        )
         self.prenodes = plugin_settings["prenodes"]
         self.default_variants = plugin_settings.get(
             "default_variants") or self.default_variants
@@ -636,7 +678,7 @@ class NukeLoader(LoaderPlugin):
             string.ascii_uppercase + string.digits) for _ in range(10))
 
     def get_container_id(self, node):
-        id_knob = node.knobs().get(self.container_id_knob)
+        id_knob = node.knob(self.container_id_knob)
         return id_knob.value() if id_knob else None
 
     def get_members(self, source):
@@ -1486,8 +1528,9 @@ class ExporterReviewMov(ExporterReview):
         write_node["file_type"].setValue(str(self.ext))
         write_node["channels"].setValue(str(self.color_channels))
         write_node["raw"].setValue(1)
-        if "mov64_fps" in write_node.knobs():
-            write_node["mov64_fps"].setValue(float(fps))
+        mov64_fps_knob = write_node.knob("mov64_fps")
+        if mov64_fps_knob is not None:
+            mov64_fps_knob.setValue(float(fps))
 
     def _set_custom_knobs(self, write_node, custom_knobs, log) -> None:
         """Set custom knobs on the write node.
@@ -1599,16 +1642,16 @@ def convert_to_valid_instaces():
         # establish families
         families_ak = avalon_knob_data.get("families", [])
 
-        if "suspend_publish" in node.knobs():
+        if node.knob("suspend_publish") is not None:
             creator_attr["suspended_publish"] = (
                 node["suspend_publish"].value())
 
         # get review knob value
-        if "review" in node.knobs():
+        if node.knob("review") is not None:
             creator_attr["review"] = (
                 node["review"].value())
 
-        if "publish" in node.knobs():
+        if node.knob("publish") is not None:
             transfer_data["active"] = (
                 node["publish"].value())
 
@@ -1631,13 +1674,13 @@ def convert_to_valid_instaces():
                     # Farm rendering
                     creator_attr["render_target"] = "farm"
 
-                if "deadlinePriority" in node.knobs():
+                if node.knob("deadlinePriority") is not None:
                     transfer_data["farm_priority"] = (
                         node["deadlinePriority"].value())
-                if "deadlineChunkSize" in node.knobs():
+                if node.knob("deadlineChunkSize") is not None:
                     creator_attr["farm_chunk"] = (
                         node["deadlineChunkSize"].value())
-                if "deadlineConcurrentTasks" in node.knobs():
+                if node.knob("deadlineConcurrentTasks") is not None:
                     creator_attr["farm_concurrency"] = (
                         node["deadlineConcurrentTasks"].value())
 

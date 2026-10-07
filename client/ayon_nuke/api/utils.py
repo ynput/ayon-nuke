@@ -62,7 +62,7 @@ def get_node_outputs(node):
 
 def is_node_gizmo(node) -> bool:
     """Return True if the node is a gizmo."""
-    return 'gizmo_file' in node.knobs()
+    return node.knob('gizmo_file') is not None
 
 
 def gizmo_is_nuke_default(gizmo) -> bool:
