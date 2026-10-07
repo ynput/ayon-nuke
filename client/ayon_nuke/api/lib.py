@@ -2040,17 +2040,11 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             if not nuke_imageio_writes:
                 return
 
-            write_node = None
-
-            # get into the group node
-            node.begin()
-            for x in nuke.allNodes():
-                if x.Class() == "Write":
-                    write_node = x
-            node.end()
-
-            if not write_node:
+            # get write node from inside the group node
+            write_nodes = nuke.allNodes(filter="Write", group=node)
+            if not write_nodes:
                 return
+            write_node = write_nodes[-1]
 
             # Exclude exposed knobs from colorspace nodes.
             # This ensures that any values overwritten by the user is
