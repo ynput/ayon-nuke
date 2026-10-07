@@ -356,8 +356,7 @@ DEFAULT_CREATE_SETTINGS = {
         ],
         "instance_attributes": [
             "reviewable",
-            "farm_rendering",
-            "use_range_limit",
+            "farm_rendering"
         ],
         "disable_review_toggle_for_task_types": [],
         "render_target": "local",
