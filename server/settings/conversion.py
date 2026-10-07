@@ -300,7 +300,6 @@ def _convert_collect_sync_workfile_version_model_0_4_5(overrides: dict) -> None:
     ] = sync_workfile_version_on_product_base_types
 
 
-
 def _convert_review_intermediates_model_0_4_11(
         overrides: dict, version: VersionInfo) -> None:
     """Convert review intermediates extension model to include
