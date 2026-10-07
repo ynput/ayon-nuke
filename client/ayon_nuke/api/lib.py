@@ -64,7 +64,10 @@ from .constants import (
 
 from .utils import get_node_outputs
 
-from .colorspace import get_formatted_display_and_view
+from .colorspace import (
+    get_formatted_display_and_view,
+    create_viewer_profile_string,
+)
 
 log = Logger.get_logger(__name__)
 
@@ -133,9 +136,6 @@ class Context:
     # Workfile related code
     workfiles_launched = False
     workfiles_tool_timer = None
-
-    # Seems unused
-    _project_entity = None
 
 
 def get_main_window():
@@ -245,12 +245,6 @@ class Knobby(object):
         for flag in self.flags:
             knob.setFlag(flag)
         return knob
-
-    @staticmethod
-    def nice_naming(key):
-        """Convert camelCase name into UI Display Name"""
-        words = re.findall('[A-Z][^A-Z]*', key[0].upper() + key[1:])
-        return " ".join(words)
 
 
 def create_knobs(data, tab=None):
@@ -1586,26 +1580,23 @@ class WorkfileSettings(object):
     to Root node or to any given node.
 
     Arguments:
-        root (node): nuke's root node
-        nodes (list): list of nuke's nodes
-        nodes_filter (list): filtering classes for nodes
+        root_node (nuke.Node): nuke's root node
+        project_settings (dict): project settings, queried if not provided
+        project (dict): project entity, current project if not provided
 
     """
 
     def __init__(
             self,
             root_node=None,
-            nodes=None,
             project_settings=None,
             **kwargs):
         project_entity = kwargs.get("project")
         if project_entity is None:
             project_name = get_current_project_name()
-            project_entity = ayon_api.get_project(project_name)
         else:
             project_name = project_entity["name"]
 
-        Context._project_entity = project_entity
         self._project_name = project_name
         self._folder_path = get_current_folder_path()
         self._folder_entity = ayon_api.get_folder_by_path(
@@ -1620,7 +1611,6 @@ class WorkfileSettings(object):
             self._task_name
         )
         self._root_node = root_node or nuke.root()
-        self._nodes = self.get_nodes(nodes=nodes)
 
         context_data = get_template_data_with_names(
             project_name, self._folder_path, self._task_name, "nuke"
@@ -1638,21 +1628,6 @@ class WorkfileSettings(object):
         if not self._project_setting:
             self._project_setting = get_project_settings(self._project_name)
         return self._project_setting
-
-    def get_nodes(self, nodes=None, nodes_filter=None):
-
-        if not isinstance(nodes, list) and not isinstance(nodes_filter, list):
-            return [n for n in nuke.allNodes()]
-        elif not isinstance(nodes, list) and isinstance(nodes_filter, list):
-            nodes = list()
-            for filter in nodes_filter:
-                [nodes.append(n) for n in nuke.allNodes(filter=filter)]
-            return nodes
-        elif isinstance(nodes, list) and not isinstance(nodes_filter, list):
-            return [n for n in self._nodes]
-        elif isinstance(nodes, list) and isinstance(nodes_filter, list):
-            for filter in nodes_filter:
-                return [n for n in self._nodes if filter in n.Class()]
 
     # TODO: move into ./colorspace.py
     def set_viewers_colorspace(self, imageio_nuke):
@@ -2235,8 +2210,6 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         frame_range = '{0}-{1}'.format(frame_start, frame_end)
 
         for node in nuke.allNodes(filter="Viewer"):
-            node['frame_range'].setValue(frame_range)
-            node['frame_range_lock'].setValue(True)
             node['frame_range'].setValue(frame_range)
             node['frame_range_lock'].setValue(True)
 
@@ -3186,25 +3159,6 @@ def get_viewer_config_from_string(input_string):
             ).format(input_string))
 
     return (display, viewer)
-
-
-def create_viewer_profile_string(viewer, display=None, path_like=False):
-    """Convert viewer and display to string
-
-    Args:
-        viewer (str): viewer name
-        display (Optional[str]): display name
-        path_like (Optional[bool]): if True, return path like string
-
-    Returns:
-        str: viewer config string
-    """
-    if not display:
-        return viewer
-
-    if path_like:
-        return "{}/{}".format(display, viewer)
-    return "{} ({})".format(viewer, display)
 
 
 def get_filenames_without_hash(filename, frame_start, frame_end):
