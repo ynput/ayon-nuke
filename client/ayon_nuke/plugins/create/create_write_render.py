@@ -79,12 +79,7 @@ class CreateWriteRender(napi.NukeWriteCreator):
         if "use_range_limit" not in self.instance_attributes:
             return
 
-        write_node.begin()
-        for n in nuke.allNodes():
-            # get write node
-            if n.Class() == "Write":
-                w_node = n
-        write_node.end()
+        w_node = nuke.allNodes(filter="Write", group=write_node)[-1]
 
         w_node["use_limit"].setValue(True)
         w_node["first"].setValue(nuke.root()["first_frame"].value())
