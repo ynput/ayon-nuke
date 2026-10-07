@@ -49,7 +49,7 @@ from ayon_core.pipeline import (
     get_current_context,
 )
 from ayon_core.pipeline.create import CreateContext
-from ayon_core.pipeline.load import filter_containers, any_outdated_containers
+from ayon_core.pipeline.load import filter_containers
 
 from ayon_core.pipeline.colorspace import (
     get_current_context_imageio_config_preset
@@ -166,7 +166,7 @@ def set_node_data(node, knob_name, data):
         data (dict): data to be stored in knob
     """
     # if exists then update data
-    if knob_name in node.knobs():
+    if node.knob(knob_name) is not None:
         update_node_data(node, knob_name, data)
         return
 
@@ -188,10 +188,11 @@ def get_node_data(node, knob_name):
     Returns:
         dict: data stored in knob
     """
-    if knob_name not in node.knobs():
+    knob = node.knob(knob_name)
+    if knob is None:
         return {}
 
-    rawdata = node[knob_name].getValue()
+    rawdata = knob.getValue()
     if (
         isinstance(rawdata, str)
         and rawdata.startswith(JSON_PREFIX)
@@ -397,8 +398,9 @@ def imprint(node, data, tab=None):
         # If knob name exists we set the value. Technically there could be
         # multiple knobs with the same name, but the intent is not to have
         # duplicated knobs so we do not account for that.
-        if knob.name() in node.knobs().keys():
-            node[knob.name()].setValue(knob.value())
+        existing_knob = node.knob(knob.name())
+        if existing_knob is not None:
+            existing_knob.setValue(knob.value())
         else:
             node.addKnob(knob)
 
@@ -493,7 +495,7 @@ def get_avalon_knob_data(node, prefix="avalon:", create=True):
     """
 
     data = {}
-    if NODE_TAB_NAME not in node.knobs():
+    if node.knob(NODE_TAB_NAME) is None:
         return data
 
     # check if lists
@@ -836,9 +838,25 @@ def check_inventory_versions(show_popup=False):
     if not nuke.GUI:
         return
 
+    # Collect and filter the containers only once, because it requires
+    # iterating all nodes in the script and querying the server.
+    try:
+        host = registered_host()
+        containers = host.get_containers()
+        project_name = get_current_project_name()
+
+        filtered_containers = filter_containers(containers, project_name)
+    except Exception as error:
+        log.warning(error, exc_info=True)
+        return
+
     if show_popup:
         try:
-            if any_outdated_containers():
+            # Match `any_outdated_containers` which ignores locked versions
+            if any(
+                container.get("version_locked") is not True
+                for container in filtered_containers.outdated
+            ):
                 log.warning("Scene has outdated content.")
                 _show_outdated_content_popup()
         except Exception as error:
@@ -846,11 +864,6 @@ def check_inventory_versions(show_popup=False):
 
     # Colorize nodes
     try:
-        host = registered_host()
-        containers = host.get_containers()
-        project_name = get_current_project_name()
-
-        filtered_containers = filter_containers(containers, project_name)
         for category, containers in filtered_containers._asdict().items():
             if category not in LOADER_CATEGORY_COLORS:
                 continue
@@ -2002,17 +2015,11 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             if not nuke_imageio_writes:
                 return
 
-            write_node = None
-
-            # get into the group node
-            node.begin()
-            for x in nuke.allNodes():
-                if x.Class() == "Write":
-                    write_node = x
-            node.end()
-
-            if not write_node:
+            # get write node from inside the group node
+            write_nodes = nuke.allNodes(filter="Write", group=node)
+            if not write_nodes:
                 return
+            write_node = write_nodes[-1]
 
             # Exclude exposed knobs from colorspace nodes.
             # This ensures that any values overwritten by the user is
@@ -2442,24 +2449,29 @@ def find_free_space_to_paste_nodes(
     group_ypos = list()
 
     # get local coordinates of all nodes
-    nodes_xpos = [n.xpos() for n in nodes] + \
-                 [n.xpos() + n.screenWidth() for n in nodes]
-
-    nodes_ypos = [n.ypos() for n in nodes] + \
-                 [n.ypos() + n.screenHeight() for n in nodes]
+    nodes_xpos = list()
+    nodes_ypos = list()
+    for node in nodes:
+        xpos = node.xpos()
+        ypos = node.ypos()
+        nodes_xpos.extend((xpos, xpos + node.screenWidth()))
+        nodes_ypos.extend((ypos, ypos + node.screenHeight()))
 
     # get complete screen size of all nodes to be placed in
     nodes_screen_width = max(nodes_xpos) - min(nodes_xpos)
     nodes_screen_heigth = max(nodes_ypos) - min(nodes_ypos)
 
     # get screen size (r,l,t,b) of all nodes in `group`
+    # use a set to exclude the nodes with a fast lookup
+    exclude_nodes = set(nodes)
     with group:
-        group_xpos = [n.xpos() for n in nuke.allNodes() if n not in nodes] + \
-                     [n.xpos() + n.screenWidth() for n in nuke.allNodes()
-                      if n not in nodes]
-        group_ypos = [n.ypos() for n in nuke.allNodes() if n not in nodes] + \
-                     [n.ypos() + n.screenHeight() for n in nuke.allNodes()
-                      if n not in nodes]
+        for node in nuke.allNodes():
+            if node in exclude_nodes:
+                continue
+            xpos = node.xpos()
+            ypos = node.ypos()
+            group_xpos.extend((xpos, xpos + node.screenWidth()))
+            group_ypos.extend((ypos, ypos + node.screenHeight()))
 
         if len(group_xpos) == 0:
             group_xpos = [0]

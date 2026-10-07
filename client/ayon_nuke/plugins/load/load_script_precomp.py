@@ -81,8 +81,7 @@ class LinkAsGroup(load.LoaderPlugin):
 
         with P:
             # iterate through all nodes in group node and find AYON writes
-            writes = [n.name() for n in nuke.allNodes()
-                      if n.Class() == "Group"
+            writes = [n.name() for n in nuke.allNodes(filter="Group")
                       if get_avalon_knob_data(n)]
 
             if writes:
