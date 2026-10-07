@@ -607,6 +607,11 @@ def parse_container(node):
         dict: The container schema data for this container node.
 
     """
+    # Skip nodes without a container id knob early, because reading all
+    # imprinted data is expensive to do for each node in the script.
+    if node.knob("avalon:id") is None and node.knob("ak:id") is None:
+        return
+
     data = read_avalon_data(node)
 
     # If not all required data return the empty container
@@ -657,11 +662,7 @@ def ls():
     need to implement a for-loop that then *yields* one Container at
     a time.
     """
-    all_nodes = nuke.allNodes(recurseGroups=True)
-
-    nodes = [n for n in all_nodes]
-
-    for n in nodes:
+    for n in nuke.allNodes(recurseGroups=True):
         container = parse_container(n)
         if container:
             yield container
