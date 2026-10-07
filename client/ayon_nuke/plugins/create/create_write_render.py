@@ -15,7 +15,6 @@ class CreateWriteRender(napi.NukeWriteCreator):
 
     instance_attributes = [
         "reviewable",
-        "use_range_limit",
     ]
     default_variants = [
         "Main",
