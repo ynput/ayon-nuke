@@ -49,7 +49,7 @@ from ayon_core.pipeline import (
     get_current_context,
 )
 from ayon_core.pipeline.create import CreateContext
-from ayon_core.pipeline.load import filter_containers, any_outdated_containers
+from ayon_core.pipeline.load import filter_containers
 
 from ayon_core.pipeline.colorspace import (
     get_current_context_imageio_config_preset
@@ -844,9 +844,25 @@ def check_inventory_versions(show_popup=False):
     if not nuke.GUI:
         return
 
+    # Collect and filter the containers only once, because it requires
+    # iterating all nodes in the script and querying the server.
+    try:
+        host = registered_host()
+        containers = host.get_containers()
+        project_name = get_current_project_name()
+
+        filtered_containers = filter_containers(containers, project_name)
+    except Exception as error:
+        log.warning(error, exc_info=True)
+        return
+
     if show_popup:
         try:
-            if any_outdated_containers():
+            # Match `any_outdated_containers` which ignores locked versions
+            if any(
+                container.get("version_locked") is not True
+                for container in filtered_containers.outdated
+            ):
                 log.warning("Scene has outdated content.")
                 _show_outdated_content_popup()
         except Exception as error:
@@ -854,11 +870,6 @@ def check_inventory_versions(show_popup=False):
 
     # Colorize nodes
     try:
-        host = registered_host()
-        containers = host.get_containers()
-        project_name = get_current_project_name()
-
-        filtered_containers = filter_containers(containers, project_name)
         for category, containers in filtered_containers._asdict().items():
             if category not in LOADER_CATEGORY_COLORS:
                 continue
@@ -2029,17 +2040,11 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             if not nuke_imageio_writes:
                 return
 
-            write_node = None
-
-            # get into the group node
-            node.begin()
-            for x in nuke.allNodes():
-                if x.Class() == "Write":
-                    write_node = x
-            node.end()
-
-            if not write_node:
+            # get write node from inside the group node
+            write_nodes = nuke.allNodes(filter="Write", group=node)
+            if not write_nodes:
                 return
+            write_node = write_nodes[-1]
 
             # Exclude exposed knobs from colorspace nodes.
             # This ensures that any values overwritten by the user is
