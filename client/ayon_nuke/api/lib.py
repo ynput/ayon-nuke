@@ -1990,22 +1990,11 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
 
             nuke_imageio_writes = None
             if avalon_knob_data:
-                # establish families
-                product_base_type = (
-                    avalon_knob_data.get("productBaseType")
-                    or avalon_knob_data.get("productType")
-                )
                 # this shouldn't happen anymore, only with very old data
                 # and should be removed later when all avalon data api is
                 # also removed.
-                if product_base_type is None:
-                    product_base_type = avalon_knob_data["family"]
-                families = [product_base_type]
-                if avalon_knob_data.get("families"):
-                    families.append(avalon_knob_data.get("families"))
-
                 nuke_imageio_writes = get_imageio_node_setting(
-                    node_class=avalon_knob_data["families"],
+                    node_class="Write",
                     plugin_name=avalon_knob_data["creator"],
                     product_name=avalon_knob_data["productName"]
                 )
@@ -2013,7 +2002,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                 nuke_imageio_writes = get_write_node_template_attr(node)
 
             if not nuke_imageio_writes:
-                return
+                continue
 
             # get write node from inside the group node
             write_nodes = nuke.allNodes(filter="Write", group=node)
@@ -2025,23 +2014,25 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             # This ensures that any values overwritten by the user is
             # not changed by the colorspace knobs set.
             colorspace_knobs = nuke_imageio_writes["knobs"]
-            all_create_settings = self.project_settings["nuke"]["create"]
-            plugin_names_mapping = {
-                "create_write_image": "CreateWriteImage",
-                "create_write_prerender": "CreateWritePrerender",
-                "create_write_render": "CreateWriteRender"
-            }
-            node_data = get_node_data(node, INSTANCE_DATA_KNOB)
-            identifier = node_data["creator_identifier"]
-            creator_settings = all_create_settings[
-                plugin_names_mapping[identifier]
-            ]
-            exposed_knobs = creator_settings.get("exposed_knobs")
-
-            colorspace_knobs = [
-                entry for entry in colorspace_knobs
-                if entry["name"] not in exposed_knobs
-            ]
+            if node_data:
+                # Legacy avalon knob data has no `creator_identifier` to
+                # find the creator settings (and its exposed knobs) by.
+                all_create_settings = self.project_settings["nuke"]["create"]
+                plugin_names_mapping = {
+                    "create_write_image": "CreateWriteImage",
+                    "create_write_prerender": "CreateWritePrerender",
+                    "create_write_render": "CreateWriteRender"
+                }
+                identifier = node_data["creator_identifier"]
+                creator_settings = all_create_settings[
+                    plugin_names_mapping[identifier]
+                ]
+                exposed_knobs = creator_settings.get("exposed_knobs")
+                if exposed_knobs:
+                    colorspace_knobs = [
+                        entry for entry in colorspace_knobs
+                        if entry["name"] not in exposed_knobs
+                    ]
 
             set_node_knobs_from_settings(write_node, colorspace_knobs)
 
