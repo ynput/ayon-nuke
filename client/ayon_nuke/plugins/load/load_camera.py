@@ -73,6 +73,7 @@ class AlembicCameraLoader(load.LoaderPlugin):
                     inpanel=False,
                 )
 
+        camera_node["suppress_dialog"].setValue(True)
         camera_node["read_from_file"].setValue(True)
         camera_node["file"].setValue(file)  # set file after making sure "read_from_file" is True  # noqa: E501
         camera_node["frame_rate"].setValue(float(fps))
@@ -132,9 +133,10 @@ class AlembicCameraLoader(load.LoaderPlugin):
         file = get_representation_path(repre_entity).replace("\\", "/")
 
         camera_node = container["node"]
-        camera_node["frame_rate"].setValue(float(fps))
+        camera_node["suppress_dialog"].setValue(True)
         camera_node["read_from_file"].setValue(True)
         camera_node["file"].setValue(file)
+        camera_node["frame_rate"].setValue(float(fps))
 
         # color node by correct color by actual version
         self.node_version_color(
