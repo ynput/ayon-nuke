@@ -9,7 +9,7 @@ from ayon_nuke.api import (
     containerise,
     update_container,
 )
-from ayon_nuke.api.command import undo_chunk
+from ayon_nuke.api.command import knob_values, undo_chunk
 from ayon_nuke.api.lib import (
     maintained_selection
 )
@@ -73,10 +73,12 @@ class AlembicCameraLoader(load.LoaderPlugin):
                     inpanel=False,
                 )
 
-        camera_node["suppress_dialog"].setValue(True)
-        camera_node["read_from_file"].setValue(True)
-        camera_node["file"].setValue(file)  # set file after making sure "read_from_file" is True  # noqa: E501
-        camera_node["frame_rate"].setValue(float(fps))
+        with knob_values({
+            camera_node["suppress_dialog"]: True,
+        }):
+            camera_node["read_from_file"].setValue(True)
+            camera_node["file"].setValue(file)  # set file after making sure "read_from_file" is True  # noqa: E501
+            camera_node["frame_rate"].setValue(float(fps))
 
         # color node by correct color by actual version
         self.node_version_color(
@@ -133,10 +135,12 @@ class AlembicCameraLoader(load.LoaderPlugin):
         file = get_representation_path(repre_entity).replace("\\", "/")
 
         camera_node = container["node"]
-        camera_node["suppress_dialog"].setValue(True)
-        camera_node["read_from_file"].setValue(True)
-        camera_node["file"].setValue(file)
-        camera_node["frame_rate"].setValue(float(fps))
+        with knob_values({
+            camera_node["suppress_dialog"]: True,
+        }):
+            camera_node["read_from_file"].setValue(True)
+            camera_node["file"].setValue(file)
+            camera_node["frame_rate"].setValue(float(fps))
 
         # color node by correct color by actual version
         self.node_version_color(
