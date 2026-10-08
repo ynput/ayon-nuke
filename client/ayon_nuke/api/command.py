@@ -57,12 +57,12 @@ def undo_chunk(name: str = ""):
 
 @contextlib.contextmanager
 def knob_values(
-    values: dict[nuke.Knob, typing.Any]
+    values: dict[nuke.Knob, typing.Any],
 ) -> typing.Generator[None, None, None]:
     """Context manager to set knob values temporarily.
 
     Args:
-        Dictionary of knob and value pairs.
+        values: Dictionary of knob and value pairs to set.
 
     Returns:
         Generator to yield the context manager.
