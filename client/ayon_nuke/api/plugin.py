@@ -743,7 +743,13 @@ class NukeGroupLoader(LoaderPlugin):
     ignore_attr = ["useLifetime"]
     node_color = "0x3469ffff"
 
-    def on_load(self, group_node: nuke.Node, namespace: str, context: dict):
+    def on_load(
+        self,
+        group_node: nuke.Node,
+        namespace: str,
+        context: dict,
+        options: dict | None = None
+    ):
         """Logic to be implemented on subclass to describe what to do on load.
         """
         # Override to do anything
@@ -800,7 +806,7 @@ class NukeGroupLoader(LoaderPlugin):
         object_name = "{}_{}".format(name, namespace)
 
         group_node = self._create_group(object_name, context)
-        self.on_load(group_node, namespace, context)
+        self.on_load(group_node, namespace, context, options)
         # On load may have deleted the group node. If it did, then we stop here
         if not group_node:
             return
