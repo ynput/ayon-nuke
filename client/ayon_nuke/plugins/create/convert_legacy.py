@@ -25,7 +25,7 @@ class LegacyConverted(ProductConvertorPlugin):
             if get_node_data(node, INSTANCE_DATA_KNOB):
                 continue
 
-            if NODE_TAB_NAME not in node.knobs():
+            if node.knob(NODE_TAB_NAME) is None:
                 continue
 
             # get data from avalon knob

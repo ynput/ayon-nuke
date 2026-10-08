@@ -95,12 +95,8 @@ class CreateWriteImage(napi.NukeWriteCreator):
         active_frame = (
             instance_data["creator_attributes"].get("active_frame"))
 
-        write_node.begin()
-        for n in nuke.allNodes():
-            # get write node
-            if n.Class() in "Write":
-                w_node = n
-        write_node.end()
+        # get write node
+        w_node = nuke.allNodes(filter="Write", group=write_node)[-1]
 
         w_node["use_limit"].setValue(True)
         w_node["first"].setValue(active_frame or nuke.frame())
