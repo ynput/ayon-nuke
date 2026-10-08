@@ -108,9 +108,6 @@ class NukeCreator(Creator):
         """
 
         for node in nuke.allNodes(recurseGroups=True):
-            # make sure testing node is having instance knob
-            if INSTANCE_DATA_KNOB not in node.knobs().keys():
-                continue
             node_data = get_node_data(node, INSTANCE_DATA_KNOB)
 
             if not node_data:
@@ -681,7 +678,7 @@ class NukeLoader(LoaderPlugin):
             string.ascii_uppercase + string.digits) for _ in range(10))
 
     def get_container_id(self, node):
-        id_knob = node.knobs().get(self.container_id_knob)
+        id_knob = node.knob(self.container_id_knob)
         return id_knob.value() if id_knob else None
 
     def get_members(self, source):
@@ -1537,8 +1534,9 @@ class ExporterReviewMov(ExporterReview):
         write_node["file_type"].setValue(str(self.ext))
         write_node["channels"].setValue(str(self.color_channels))
         write_node["raw"].setValue(1)
-        if "mov64_fps" in write_node.knobs():
-            write_node["mov64_fps"].setValue(float(fps))
+        mov64_fps_knob = write_node.knob("mov64_fps")
+        if mov64_fps_knob is not None:
+            mov64_fps_knob.setValue(float(fps))
 
     def _set_custom_knobs(self, write_node, custom_knobs, log) -> None:
         """Set custom knobs on the write node.
@@ -1650,16 +1648,16 @@ def convert_to_valid_instaces():
         # establish families
         families_ak = avalon_knob_data.get("families", [])
 
-        if "suspend_publish" in node.knobs():
+        if node.knob("suspend_publish") is not None:
             creator_attr["suspended_publish"] = (
                 node["suspend_publish"].value())
 
         # get review knob value
-        if "review" in node.knobs():
+        if node.knob("review") is not None:
             creator_attr["review"] = (
                 node["review"].value())
 
-        if "publish" in node.knobs():
+        if node.knob("publish") is not None:
             transfer_data["active"] = (
                 node["publish"].value())
 
@@ -1682,13 +1680,13 @@ def convert_to_valid_instaces():
                     # Farm rendering
                     creator_attr["render_target"] = "farm"
 
-                if "deadlinePriority" in node.knobs():
+                if node.knob("deadlinePriority") is not None:
                     transfer_data["farm_priority"] = (
                         node["deadlinePriority"].value())
-                if "deadlineChunkSize" in node.knobs():
+                if node.knob("deadlineChunkSize") is not None:
                     creator_attr["farm_chunk"] = (
                         node["deadlineChunkSize"].value())
-                if "deadlineConcurrentTasks" in node.knobs():
+                if node.knob("deadlineConcurrentTasks") is not None:
                     creator_attr["farm_concurrency"] = (
                         node["deadlineConcurrentTasks"].value())
 
