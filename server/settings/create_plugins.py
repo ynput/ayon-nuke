@@ -360,7 +360,7 @@ DEFAULT_CREATE_SETTINGS = {
         ],
         "disable_review_toggle_for_task_types": [],
         "render_target": "local",
-        "conditional_reviewable": [],
+        "conditional_reviewable": {"task_types": []},
         "exposed_knobs": [],
         "prenodes": [
             {
@@ -397,7 +397,7 @@ DEFAULT_CREATE_SETTINGS = {
             "farm_rendering",
             "use_range_limit"
         ],
-        "conditional_reviewable": [],
+        "conditional_reviewable": {"task_types": []},
         "render_target": "local",
         "exposed_knobs": [],
         "prenodes": []
@@ -414,7 +414,7 @@ DEFAULT_CREATE_SETTINGS = {
         "instance_attributes": [
             "use_range_limit"
         ],
-        "conditional_reviewable": [],
+        "conditional_reviewable": {"task_types": []},
         "render_target": "local",
         "exposed_knobs": [],
         "prenodes": [
