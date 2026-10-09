@@ -369,7 +369,8 @@ class LoadClip(plugin.NukeLoader):
             "source": version_attributes.get("source"),
             "handleStart": str(handle_start),
             "handleEnd": str(handle_end),
-            "fps": str(version_attributes.get("fps"))
+            "fps": str(version_attributes.get("fps")),
+            "project_name": project_name,
         }
 
         last_version_entity = ayon_api.get_last_version_by_product_id(

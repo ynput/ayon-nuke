@@ -213,6 +213,7 @@ class LoadImage(load.LoaderPlugin):
             "version": str(version_entity["version"]),
             "source": version_attributes.get("source"),
             "fps": str(version_attributes.get("fps")),
+            "project_name": project_name,
         }
 
         # change color of node

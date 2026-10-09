@@ -246,7 +246,10 @@ class LoadOcioLookNodes(load.LoaderPlugin):
             group_node["name"].value()))
 
         return update_container(
-            group_node, {"representation": repre_entity["id"]})
+            group_node, {
+                "representation": repre_entity["id"],
+                "project_name": context["project"]["name"]
+            })
 
     def _load_json_data(self, filepath):
         # getting data from json file with unicode conversion

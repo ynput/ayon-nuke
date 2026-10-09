@@ -71,9 +71,23 @@ class CreateWriteRender(napi.NukeWriteCreator):
             }
         )
 
+        self._add_frame_range_limit(created_node)
+
         self.integrate_links(node_selection, created_node, outputs=False)
 
         return created_node
+
+    def _add_frame_range_limit(self, write_node):
+        if "use_range_limit" not in self.instance_attributes:
+            return
+
+        w_node = nuke.allNodes(filter=self.node_class, group=write_node)[-1]
+
+        w_node["use_limit"].setValue(True)
+        w_node["first"].setValue(nuke.root()["first_frame"].value())
+        w_node["last"].setValue(nuke.root()["last_frame"].value())
+
+        return write_node
 
 
 class CreateDeepWriteRender(CreateWriteRender):

@@ -137,7 +137,8 @@ class AlembicCameraLoader(load.LoaderPlugin):
             "representation": repre_entity["id"],
             "frameStart": first,
             "frameEnd": last,
-            "version": version_entity["version"]
+            "version": version_entity["version"],
+            "project_name": context["project"]["name"],
         }
 
         # add attributes from the version to imprint to metadata knob

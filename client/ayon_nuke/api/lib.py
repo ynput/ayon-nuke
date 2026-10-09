@@ -49,7 +49,7 @@ from ayon_core.pipeline import (
     get_current_context,
 )
 from ayon_core.pipeline.create import CreateContext
-from ayon_core.pipeline.load import filter_containers, any_outdated_containers
+from ayon_core.pipeline.load import filter_containers
 
 from ayon_core.pipeline.colorspace import (
     get_current_context_imageio_config_preset
@@ -64,7 +64,10 @@ from .constants import (
 
 from .utils import get_node_outputs
 
-from .colorspace import get_formatted_display_and_view
+from .colorspace import (
+    get_formatted_display_and_view,
+    create_viewer_profile_string,
+)
 
 log = Logger.get_logger(__name__)
 
@@ -134,9 +137,6 @@ class Context:
     workfiles_launched = False
     workfiles_tool_timer = None
 
-    # Seems unused
-    _project_entity = None
-
 
 def get_main_window():
     """Acquire Nuke's main window"""
@@ -166,7 +166,7 @@ def set_node_data(node, knob_name, data):
         data (dict): data to be stored in knob
     """
     # if exists then update data
-    if knob_name in node.knobs():
+    if node.knob(knob_name) is not None:
         update_node_data(node, knob_name, data)
         return
 
@@ -188,10 +188,11 @@ def get_node_data(node, knob_name):
     Returns:
         dict: data stored in knob
     """
-    if knob_name not in node.knobs():
+    knob = node.knob(knob_name)
+    if knob is None:
         return {}
 
-    rawdata = node[knob_name].getValue()
+    rawdata = knob.getValue()
     if (
         isinstance(rawdata, str)
         and rawdata.startswith(JSON_PREFIX)
@@ -244,12 +245,6 @@ class Knobby(object):
         for flag in self.flags:
             knob.setFlag(flag)
         return knob
-
-    @staticmethod
-    def nice_naming(key):
-        """Convert camelCase name into UI Display Name"""
-        words = re.findall('[A-Z][^A-Z]*', key[0].upper() + key[1:])
-        return " ".join(words)
 
 
 def create_knobs(data, tab=None):
@@ -403,8 +398,9 @@ def imprint(node, data, tab=None):
         # If knob name exists we set the value. Technically there could be
         # multiple knobs with the same name, but the intent is not to have
         # duplicated knobs so we do not account for that.
-        if knob.name() in node.knobs().keys():
-            node[knob.name()].setValue(knob.value())
+        existing_knob = node.knob(knob.name())
+        if existing_knob is not None:
+            existing_knob.setValue(knob.value())
         else:
             node.addKnob(knob)
 
@@ -499,7 +495,7 @@ def get_avalon_knob_data(node, prefix="avalon:", create=True):
     """
 
     data = {}
-    if NODE_TAB_NAME not in node.knobs():
+    if node.knob(NODE_TAB_NAME) is None:
         return data
 
     # check if lists
@@ -843,9 +839,25 @@ def check_inventory_versions(show_popup=False):
     if not nuke.GUI:
         return
 
+    # Collect and filter the containers only once, because it requires
+    # iterating all nodes in the script and querying the server.
+    try:
+        host = registered_host()
+        containers = host.get_containers()
+        project_name = get_current_project_name()
+
+        filtered_containers = filter_containers(containers, project_name)
+    except Exception as error:
+        log.warning(error, exc_info=True)
+        return
+
     if show_popup:
         try:
-            if any_outdated_containers():
+            # Match `any_outdated_containers` which ignores locked versions
+            if any(
+                container.get("version_locked") is not True
+                for container in filtered_containers.outdated
+            ):
                 log.warning("Scene has outdated content.")
                 _show_outdated_content_popup()
         except Exception as error:
@@ -853,11 +865,6 @@ def check_inventory_versions(show_popup=False):
 
     # Colorize nodes
     try:
-        host = registered_host()
-        containers = host.get_containers()
-        project_name = get_current_project_name()
-
-        filtered_containers = filter_containers(containers, project_name)
         for category, containers in filtered_containers._asdict().items():
             if category not in LOADER_CATEGORY_COLORS:
                 continue
@@ -1576,26 +1583,23 @@ class WorkfileSettings(object):
     to Root node or to any given node.
 
     Arguments:
-        root (node): nuke's root node
-        nodes (list): list of nuke's nodes
-        nodes_filter (list): filtering classes for nodes
+        root_node (nuke.Node): nuke's root node
+        project_settings (dict): project settings, queried if not provided
+        project (dict): project entity, current project if not provided
 
     """
 
     def __init__(
             self,
             root_node=None,
-            nodes=None,
             project_settings=None,
             **kwargs):
         project_entity = kwargs.get("project")
         if project_entity is None:
             project_name = get_current_project_name()
-            project_entity = ayon_api.get_project(project_name)
         else:
             project_name = project_entity["name"]
 
-        Context._project_entity = project_entity
         self._project_name = project_name
         self._folder_path = get_current_folder_path()
         self._folder_entity = ayon_api.get_folder_by_path(
@@ -1610,7 +1614,6 @@ class WorkfileSettings(object):
             self._task_name
         )
         self._root_node = root_node or nuke.root()
-        self._nodes = self.get_nodes(nodes=nodes)
 
         context_data = get_template_data_with_names(
             project_name, self._folder_path, self._task_name, "nuke"
@@ -1628,21 +1631,6 @@ class WorkfileSettings(object):
         if not self._project_setting:
             self._project_setting = get_project_settings(self._project_name)
         return self._project_setting
-
-    def get_nodes(self, nodes=None, nodes_filter=None):
-
-        if not isinstance(nodes, list) and not isinstance(nodes_filter, list):
-            return [n for n in nuke.allNodes()]
-        elif not isinstance(nodes, list) and isinstance(nodes_filter, list):
-            nodes = list()
-            for filter in nodes_filter:
-                [nodes.append(n) for n in nuke.allNodes(filter=filter)]
-            return nodes
-        elif isinstance(nodes, list) and not isinstance(nodes_filter, list):
-            return [n for n in self._nodes]
-        elif isinstance(nodes, list) and isinstance(nodes_filter, list):
-            for filter in nodes_filter:
-                return [n for n in self._nodes if filter in n.Class()]
 
     # TODO: move into ./colorspace.py
     def set_viewers_colorspace(self, imageio_nuke):
@@ -1683,7 +1671,7 @@ class WorkfileSettings(object):
             if viewer_process != v["viewerProcess"].value():
                 copy_inputs = v.dependencies()
                 copy_knobs = {
-                    knob_name: knob.value()
+                    knob_name: knob.toScript()
                     for knob_name, knob in v.knobs().items()
                     if knob_name not in filter_knobs
                 }
@@ -1701,7 +1689,14 @@ class WorkfileSettings(object):
 
                 # set copied knobs
                 for knob_name, knob_value in copy_knobs.items():
-                    nv[knob_name].setValue(knob_value)
+                    try:
+                        nv[knob_name].fromScript(knob_value)
+                    except Exception as e:
+                        log.warning(
+                            f"Failed to set knob '{knob_name}' with script "
+                            f"'{knob_value}' on new viewer node "
+                            f"'{nv['name'].value()}': {e}"
+                        )
 
                 # set viewerProcess
                 nv["viewerProcess"].setValue(viewer_process)
@@ -1807,23 +1802,12 @@ class WorkfileSettings(object):
         m_display, m_viewer = get_viewer_config_from_string(monitor_lut)
         v_display, v_viewer = get_viewer_config_from_string(viewer_lut)
 
-        # set monitor lut differently for nuke version 14
-        if nuke.NUKE_VERSION_MAJOR >= 14:
-            output_data["monitorOutLUT"] = create_viewer_profile_string(
-                m_viewer, m_display, path_like=False)
-            # monitorLut=thumbnails - viewerProcess makes more sense
-            output_data["monitorLut"] = create_viewer_profile_string(
-                v_viewer, v_display, path_like=False)
-
-        if nuke.NUKE_VERSION_MAJOR == 13:
-            output_data["monitorOutLUT"] = create_viewer_profile_string(
-                m_viewer, m_display, path_like=False)
-            # monitorLut=thumbnails - viewerProcess makes more sense
-            output_data["monitorLut"] = create_viewer_profile_string(
-                v_viewer, v_display, path_like=True)
-        if nuke.NUKE_VERSION_MAJOR <= 12:
-            output_data["monitorLut"] = create_viewer_profile_string(
-                m_viewer, m_display, path_like=True)
+        # set monitor lut differently (supported for nuke 14+)
+        output_data["monitorOutLUT"] = create_viewer_profile_string(
+            m_viewer, m_display, path_like=False)
+        # monitorLut=thumbnails - viewerProcess makes more sense
+        output_data["monitorLut"] = create_viewer_profile_string(
+            v_viewer, v_display, path_like=False)
 
         return output_data
 
@@ -2017,26 +2001,15 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             node.end()
 
             if not write_node:
-                return
+                continue
 
             nuke_imageio_writes = None
             if avalon_knob_data:
-                # establish families
-                product_base_type = (
-                    avalon_knob_data.get("productBaseType")
-                    or avalon_knob_data.get("productType")
-                )
                 # this shouldn't happen anymore, only with very old data
                 # and should be removed later when all avalon data api is
                 # also removed.
-                if product_base_type is None:
-                    product_base_type = avalon_knob_data["family"]
-                families = [product_base_type]
-                if avalon_knob_data.get("families"):
-                    families.append(avalon_knob_data.get("families"))
-
                 nuke_imageio_writes = get_imageio_node_setting(
-                    node_class=avalon_knob_data["families"],
+                    node_class="Write",
                     plugin_name=avalon_knob_data["creator"],
                     product_name=avalon_knob_data["productName"]
                 )
@@ -2046,29 +2019,31 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                 )
 
             if not nuke_imageio_writes:
-                return
+                continue
 
             # Exclude exposed knobs from colorspace nodes.
             # This ensures that any values overwritten by the user is
             # not changed by the colorspace knobs set.
             colorspace_knobs = nuke_imageio_writes["knobs"]
-            all_create_settings = self.project_settings["nuke"]["create"]
-            plugin_names_mapping = {
-                "create_write_image": "CreateWriteImage",
-                "create_write_prerender": "CreateWritePrerender",
-                "create_write_render": "CreateWriteRender",
-            }
-            node_data = get_node_data(node, INSTANCE_DATA_KNOB)
-            identifier = node_data["creator_identifier"]
-            creator_settings = all_create_settings[
-                plugin_names_mapping[identifier]
-            ]
-            exposed_knobs = creator_settings.get("exposed_knobs")
-
-            colorspace_knobs = [
-                entry for entry in colorspace_knobs
-                if entry["name"] not in exposed_knobs
-            ]
+            if node_data:
+                # Legacy avalon knob data has no `creator_identifier` to
+                # find the creator settings (and its exposed knobs) by.
+                all_create_settings = self.project_settings["nuke"]["create"]
+                plugin_names_mapping = {
+                    "create_write_image": "CreateWriteImage",
+                    "create_write_prerender": "CreateWritePrerender",
+                    "create_write_render": "CreateWriteRender"
+                }
+                identifier = node_data["creator_identifier"]
+                creator_settings = all_create_settings[
+                    plugin_names_mapping[identifier]
+                ]
+                exposed_knobs = creator_settings.get("exposed_knobs")
+                if exposed_knobs:
+                    colorspace_knobs = [
+                        entry for entry in colorspace_knobs
+                        if entry["name"] not in exposed_knobs
+                    ]
 
             set_node_knobs_from_settings(write_node, colorspace_knobs)
 
@@ -2237,8 +2212,6 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         frame_range = '{0}-{1}'.format(frame_start, frame_end)
 
         for node in nuke.allNodes(filter="Viewer"):
-            node['frame_range'].setValue(frame_range)
-            node['frame_range_lock'].setValue(True)
             node['frame_range'].setValue(frame_range)
             node['frame_range_lock'].setValue(True)
 
@@ -2480,24 +2453,29 @@ def find_free_space_to_paste_nodes(
     group_ypos = list()
 
     # get local coordinates of all nodes
-    nodes_xpos = [n.xpos() for n in nodes] + \
-                 [n.xpos() + n.screenWidth() for n in nodes]
-
-    nodes_ypos = [n.ypos() for n in nodes] + \
-                 [n.ypos() + n.screenHeight() for n in nodes]
+    nodes_xpos = list()
+    nodes_ypos = list()
+    for node in nodes:
+        xpos = node.xpos()
+        ypos = node.ypos()
+        nodes_xpos.extend((xpos, xpos + node.screenWidth()))
+        nodes_ypos.extend((ypos, ypos + node.screenHeight()))
 
     # get complete screen size of all nodes to be placed in
     nodes_screen_width = max(nodes_xpos) - min(nodes_xpos)
     nodes_screen_heigth = max(nodes_ypos) - min(nodes_ypos)
 
     # get screen size (r,l,t,b) of all nodes in `group`
+    # use a set to exclude the nodes with a fast lookup
+    exclude_nodes = set(nodes)
     with group:
-        group_xpos = [n.xpos() for n in nuke.allNodes() if n not in nodes] + \
-                     [n.xpos() + n.screenWidth() for n in nuke.allNodes()
-                      if n not in nodes]
-        group_ypos = [n.ypos() for n in nuke.allNodes() if n not in nodes] + \
-                     [n.ypos() + n.screenHeight() for n in nuke.allNodes()
-                      if n not in nodes]
+        for node in nuke.allNodes():
+            if node in exclude_nodes:
+                continue
+            xpos = node.xpos()
+            ypos = node.ypos()
+            group_xpos.extend((xpos, xpos + node.screenWidth()))
+            group_ypos.extend((ypos, ypos + node.screenHeight()))
 
         if len(group_xpos) == 0:
             group_xpos = [0]
@@ -3187,25 +3165,6 @@ def get_viewer_config_from_string(input_string):
     return (display, viewer)
 
 
-def create_viewer_profile_string(viewer, display=None, path_like=False):
-    """Convert viewer and display to string
-
-    Args:
-        viewer (str): viewer name
-        display (Optional[str]): display name
-        path_like (Optional[bool]): if True, return path like string
-
-    Returns:
-        str: viewer config string
-    """
-    if not display:
-        return viewer
-
-    if path_like:
-        return "{}/{}".format(display, viewer)
-    return "{} ({})".format(viewer, display)
-
-
 def get_filenames_without_hash(filename, frame_start, frame_end):
     """Get filenames without frame hash
         i.e. "renderCompositingMain.baking.0001.exr"
@@ -3232,19 +3191,14 @@ def get_filenames_without_hash(filename, frame_start, frame_end):
 
 def create_camera_node_by_version():
     """Function to create the camera with the latest node class
+
     For Nuke version 14.0 or later, the Camera4 camera node class
-        would be used
-    For the version before, the Camera2 camera node class
-        would be used
+        would be used. We've dropped support folder older Nuke versions.
+
     Returns:
         Node: camera node
     """
-    nuke_number_version = nuke.NUKE_VERSION_MAJOR
-    if nuke_number_version >= 14:
-        return nuke.createNode("Camera4")
-    else:
-        return nuke.createNode("Camera2")
-
+    return nuke.createNode("Camera4")
 
 def link_knobs(knobs, node, group_node):
     """Link knobs from inside `group_node`"""

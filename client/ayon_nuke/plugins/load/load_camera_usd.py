@@ -95,7 +95,8 @@ class UsdCameraLoader(load.LoaderPlugin):
         )
 
         return update_container(camera_node, {
-            "representation": context["representation"]["id"]
+            "representation": context["representation"]["id"],
+            "project_name": context["project"]["name"],
         })
 
     def node_version_color(self, project_name, version_entity, node):

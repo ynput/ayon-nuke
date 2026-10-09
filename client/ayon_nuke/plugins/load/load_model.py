@@ -121,7 +121,8 @@ class AlembicModelLoader(load.LoaderPlugin):
             "representation": repre_entity["id"],
             "frameStart": first,
             "frameEnd": last,
-            "version": version_entity["version"]
+            "version": version_entity["version"],
+            "project_name": project_name,
         }
 
         # add additional metadata from the version to imprint to Avalon knob
