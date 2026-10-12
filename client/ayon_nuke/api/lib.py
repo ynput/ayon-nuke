@@ -184,7 +184,7 @@ def set_node_data(node, knob_name, data, overwrite=False):
             stored_data = _read_knob_data(knob)
             stored_data.update(data)
             data = stored_data
-        knob.setValue(JSON_PREFIX + json.dumps(data))
+        knob.setValue(f"{JSON_PREFIX}{json.dumps(data)}")
         return
 
     # else create new
