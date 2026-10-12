@@ -137,7 +137,7 @@ def write_to_read(gn,
         height = gn.screenHeight()  # get group height and position
         new_xpos = int(gn.knob('xpos').value())
         new_ypos = int(gn.knob('ypos').value()) + height + 20
-        group_writes = [n for n in nuke.allNodes() if n.Class() == "Write"]
+        group_writes = nuke.allNodes(filter="Write")
         if group_writes != []:
             # there can be only 1 write node, taking first
             n = group_writes[0]

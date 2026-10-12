@@ -84,8 +84,7 @@ class LinkAsGroup(load.LoaderPlugin):
             # NOTE: This only finds groups with legacy data knobs, as it
             #   did before. Write instances created with the publisher do
             #   not have those.
-            writes = [n.name() for n in nuke.allNodes()
-                      if n.Class() == "Group"
+            writes = [n.name() for n in nuke.allNodes(filter="Group")
                       if get_legacy_knob_id(n) is not None]
 
             if writes:
