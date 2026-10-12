@@ -62,6 +62,7 @@ class CreateWriteRender(napi.NukeWriteCreator):
             input=selected_node,
             prenodes=self.prenodes,
             linked_knobs=self.get_linked_knobs(),
+            project_settings=self.project_settings,
             **{
                 "width": width,
                 "height": height
