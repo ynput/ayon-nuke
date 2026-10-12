@@ -256,7 +256,8 @@ def get_legacy_knob_id(node):
         Optional[str]: The id, or None if the node has no legacy data.
     """
     for prefix in LEGACY_KNOB_PREFIXES:
-        knob = node.knob(prefix + "id")
+        knob = node.knob(f"{prefix}id")
+
         if knob is not None:
             return knob.value()
     return None
