@@ -261,7 +261,7 @@ class ExtractSlateFrame(publish.Extractor):
 
         # termporarily turn off frame range limit
         limit_on = False
-        if "use_limit" in write_node.knobs():
+        if write_node.knob("use_limit") is not None:
             if bool(write_node["use_limit"].value()):
                 limit_on = True
                 # turn limit off for rendering the slate

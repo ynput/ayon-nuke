@@ -722,11 +722,7 @@ def ls():
     need to implement a for-loop that then *yields* one Container at
     a time.
     """
-    all_nodes = nuke.allNodes(recurseGroups=True)
-
-    nodes = [n for n in all_nodes]
-
-    for n in nodes:
+    for n in nuke.allNodes(recurseGroups=True):
         container = parse_container(n)
         if container:
             yield container
@@ -753,12 +749,10 @@ def list_instances(creator_id=None):
         if node.Class() in ["Viewer", "Dot"]:
             continue
 
-        try:
-            if node["disable"].value():
-                continue
-        except NameError:
-            # pass if disable knob doesn't exist
-            pass
+        # skip disabled nodes, some nodes have no disable knob
+        disable_knob = node.knob("disable")
+        if disable_knob is not None and disable_knob.value():
+            continue
 
         # get data from instance data knob
         instance_data = get_instance_data(node)
@@ -783,11 +777,12 @@ def list_instances(creator_id=None):
         # node name could change, so update product name data
         _update_product_name_data(instance_data, node)
 
-        if "render_order" not in node.knobs():
+        render_order_knob = node.knob("render_order")
+        if render_order_knob is None:
             product_instances.append((node, instance_data))
             continue
 
-        order = int(node["render_order"].value())
+        order = int(render_order_knob.value())
         instances_by_order[order].append((node, instance_data))
 
     # Sort instances based on order attribute or product name.
