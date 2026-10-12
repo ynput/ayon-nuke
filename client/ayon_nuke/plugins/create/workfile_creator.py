@@ -26,9 +26,7 @@ class WorkfileCreator(AutoCreator):
 
     def collect_instances(self):
         root_node = nuke.root()
-        instance_data = api.get_node_data(
-            root_node, api.INSTANCE_DATA_KNOB
-        )
+        instance_data = api.get_instance_data(root_node)
 
         project_entity = self.create_context.get_current_project_entity()
         folder_entity = self.create_context.get_current_folder_entity()
@@ -81,10 +79,14 @@ class WorkfileCreator(AutoCreator):
         for created_inst, _changes in update_list:
             instance_node = created_inst.transient_data["node"]
 
+            # Overwrite what was stored on the node so that keys which are
+            # not in the instance data anymore, like the legacy keys of an
+            # instance created with OpenPype, are not preserved.
             set_node_data(
                 instance_node,
                 INSTANCE_DATA_KNOB,
-                created_inst.data_to_store()
+                created_inst.data_to_store(),
+                overwrite=True
             )
 
     def create(self, options=None):

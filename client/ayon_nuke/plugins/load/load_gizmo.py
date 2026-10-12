@@ -1,10 +1,8 @@
 import nuke
 
-from ayon_nuke.api import plugin
+from ayon_nuke.api import plugin, parse_container, imprint_container
 from ayon_nuke.api.lib import (
     maintained_selection,
-    get_avalon_knob_data,
-    set_avalon_knob_data,
     swap_node_with_dependency,
 )
 
@@ -45,7 +43,7 @@ class LoadGizmo(plugin.NukeGroupLoader):
 
         # Replace the group with the new group from a new file 'paste'
         # into the current comp
-        avalon_data = get_avalon_knob_data(group_node)
+        container_data = parse_container(group_node)
         with maintained_selection([group_node]):
             # insert nuke script to the script
             nuke.nodePaste(file)
@@ -57,7 +55,7 @@ class LoadGizmo(plugin.NukeGroupLoader):
                 new_group_node.setName(node_name)
 
                 # Transfer data to the new group
-                set_avalon_knob_data(new_group_node, avalon_data)
+                imprint_container(new_group_node, container_data)
 
         return new_group_node
 

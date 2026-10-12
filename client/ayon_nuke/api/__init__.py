@@ -28,12 +28,15 @@ from .pipeline import (
 
     containerise,
     parse_container,
+    imprint_container,
     update_container,
+    remove_container_data,
 
 )
 from .lib import (
     INSTANCE_DATA_KNOB,
     ROOT_DATA_KNOB,
+    CONTAINER_DATA_KNOB,
     maintained_selection,
     reset_selection,
     select_nodes,
@@ -43,6 +46,7 @@ from .lib import (
     get_node_data,
     set_node_data,
     update_node_data,
+    get_instance_data,
     create_write_node,
     link_knobs
 )
@@ -82,10 +86,13 @@ __all__ = (
 
     "containerise",
     "parse_container",
+    "imprint_container",
     "update_container",
+    "remove_container_data",
 
     "INSTANCE_DATA_KNOB",
     "ROOT_DATA_KNOB",
+    "CONTAINER_DATA_KNOB",
     "maintained_selection",
     "reset_selection",
     "select_nodes",
@@ -95,6 +102,7 @@ __all__ = (
     "get_node_data",
     "set_node_data",
     "update_node_data",
+    "get_instance_data",
     "create_write_node",
     "link_knobs",
 
