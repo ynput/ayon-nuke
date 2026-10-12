@@ -57,7 +57,6 @@ from .lib import (
     get_legacy_knob_id,
     read_legacy_knob_data,
     remove_legacy_knob_data,
-    _write_legacy_knob_data,
     prompt_reset_context,
     dirmap_file_name_filter,
     add_scripts_menu,
@@ -603,14 +602,8 @@ def containerise(node,
 def imprint_container(node, data):
     """Imprint container data on the node.
 
-    The container data is still imprinted in the legacy data knobs, with a
-    knob for each key, because older releases can only read containers that
-    are stored like that. Next releases will store it in the container data
-    knob (`CONTAINER_DATA_KNOB`) instead, which is already read.
-
-    A container that already has the container data knob, because the
-    script was saved with such a next release, is updated in that knob.
-    Otherwise the node would end up with both, of which one is outdated.
+    This replaces all container data the node may already have, including
+    container data in legacy data knobs.
 
     Arguments:
         node (nuke.Node): Nuke's node object to imprint as container
@@ -625,13 +618,8 @@ def imprint_container(node, data):
     }
     # Containers loaded with the legacy container id are converted
     data["id"] = AYON_CONTAINER_ID
-
-    if node.knob(CONTAINER_DATA_KNOB) is not None:
-        set_node_data(node, CONTAINER_DATA_KNOB, data, overwrite=True)
-        remove_legacy_knob_data(node)
-        return
-
-    _write_legacy_knob_data(node, data)
+    set_node_data(node, CONTAINER_DATA_KNOB, data, overwrite=True)
+    remove_legacy_knob_data(node)
 
 
 def remove_container_data(node):
@@ -691,6 +679,9 @@ def parse_container(node):
 
 def update_container(node, keys=None):
     """Returns node with updateted containder data
+
+    A container that was imprinted in legacy data knobs is converted to how
+    container data is imprinted now.
 
     Arguments:
         node (nuke.Node): The node in Nuke to imprint as container,
