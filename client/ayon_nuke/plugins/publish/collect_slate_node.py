@@ -20,7 +20,7 @@ class CollectSlate(pyblish.api.InstancePlugin):
                 n_ for n_ in nuke.allNodes()
                 if "slate" in n_.name().lower()
                 if not n_["disable"].getValue() and
-                "publish_instance" not in n_.knobs()  # Exclude instance nodes.
+                n_.knob("publish_instance") is None  # Exclude instance nodes.
             ),
             None
         )

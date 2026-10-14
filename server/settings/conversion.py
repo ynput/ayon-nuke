@@ -1,6 +1,7 @@
 import re
 from typing import Any
 from copy import deepcopy
+from semver import VersionInfo
 
 
 def _get_viewer_config_from_string(input_string):
@@ -109,11 +110,13 @@ def _convert_extract_intermediate_files_0_2_3(publish_overrides):
 
     0.2.2. is the latest version using the old way.
     """
-    # override can be either `display/view` or `view (display)`
-    if "ExtractReviewIntermediates" in publish_overrides:
-        extract_review_intermediates = publish_overrides[
-            "ExtractReviewIntermediates"]
+    if "ExtractReviewIntermediates" not in publish_overrides:
+        return
 
+    extract_review_intermediates = publish_overrides[
+        "ExtractReviewIntermediates"
+    ]
+    # override can be either `display/view` or `view (display)`
     for output in extract_review_intermediates.get("outputs", []):
         if viewer_process_override := output.get("viewer_process_override"):
             display, view = _get_viewer_config_from_string(
@@ -297,10 +300,50 @@ def _convert_collect_sync_workfile_version_model_0_4_5(overrides: dict) -> None:
     ] = sync_workfile_version_on_product_base_types
 
 
+def _convert_review_intermediates_model_0_4_11(
+        overrides: dict, version: VersionInfo) -> None:
+    """Convert review intermediates extension model to include
+    file_type extension."""
+    if (version.major, version.minor, version.patch) > (0, 4, 11):
+        return
+    extract_review_outputs = (
+        overrides
+        .get("publish", {})
+        .get("ExtractReviewIntermediates", {})
+        .get("outputs")
+    )
+    if not extract_review_outputs:
+        return
+
+    for output in extract_review_outputs:
+        extension = output.pop("extension", None)
+        if not extension:
+            # Nothing to convert
+            return
+
+        write_knobs = output.setdefault("write_knobs", {})
+        write_knobs["file_type"] = extension
+
+        if write_knobs.get("custom") is None:
+            write_knobs["custom"] = [
+                {
+                    "type": "text",
+                    "name": "mov64_codec",
+                    "text": "ap4h",
+                },
+                {
+                    "type": "boolean",
+                    "name": "mov64_write_timecode",
+                    "boolean": True,
+                },
+            ]
+
+
 def convert_settings_overrides(
     source_version: str,
     overrides: dict[str, Any],
 ) -> dict[str, Any]:
+    version = VersionInfo.parse(source_version)
     _convert_gizmo_menu_0_3_1(overrides)
     _convert_imageio_configs_0_2_3(overrides)
     _convert_publish_plugins(overrides)
@@ -309,4 +352,5 @@ def convert_settings_overrides(
     _convert_baking_stream_filter_product_base_type_0_4_0(overrides)
     _convert_collect_instance_data_model_0_4_0(overrides)
     _convert_collect_sync_workfile_version_model_0_4_5(overrides)
+    _convert_review_intermediates_model_0_4_11(overrides, version)
     return overrides

@@ -19,9 +19,10 @@ from ayon_nuke.api.lib import (
 from ayon_nuke.api import (
     containerise,
     update_container,
-    viewer_update_and_undo_stop,
     colorspace_exists_on_node
 )
+from ayon_nuke.api.command import undo_chunk
+
 from ayon_core.lib.transcoding import (
     VIDEO_EXTENSIONS,
     IMAGE_EXTENSIONS
@@ -103,6 +104,7 @@ class LoadClip(plugin.NukeLoader):
     def get_representations(cls):
         return cls.representations_include or cls.representations
 
+    @undo_chunk("Load Clip")
     def load(self, context, name, namespace, options):
         """Load asset via database."""
         project_name = context["project"]["name"]
@@ -196,59 +198,59 @@ class LoadClip(plugin.NukeLoader):
             inpanel=False
         )
 
-        # to avoid multiple undo steps for rest of process
-        # we will switch off undo-ing
-        with viewer_update_and_undo_stop():
-            read_node["file"].fromUserText(filepath)
-            if read_node.Class() == "Read":
-                self.set_colorspace_to_node(
-                    read_node,
-                    filepath,
-                    project_name,
-                    version_entity,
-                    repre_entity
-                )
-            if set_frame_range and first is not None and last is not None:
-                self._set_range_to_node(read_node, first, last)
-
-            if start_at_workfile:
-                self._start_at_workfile_frame(read_node, slate_frames)
-
-            version_name = version_entity["version"]
-            if version_name < 0:
-                version_name = "hero"
-
-            data_imprint = {
-                "version": version_name,
-                "option_set_start_frame": set_frame_range
-            }
-
-            # add attributes from the version to imprint metadata knob
-            for key in [
-                "frameStart",
-                "frameEnd",
-                "source",
-                "fps",
-                "handleStart",
-                "handleEnd",
-            ]:
-                value = version_attributes.get(key, str(None))
-                if isinstance(value, str):
-                    value = value.replace("\\", "/")
-                data_imprint[key] = value
-
-            if add_retime and version_data.get("retime"):
-                data_imprint["addRetime"] = True
-
-            read_node["tile_color"].setValue(int("0x4ecd25ff", 16))
-
-            container = containerise(
+        read_node["file"].fromUserText(filepath)
+        if read_node.Class() == "Read":
+            self.set_colorspace_to_node(
                 read_node,
-                name=name,
-                namespace=namespace,
-                context=context,
-                loader=self.__class__.__name__,
-                data=data_imprint)
+                filepath,
+                project_name,
+                version_entity,
+                repre_entity
+            )
+        if set_frame_range and first is not None and last is not None:
+            self._set_range_to_node(read_node, first, last)
+
+        if start_at_workfile:
+            self._start_at_workfile_frame(read_node, slate_frames)
+
+        version_name = version_entity["version"]
+        if version_name < 0:
+            version_name = "hero"
+
+        # update the name of the current undo step
+        nuke.Undo.name(f"{self.__class__.__name__}: {name} v{version_name}")
+
+        data_imprint = {
+            "version": version_name,
+            "option_set_start_frame": set_frame_range
+        }
+
+        # add attributes from the version to imprint metadata knob
+        for key in [
+            "frameStart",
+            "frameEnd",
+            "source",
+            "fps",
+            "handleStart",
+            "handleEnd",
+        ]:
+            value = version_attributes.get(key, str(None))
+            if isinstance(value, str):
+                value = value.replace("\\", "/")
+            data_imprint[key] = value
+
+        if add_retime and version_data.get("retime"):
+            data_imprint["addRetime"] = True
+
+        read_node["tile_color"].setValue(int("0x4ecd25ff", 16))
+
+        container = containerise(
+            read_node,
+            name=name,
+            namespace=namespace,
+            context=context,
+            loader=self.__class__.__name__,
+            data=data_imprint)
 
         if add_retime and version_data.get("retime"):
             self._make_retimes(
@@ -311,6 +313,7 @@ class LoadClip(plugin.NukeLoader):
         new_repre_entity["context"]["frame"] = hashed_frame
         return new_repre_entity
 
+    @undo_chunk("Update Clip")
     def update(self, container, context):
         """Update the Loader's path
 
@@ -328,11 +331,17 @@ class LoadClip(plugin.NukeLoader):
             nuke_traits.get_version_attributes_with_traits(context)
         )
         version_data = version_entity["data"]
+        version_name = version_entity["version"]
         traits_data = nuke_traits.get_load_traits_data(repre_entity)
 
         is_sequence = self._is_sequence(repre_entity, traits_data)
 
         read_node = container["node"]
+
+        # update undo name
+        name = container.get("name") or read_node.name()
+        undo_name = f"Update: {name} to v{version_name}"
+        nuke.Undo.name(undo_name)
 
         # Sequence published with traits - frame pattern is created from
         #   frame padding of the sequence
@@ -378,52 +387,48 @@ class LoadClip(plugin.NukeLoader):
 
         read_node["file"].fromUserText(filepath)
 
-        # to avoid multiple undo steps for rest of process
-        # we will switch off undo-ing
-        with viewer_update_and_undo_stop():
-            if read_node.Class() == "Read":
-                self.set_colorspace_to_node(
-                    read_node,
-                    filepath,
-                    project_name,
-                    version_entity,
-                    repre_entity
-                )
-            if set_frame_range and first is not None and last is not None:
-                self._set_range_to_node(read_node, first, last)
-            else:
-                first = int(read_node['first'].value())
-                last = int(read_node['last'].value())
-
-            if start_at_workfile:
-                self._start_at_workfile_frame(read_node)
-
-            updated_dict = {
-                "representation": repre_entity["id"],
-                "frameStart": str(first),
-                "frameEnd": str(last),
-                "version": str(version_entity["version"]),
-                "source": version_attributes.get("source"),
-                "handleStart": str(handle_start),
-                "handleEnd": str(handle_end),
-                "fps": str(version_attributes.get("fps"))
-            }
-
-            last_version_entity = ayon_api.get_last_version_by_product_id(
-                project_name, version_entity["productId"], fields={"id"}
+        if read_node.Class() == "Read":
+            self.set_colorspace_to_node(
+                read_node,
+                filepath,
+                project_name,
+                version_entity,
+                repre_entity
             )
-            # change color of read_node
-            if version_entity["id"] == last_version_entity["id"]:
-                color_value = "0x4ecd25ff"
-            else:
-                color_value = "0xd84f20ff"
-            read_node["tile_color"].setValue(int(color_value, 16))
+        if set_frame_range and first is not None and last is not None:
+            self._set_range_to_node(read_node, first, last)
+        else:
+            first = int(read_node['first'].value())
+            last = int(read_node['last'].value())
 
-            # Update the imprinted representation
-            update_container(read_node, updated_dict)
-            self.log.info(
-                "updated to version: {}".format(version_entity["version"])
-            )
+        if start_at_workfile:
+            self._start_at_workfile_frame(read_node)
+
+        updated_dict = {
+            "representation": repre_entity["id"],
+            "frameStart": str(first),
+            "frameEnd": str(last),
+            "version": str(version_name),
+            "source": version_attributes.get("source"),
+            "handleStart": str(handle_start),
+            "handleEnd": str(handle_end),
+            "fps": str(version_attributes.get("fps")),
+            "project_name": project_name,
+        }
+
+        last_version_entity = ayon_api.get_last_version_by_product_id(
+            project_name, version_entity["productId"], fields={"id"}
+        )
+        # change color of read_node
+        if version_entity["id"] == last_version_entity["id"]:
+            color_value = "0x4ecd25ff"
+        else:
+            color_value = "0xd84f20ff"
+        read_node["tile_color"].setValue(int(color_value, 16))
+
+        # Update the imprinted representation
+        update_container(read_node, updated_dict)
+        self.log.info(f"updated to version: {version_name}")
 
         if add_retime and version_data.get("retime"):
             self._make_retimes(
@@ -468,15 +473,20 @@ class LoadClip(plugin.NukeLoader):
         else:
             self.log.info("Colorspace not set...")
 
+    @undo_chunk("Remove Clip")
     def remove(self, container):
         read_node = container["node"]
         assert read_node.Class() == "Read", "Must be Read"
 
-        with viewer_update_and_undo_stop():
-            members = self.get_members(read_node)
-            nuke.delete(read_node)
-            for member in members:
-                nuke.delete(member)
+        # update undo name
+        name = container.get("name") or read_node.name()
+        undo_name = f"Remove: {name}"
+        nuke.Undo.name(undo_name)
+
+        members = self.get_members(read_node)
+        nuke.delete(read_node)
+        for member in members:
+            nuke.delete(member)
 
     def _set_range_to_node(
         self, read_node: nuke.Node, first: int, last: int

@@ -158,6 +158,25 @@ class ReformatNodesConfigModel(BaseSettingsModel):
     )
 
 
+class WriteKnobsModel(BaseSettingsModel):
+    file_type: str = SettingsField(default="mov", title="File type")
+    custom: list[KnobModel] = SettingsField(
+        title="Additional Knobs",
+        default=[
+            KnobModel(
+                type="text",
+                name="mov64_codec",
+                text="ap4h",
+            ),
+            KnobModel(
+                type="boolean",
+                name="mov64_write_timecode",
+                boolean=True,
+            )
+        ]
+    )
+
+
 class IntermediateOutputModel(BaseSettingsModel):
     name: str = SettingsField(title="Output name")
     publish: bool = SettingsField(
@@ -169,6 +188,13 @@ class IntermediateOutputModel(BaseSettingsModel):
     read_raw: bool = SettingsField(
         False,
         title="Input read node RAW switch"
+    )
+    write_knobs: WriteKnobsModel = SettingsField(
+        default_factory=WriteKnobsModel,
+        title="Write Knobs",
+        description=(
+            "Configure knobs on the output write node"
+        )
     )
     bake_viewer_process: bool = SettingsField(
         True,
@@ -188,19 +214,19 @@ class IntermediateOutputModel(BaseSettingsModel):
     reformat_nodes_config: ReformatNodesConfigModel = SettingsField(
         default_factory=ReformatNodesConfigModel,
         title="Reformat Nodes")
-    extension: str = SettingsField(
-        "mov",
-        title="File extension"
-    )
+
     add_custom_tags: list[str] = SettingsField(
-        title="Custom tags", default_factory=list)
+        title="Custom tags",
+        default_factory=list,
+        section="Representation definition",
+    )
 
     fill_missing_frames:str = SettingsField(
         title="Handle missing frames",
         default="0",
         description="What to do about missing frames from entity frame range."
                     "Used for filling gaps for Custom Frames",
-        enum_resolver=_handle_missing_frames_enum
+        enum_resolver=_handle_missing_frames_enum,
     )
 
 
@@ -485,7 +511,21 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
                         }
                     ]
                 },
-                "extension": "mov",
+                "write_knobs": {
+                    "file_type": "mov",
+                    "custom": [
+                        {
+                            "type": "text",
+                            "name": "mov64_codec",
+                            "text": "ap4h",
+                        },
+                        {
+                            "type": "boolean",
+                            "name": "mov64_write_timecode",
+                            "boolean": True,
+                        },
+                    ],
+                },
                 "add_custom_tags": [],
                 "fill_missing_frames": "0"
             }
