@@ -22,6 +22,7 @@ from ayon_nuke.api import (
 from ayon_core.lib.transcoding import (
     IMAGE_EXTENSIONS
 )
+from ayon_nuke.api import traits as nuke_traits
 
 
 class LoadImage(load.LoaderPlugin):
@@ -78,7 +79,9 @@ class LoadImage(load.LoaderPlugin):
         )
 
         version_entity = context["version"]
-        version_attributes = version_entity["attrib"]
+        version_attributes = (
+            nuke_traits.get_version_attributes_with_traits(context)
+        )
         repre_entity = context["representation"]
         repre_id = repre_entity["id"]
 
@@ -91,21 +94,11 @@ class LoadImage(load.LoaderPlugin):
         if namespace is None:
             namespace = context["folder"]["name"]
 
-        filepath = self.filepath_from_context(context)
-
+        filepath = self._get_filepath(context, frame_number)
         if not filepath:
             self.log.warning(
                 "Representation id `{}` is failing to load".format(repre_id))
             return
-
-        filepath = filepath.replace("\\", "/")
-
-        frame = repre_entity["context"].get("frame")
-        if frame:
-            padding = len(frame)
-            filepath = filepath.replace(
-                frame, format(frame_number, "0{}".format(padding))
-            )
 
         read_name = self._get_node_name(context)
 
@@ -169,24 +162,12 @@ class LoadImage(load.LoaderPlugin):
         version_entity = context["version"]
         repre_entity = context["representation"]
 
-        repr_cont = repre_entity["context"]
-
-        filepath = self.filepath_from_context(context)
-
+        filepath = self._get_filepath(context, frame_number)
         if not filepath:
             repre_id = repre_entity["id"]
             self.log.warning(
                 "Representation id `{}` is failing to load".format(repre_id))
             return
-
-        filepath = filepath.replace("\\", "/")
-
-        frame = repr_cont.get("frame")
-        if frame:
-            padding = len(frame)
-            filepath = filepath.replace(
-                frame, format(frame_number, "0{}".format(padding))
-            )
 
         # Get start frame from version data
         last_version_entity = ayon_api.get_last_version_by_product_id(
@@ -205,7 +186,9 @@ class LoadImage(load.LoaderPlugin):
         read_node["origlast"].setValue(last)
         read_node["last"].setValue(last)
 
-        version_attributes = version_entity["attrib"]
+        version_attributes = (
+            nuke_traits.get_version_attributes_with_traits(context)
+        )
         updated_dict = {
             "representation": repre_entity["id"],
             "frameStart": str(first),
@@ -234,6 +217,44 @@ class LoadImage(load.LoaderPlugin):
         node = container["node"]
         assert node.Class() == "Read", "Must be Read"
         nuke.delete(node)
+
+    def _get_filepath(self, context, frame_number):
+        """Path to the image of the frame.
+
+        Args:
+            context (dict): Load context.
+            frame_number (int): Frame number to load from a sequence.
+
+        Returns:
+            Optional[str]: File path.
+
+        """
+        repre_entity = context["representation"]
+        traits_data = nuke_traits.get_load_traits_data(repre_entity)
+        if traits_data is not None:
+            # Sequence published with traits - frame is formatted with
+            #   frame padding of the sequence
+            filepath = nuke_traits.get_sequence_path(
+                context["project"]["name"],
+                repre_entity,
+                traits_data,
+                frame=int(frame_number),
+            )
+            if filepath is not None:
+                return filepath
+
+        filepath = self.filepath_from_context(context)
+        if not filepath:
+            return None
+        filepath = filepath.replace("\\", "/")
+
+        frame = repre_entity["context"].get("frame")
+        if frame:
+            padding = len(frame)
+            filepath = filepath.replace(
+                frame, format(int(frame_number), "0{}".format(padding))
+            )
+        return filepath
 
     def _get_node_name(self, context):
         folder_entity = context["folder"]
@@ -311,6 +332,14 @@ class LoadImage(load.LoaderPlugin):
         colorspace = colorspace_data.get("colorspace")
         self.log.debug(
             f"Colorspace from representation colorspaceData: {colorspace}")
+
+        if not colorspace:
+            # Representations published with traits.
+            traits_data = nuke_traits.get_load_traits_data(repre_entity)
+            if traits_data is not None:
+                colorspace = traits_data.colorspace
+                self.log.debug(
+                    f"Colorspace from representation traits: {colorspace}")
 
         if not colorspace:
             # Get backward compatible colorspace key.

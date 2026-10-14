@@ -11,6 +11,7 @@ from ayon_nuke.api import (
     containerise,
     update_container,
 )
+from ayon_nuke.api import traits as nuke_traits
 
 
 class AlembicModelLoader(load.LoaderPlugin):
@@ -39,7 +40,9 @@ class AlembicModelLoader(load.LoaderPlugin):
         project_name = context["project"]["name"]
         version_entity = context["version"]
 
-        version_attributes = version_entity["attrib"]
+        version_attributes = (
+            nuke_traits.get_version_attributes_with_traits(context)
+        )
         first = version_attributes.get("frameStart")
         last = version_attributes.get("frameEnd")
         fps = version_attributes.get("fps") or nuke.root()["fps"].getValue()
@@ -111,7 +114,9 @@ class AlembicModelLoader(load.LoaderPlugin):
         model_node = container["node"]
 
         # get main variables
-        version_attributes = version_entity["attrib"]
+        version_attributes = (
+            nuke_traits.get_version_attributes_with_traits(context)
+        )
         first = version_attributes.get("frameStart")
         last = version_attributes.get("frameEnd")
         fps = version_attributes.get("fps") or nuke.root()["fps"].getValue()
