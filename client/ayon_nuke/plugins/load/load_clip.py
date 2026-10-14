@@ -27,6 +27,7 @@ from ayon_core.lib.transcoding import (
     IMAGE_EXTENSIONS
 )
 from ayon_nuke.api import plugin
+from ayon_nuke.api import traits as nuke_traits
 
 
 class LoadClip(plugin.NukeLoader):
@@ -107,8 +108,13 @@ class LoadClip(plugin.NukeLoader):
         project_name = context["project"]["name"]
         repre_entity = context["representation"]
         version_entity = context["version"]
-        version_attributes = version_entity["attrib"]
+        # frame range, handles and fps of the representation if published
+        #   with traits
+        version_attributes = (
+            nuke_traits.get_version_attributes_with_traits(context)
+        )
         version_data = version_entity["data"]
+        traits_data = nuke_traits.get_load_traits_data(repre_entity)
 
         # reset container id so it is always unique for each instance
         self.reset_container_id()
@@ -122,14 +128,22 @@ class LoadClip(plugin.NukeLoader):
             original_filepath = self.filepath_from_context(context)
             node_type = nuke.tcl("node_for_sequence", original_filepath)
 
-        is_sequence = len(repre_entity["files"]) > 1
+        is_sequence = self._is_sequence(repre_entity, traits_data)
 
-        if is_sequence:
-            context["representation"] = (
-                self._representation_with_hash_in_frame(repre_entity)
+        # Sequence published with traits - frame pattern is created from
+        #   frame padding of the sequence
+        filepath = None
+        if traits_data is not None:
+            filepath = nuke_traits.get_sequence_path(
+                project_name, repre_entity, traits_data
             )
 
-        filepath = self.filepath_from_context(context)
+        if filepath is None:
+            if is_sequence:
+                context["representation"] = (
+                    self._representation_with_hash_in_frame(repre_entity)
+                )
+            filepath = self.filepath_from_context(context)
         filepath = filepath.replace("\\", "/")
         self.log.debug("_ filepath: {}".format(filepath))
 
@@ -151,6 +165,8 @@ class LoadClip(plugin.NukeLoader):
         # If a slate is present, the frame range is 1 frame longer for movies,
         # but file sequences it's the first frame that is 1 frame lower.
         slate_frames = repre_entity["data"].get("slateFrames", 0)
+        if traits_data is not None:
+            slate_frames = traits_data.slate_frames
         extension = "." + repre_entity["context"]["ext"]
         files_count = len(repre_entity["files"])
 
@@ -248,6 +264,23 @@ class LoadClip(plugin.NukeLoader):
     def switch(self, container, context):
         self.update(container, context)
 
+    @staticmethod
+    def _is_sequence(repre_entity, traits_data=None):
+        """Representation is a sequence of frames.
+
+        Args:
+            repre_entity (dict): Representation entity.
+            traits_data (Optional[nuke_traits.LoadTraitsData]): Data from
+                representation traits.
+
+        Returns:
+            bool: Representation is a sequence.
+
+        """
+        if traits_data is not None:
+            return traits_data.is_sequence
+        return len(repre_entity["files"]) > 1
+
     def _representation_with_hash_in_frame(self, repre_entity):
         """Convert frame key value to padded hash
 
@@ -291,21 +324,31 @@ class LoadClip(plugin.NukeLoader):
         version_entity = context["version"]
         repre_entity = context["representation"]
 
-        version_attributes = version_entity["attrib"]
+        version_attributes = (
+            nuke_traits.get_version_attributes_with_traits(context)
+        )
         version_data = version_entity["data"]
+        traits_data = nuke_traits.get_load_traits_data(repre_entity)
 
-        is_sequence = len(repre_entity["files"]) > 1
+        is_sequence = self._is_sequence(repre_entity, traits_data)
 
         read_node = container["node"]
 
-        if is_sequence:
-            repre_entity = self._representation_with_hash_in_frame(
-                repre_entity
+        # Sequence published with traits - frame pattern is created from
+        #   frame padding of the sequence
+        filepath = None
+        if traits_data is not None:
+            filepath = nuke_traits.get_sequence_path(
+                project_name, repre_entity, traits_data
             )
 
-        filepath = (
-            get_representation_path(repre_entity)
-        ).replace("\\", "/")
+        if filepath is None:
+            if is_sequence:
+                repre_entity = self._representation_with_hash_in_frame(
+                    repre_entity
+                )
+            filepath = get_representation_path(repre_entity)
+        filepath = filepath.replace("\\", "/")
         self.log.debug("_ filepath: {}".format(filepath))
 
         start_at_workfile = "start at" in read_node['frame_mode'].value()
@@ -558,6 +601,15 @@ class LoadClip(plugin.NukeLoader):
         self.log.debug(
             f"Colorspace from representation colorspaceData: {colorspace}"
         )
+
+        if not colorspace:
+            # Representations published with traits.
+            traits_data = nuke_traits.get_load_traits_data(repre_entity)
+            if traits_data is not None:
+                colorspace = traits_data.colorspace
+                self.log.debug(
+                    f"Colorspace from representation traits: {colorspace}"
+                )
 
         if not colorspace:
             # Get backward compatible colorspace key.

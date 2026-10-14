@@ -6,11 +6,13 @@ import copy
 import pyblish.api
 
 from ayon_core.pipeline import publish
+from ayon_core.pipeline.traits import Slate
 from ayon_nuke.api import (
     maintained_selection,
     duplicate_node,
     get_view_process_node
 )
+from ayon_nuke.api import traits as nuke_traits
 
 
 class ExtractSlateFrame(publish.Extractor):
@@ -277,6 +279,12 @@ class ExtractSlateFrame(publish.Extractor):
         slate_filename = os.path.basename(
             write_node["file"].evaluate(slate_first_frame))
 
+        if nuke_traits.uses_trait_representations(instance):
+            self._add_slate_to_trait_representation(
+                instance, write_node, first_filename, slate_filename
+            )
+            return
+
         # Find matching representation based on first filename
         matching_repre = None
         is_sequence = None
@@ -319,6 +327,40 @@ class ExtractSlateFrame(publish.Extractor):
         data["slateFrames"] = 1
         matching_repre["data"] = data
 
+        self.log.info("Added slate frame to representation files")
+
+    def _add_slate_to_trait_representation(
+        self, instance, write_node, first_filename, slate_filename
+    ):
+        """Add slate frame to trait representation files.
+
+        Frame range traits are recomputed from the files, so they start
+        with the slate frame.
+        """
+        representation = nuke_traits.find_representation_by_filename(
+            instance, first_filename
+        )
+        if representation is None:
+            self.log.info(
+                "Matching representation was not found."
+                " Representation files were not filled with slate."
+            )
+            return
+
+        filenames = nuke_traits.get_representation_filenames(representation)
+        if slate_filename not in filenames:
+            filenames.insert(0, slate_filename)
+            output_dir = os.path.dirname(nuke.filename(write_node))
+            nuke_traits.set_file_traits(
+                representation,
+                output_dir,
+                filenames,
+                fps=instance.data.get("fps"),
+            )
+        # integration stores it to representation data as 'slateFrames'
+        #   (used by loaders), same as on legacy representations
+        if not representation.contains_trait(Slate):
+            representation.add_trait(Slate(frames=1))
         self.log.info("Added slate frame to representation files")
 
     def add_comment_slate_node(self, instance, node):

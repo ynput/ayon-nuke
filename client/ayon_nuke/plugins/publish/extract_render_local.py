@@ -5,6 +5,7 @@ import pyblish.api
 import clique
 import nuke
 from ayon_nuke import api as napi
+from ayon_nuke.api import traits as nuke_traits
 from ayon_core.pipeline import publish
 from ayon_core.lib import collect_frames
 
@@ -101,6 +102,53 @@ class NukeRenderLocal(publish.Extractor,
 
         colorspace = napi.get_colorspace_from_node(node)
 
+        if nuke_traits.uses_trait_representations(instance):
+            representation = nuke_traits.create_write_representation(
+                instance,
+                node,
+                filenames,
+                out_dir,
+                colorspace=colorspace,
+            )
+            publish.add_trait_representations(instance, [representation])
+        else:
+            self._add_legacy_representation(
+                instance, filenames, out_dir, ext, first_frame, last_frame,
+                colorspace
+            )
+
+        self.log.debug("Extracted instance '{0}' to: {1}".format(
+            instance.name,
+            out_dir
+        ))
+
+        families = instance.data["families"]
+        # redefinition of families
+        if "render.local" in families:
+            families.remove("render.local")
+            families.insert(0, "render2d")
+        elif "prerender.local" in families:
+            families.remove("prerender.local")
+            families.insert(0, "prerender")
+        elif "image.local" in families:
+            families.remove("image.local")
+        instance.data["families"] = families
+
+        collections, remainder = clique.assemble(filenames)
+        self.log.debug('collections: {}'.format(str(collections)))
+
+        if collections:
+            collection = collections[0]
+            instance.data['collection'] = collection
+
+        self.log.info('Finished render')
+
+        self.log.debug("_ instance.data: {}".format(instance.data))
+
+    def _add_legacy_representation(
+        self, instance, filenames, out_dir, ext, first_frame, last_frame,
+        colorspace
+    ):
         if "representations" not in instance.data:
             instance.data["representations"] = []
 
@@ -131,34 +179,6 @@ class NukeRenderLocal(publish.Extractor,
         )
 
         instance.data["representations"].append(repre)
-
-        self.log.debug("Extracted instance '{0}' to: {1}".format(
-            instance.name,
-            out_dir
-        ))
-
-        families = instance.data["families"]
-        # redefinition of families
-        if "render.local" in families:
-            families.remove("render.local")
-            families.insert(0, "render2d")
-        elif "prerender.local" in families:
-            families.remove("prerender.local")
-            families.insert(0, "prerender")
-        elif "image.local" in families:
-            families.remove("image.local")
-        instance.data["families"] = families
-
-        collections, remainder = clique.assemble(filenames)
-        self.log.debug('collections: {}'.format(str(collections)))
-
-        if collections:
-            collection = collections[0]
-            instance.data['collection'] = collection
-
-        self.log.info('Finished render')
-
-        self.log.debug("_ instance.data: {}".format(instance.data))
 
     def _copy_last_published(self, anatomy, instance, out_dir,
                              expected_filenames):

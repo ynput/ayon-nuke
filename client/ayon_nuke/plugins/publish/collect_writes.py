@@ -5,6 +5,7 @@ import pyblish.api
 from ayon_core.pipeline import publish
 
 from ayon_nuke import api as napi
+from ayon_nuke.api import traits as nuke_traits
 
 
 class CollectNukeWrites(pyblish.api.InstancePlugin,
@@ -17,6 +18,10 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
     families = ["render", "prerender", "image"]
 
     settings_category = "nuke"
+
+    # Publish trait based representations for render targets
+    #   processed inside Nuke ("local" and "frames")
+    use_trait_representations = False
 
     # cache
     _write_nodes = {}
@@ -43,6 +48,11 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
                 )
             )
             return
+
+        instance.data[nuke_traits.INSTANCE_DATA_KEY] = (
+            self.use_trait_representations
+            and render_target in nuke_traits.TRAIT_RENDER_TARGETS
+        )
 
         # get colorspace and add to version data
         colorspace = napi.get_colorspace_from_node(write_node)
@@ -75,6 +85,12 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         """
         collected_frames = self._get_collected_frames(instance)
 
+        if nuke_traits.uses_trait_representations(instance):
+            self._add_existing_frames_trait_representation(
+                instance, collected_frames, colorspace
+            )
+            return collected_frames
+
         representation = self._get_existing_frames_representation(
             instance, collected_frames
         )
@@ -88,6 +104,33 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         instance.data["representations"].append(representation)
 
         return collected_frames
+
+    def _add_existing_frames_trait_representation(
+        self, instance, collected_frames, colorspace
+    ):
+        """Add trait representation of existing frames to instance.
+
+        Nothing is added when there are no frames, 'ValidateRenderedFrames'
+        reports that.
+
+        Args:
+            instance (pyblish.api.Instance): pyblish instance
+            collected_frames (list): collected frames
+            colorspace (str): colorspace
+        """
+        if not collected_frames:
+            return
+
+        write_node = self._write_node_helper(instance)
+        output_dir = os.path.dirname(nuke.filename(write_node))
+        representation = nuke_traits.create_write_representation(
+            instance,
+            write_node,
+            list(collected_frames),
+            output_dir,
+            colorspace=colorspace,
+        )
+        publish.add_trait_representations(instance, [representation])
 
     def _set_expected_files(self, instance, collected_frames):
         """Set expected files to instance data.

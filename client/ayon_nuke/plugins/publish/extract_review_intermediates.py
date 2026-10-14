@@ -5,6 +5,7 @@ import pyblish.api
 
 from ayon_core.pipeline import publish
 from ayon_nuke.api import plugin
+from ayon_nuke.api import traits as nuke_traits
 from ayon_nuke.api.lib import maintained_selection
 
 
@@ -145,7 +146,16 @@ class ExtractReviewIntermediates(publish.Extractor):
 
         if generated_repres:
             # assign to representations
-            instance.data["representations"] += generated_repres
+            if nuke_traits.uses_trait_representations(instance):
+                # TODO: 'data' of legacy representations (e.g.
+                #   'isIntermediate') has no trait equivalent yet.
+                publish.add_trait_representations(
+                    instance,
+                    publish.convert_legacy_representations(
+                        instance, generated_repres),
+                )
+            else:
+                instance.data["representations"] += generated_repres
             instance.data["useSequenceForReview"] = False
         else:
             instance.data["families"].remove("review")

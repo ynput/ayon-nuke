@@ -5,7 +5,12 @@ from ayon_core.pipeline import (
     PublishXmlValidationError,
     OptionalPyblishPluginMixin,
 )
-from ayon_core.pipeline.publish import get_errored_instances_from_context
+from ayon_core.pipeline.publish import (
+    get_errored_instances_from_context,
+    get_trait_representations,
+)
+
+from ayon_nuke.api import traits as nuke_traits
 
 
 class RepairActionBase(pyblish.api.Action):
@@ -63,6 +68,29 @@ class ValidateRenderedFrames(
 
     settings_category = "nuke"
 
+    @staticmethod
+    def _get_representations_files(instance):
+        """Files of each representation, either from dicts or traits.
+
+        Returns:
+            list[Union[str, list[str]]]: Files per representation.
+        """
+        if not nuke_traits.uses_trait_representations(instance):
+            return [
+                repre.get("files")
+                for repre in instance.data["representations"]
+            ]
+
+        repres_files = [
+            nuke_traits.get_representation_filenames(representation)
+            for representation in get_trait_representations(instance)
+        ]
+        # Legacy "frames" target always has a representation, even
+        #   without files, so missing frames are reported.
+        if not repres_files and instance.data.get("render_target") == "frames":
+            repres_files.append([])
+        return repres_files
+
     def process(self, instance):
         if not self.is_active(instance.data):
             return
@@ -73,9 +101,9 @@ class ValidateRenderedFrames(
             "node_name": node.name()
         }
 
-        for repre in instance.data["representations"]:
+        for repre_files in self._get_representations_files(instance):
 
-            if not repre.get("files"):
+            if not repre_files:
                 msg = ("no frames were collected, "
                        "you need to render them.\n"
                        "Check properties of write node (group) and"
@@ -84,10 +112,10 @@ class ValidateRenderedFrames(
                 raise PublishXmlValidationError(
                     self, msg, formatting_data=f_data)
 
-            if isinstance(repre["files"], str):
+            if isinstance(repre_files, str) or len(repre_files) == 1:
                 return
 
-            collections, remainder = clique.assemble(repre["files"])
+            collections, remainder = clique.assemble(repre_files)
             self.log.debug("collections: {}".format(str(collections)))
             self.log.debug("remainder: {}".format(str(remainder)))
 
