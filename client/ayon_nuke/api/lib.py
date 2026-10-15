@@ -3004,40 +3004,126 @@ def duplicate_node(node):
     return dupli_node
 
 
+def _get_route_lengths(end_node, nodes):
+    """Get the longest route to `end_node` from each node upstream of it.
+
+    Args:
+        end_node (nuke.Node): The node to walk upstream from.
+        nodes (set[nuke.Node]): The nodes the route may go through.
+
+    Returns:
+        dict[nuke.Node, int]: The number of connections on the longest
+            route from each upstream node to `end_node`. This includes
+            `end_node` itself, with a route length of 0.
+    """
+    route_lengths = {end_node: 0}
+    nodes_to_visit = [end_node]
+    while nodes_to_visit:
+        node = nodes_to_visit.pop()
+        for input_node in node.dependencies(nuke.INPUTS | nuke.HIDDEN_INPUTS):
+            if input_node not in nodes:
+                continue
+
+            # Only walk further up when this is a longer route to the node
+            route_length = route_lengths[node] + 1
+            if route_length > route_lengths.get(input_node, -1):
+                route_lengths[input_node] = route_length
+                nodes_to_visit.append(input_node)
+    return route_lengths
+
+
 def get_group_io_nodes(nodes):
-    """Get the input and the output of a group of nodes."""
+    """Get the input and the output node of a group of newly added nodes.
+
+    Nodes with "Input" or "Output" in their name are used when present.
+    Otherwise, the nodes with a free input or output are used:
+
+    - Input nodes can have inputs, but have none connected.
+    - Output nodes can have outputs, but have none connected.
+
+    The first input node and the first output node are used. When there
+    are multiple output nodes, the connected input and output node with
+    the longest route between them are used instead, assuming that the
+    longest route is the most important one. For example, for `A -> B -> C`
+    the input node is A and the output node is C.
+
+    The nodes are expected to be new, so any connection they have is to
+    another one of the given nodes. They are sorted by name, so the result
+    is consistent when there are multiple candidates, e.g. when a
+    placeholder loaded multiple Read nodes.
+
+    Args:
+        nodes (list[nuke.Node]): The group of nodes.
+
+    Returns:
+        tuple[Optional[nuke.Node], Optional[nuke.Node]]: The input and
+            output node. Either is None when there is none, e.g. there is
+            no input node when the nodes start with a Read node.
+    """
 
     if not nodes:
         raise ValueError("there is no nodes in the list")
 
-    nodes = [
+    # Avoid non-connectable nodes, like Backdrops, and sort by name so the
+    # result does not depend on the order of the given nodes
+    nodes = sorted(
+        (
+            node for node in nodes
+            if node.maxInputs() > 0 or node.maxOutputs() > 0
+        ),
+        key=lambda node: node.name()
+    )
+
+    named_input_node = next(
+        (node for node in nodes if "Input" in node.name()), None
+    )
+    named_output_node = next(
+        (node for node in nodes if "Output" in node.name()), None
+    )
+    if named_input_node is not None and named_output_node is not None:
+        return named_input_node, named_output_node
+
+    # Nodes that can have inputs, but have none connected
+    input_nodes = [
         node for node in nodes
-        # Avoid non-connectable nodes, like Backdrops
-        if node.maxInputs() > 0 or node.maxOutputs() > 0
+        if node.maxInputs() > 0
+        and not node.dependencies(nuke.INPUTS | nuke.HIDDEN_INPUTS)
+    ]
+    # Nodes that can have outputs, but have none connected
+    output_nodes = [
+        node for node in nodes
+        if node.maxOutputs() > 0
+        and not node.dependent(
+            nuke.INPUTS | nuke.HIDDEN_INPUTS, forceEvaluate=False
+        )
     ]
 
-    input_node = None
-    output_node = None
+    input_node = input_nodes[0] if input_nodes else None
+    output_node = output_nodes[0] if output_nodes else None
 
-    if len(nodes) == 1:
-        input_node = output_node = nodes[0]
+    # With multiple output nodes, prefer the connected input and output
+    # node with the longest route
+    if len(output_nodes) > 1:
+        nodes_set = set(nodes)
+        longest_route_length = -1
+        for end_node in output_nodes:
+            route_lengths = _get_route_lengths(end_node, nodes_set)
+            for start_node in input_nodes:
+                route_length = route_lengths.get(start_node, -1)
+                if route_length > longest_route_length:
+                    longest_route_length = route_length
+                    input_node = start_node
+                    output_node = end_node
 
-    else:
-        for node in nodes:
-            if "Input" in node.name():
-                input_node = node
+    if named_input_node is not None:
+        input_node = named_input_node
+    if named_output_node is not None:
+        output_node = named_output_node
 
-            if "Output" in node.name():
-                output_node = node
-
-            if input_node is not None and output_node is not None:
-                break
-
-        if input_node is None:
-            log.warning("No Input found")
-
-        if output_node is None:
-            log.warning("No Output found")
+    if input_node is None:
+        log.debug("No Input found")
+    if output_node is None:
+        log.debug("No Output found")
 
     return input_node, output_node
 
