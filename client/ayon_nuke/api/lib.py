@@ -3004,23 +3004,6 @@ def duplicate_node(node):
     return dupli_node
 
 
-def _get_input_nodes(node):
-    """Get the nodes connected to the inputs of a node."""
-    return node.dependencies(nuke.INPUTS | nuke.HIDDEN_INPUTS)
-
-
-def _has_inputs(node):
-    """Return whether a node has any of its inputs connected."""
-    return bool(_get_input_nodes(node))
-
-
-def _has_outputs(node):
-    """Return whether a node is connected to the input of another node."""
-    return bool(
-        node.dependent(nuke.INPUTS | nuke.HIDDEN_INPUTS, forceEvaluate=False)
-    )
-
-
 def _get_route_lengths(end_node, nodes):
     """Get the longest route to `end_node` from each node upstream of it.
 
@@ -3037,7 +3020,7 @@ def _get_route_lengths(end_node, nodes):
     nodes_to_visit = [end_node]
     while nodes_to_visit:
         node = nodes_to_visit.pop()
-        for input_node in _get_input_nodes(node):
+        for input_node in node.dependencies(nuke.INPUTS | nuke.HIDDEN_INPUTS):
             if input_node not in nodes:
                 continue
 
@@ -3100,13 +3083,19 @@ def get_group_io_nodes(nodes):
     if named_input_node is not None and named_output_node is not None:
         return named_input_node, named_output_node
 
+    # Nodes that can have inputs, but have none connected
     input_nodes = [
         node for node in nodes
-        if node.maxInputs() > 0 and not _has_inputs(node)
+        if node.maxInputs() > 0
+        and not node.dependencies(nuke.INPUTS | nuke.HIDDEN_INPUTS)
     ]
+    # Nodes that can have outputs, but have none connected
     output_nodes = [
         node for node in nodes
-        if node.maxOutputs() > 0 and not _has_outputs(node)
+        if node.maxOutputs() > 0
+        and not node.dependent(
+            nuke.INPUTS | nuke.HIDDEN_INPUTS, forceEvaluate=False
+        )
     ]
 
     input_node = input_nodes[0] if input_nodes else None
