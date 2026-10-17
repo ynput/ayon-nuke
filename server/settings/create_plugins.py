@@ -307,6 +307,7 @@ class CreateDeepWritePrerenderModel(DefaultPluginModel):
         default_factory=ConditionalReviewableModel,
         title="Conditional Reviewable Profiles",
         description=DISABLE_REVIEW_TOGGLE_DESCRIPTION,
+        conditional_enum=True,
     )
     render_target: str = SettingsField(
         enum_resolver=render_target_enum,
