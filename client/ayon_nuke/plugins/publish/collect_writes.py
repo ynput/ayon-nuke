@@ -85,11 +85,12 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             instance, collected_frames
         )
 
-        # inject colorspace data
-        self.set_representation_colorspace(
-            representation, instance.context,
-            colorspace=colorspace
-        )
+        if colorspace:
+            # inject colorspace data
+            self.set_representation_colorspace(
+                representation, instance.context,
+                colorspace=colorspace
+            )
 
         instance.data["representations"].append(representation)
 
@@ -227,12 +228,14 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             "path": write_file_path,
             "outputDir": output_dir,
             "ext": ext,
-            "colorspace": colorspace,
             "color_channels": color_channels,
             "resolutionWidth": write_node.width(),
             "resolutionHeight": write_node.height(),
             "pixelAspect": write_node.pixelAspect(),
         })
+
+        if colorspace:
+            instance.data["colorspace"] = colorspace
 
         if product_base_type == "render":
             instance.data.update({
@@ -278,7 +281,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
 
         write_node = None
         for node_ in child_nodes:
-            if node_.Class() == "Write":
+            if node_.Class() in {"Write", "DeepWrite"}:
                 write_node = node_
 
         if write_node:
