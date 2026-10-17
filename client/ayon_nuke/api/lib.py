@@ -2001,7 +2001,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             node.end()
 
             if not write_node:
-                return
+                continue
 
             nuke_imageio_writes = None
             if avalon_knob_data:
@@ -2019,7 +2019,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                 )
 
             if not nuke_imageio_writes:
-                return
+                continue
 
             # Exclude exposed knobs from colorspace nodes.
             # This ensures that any values overwritten by the user is
