@@ -34,8 +34,7 @@ class CreateWritePrerender(napi.NukeWriteCreator):
         staging_dir=None,
         node_selection=None,
     ):
-        settings = self.project_settings["nuke"]["create"]
-        settings = settings["CreateWritePrerender"]
+        settings = self.get_creator_settings(self.project_settings)
 
         # add fpath_template
         write_data = {
@@ -90,3 +89,14 @@ class CreateWritePrerender(napi.NukeWriteCreator):
         w_node["last"].setValue(nuke.root()["last_frame"].value())
 
         return write_node
+
+
+class CreateWritePrerenderAlpha(CreateWritePrerender):
+    """Prerender specialized for writing alpha channels.
+
+    Same behavior as the Prerender creator, with its own settings so the
+    write node knobs (e.g. 'channels') can be configured separately.
+    """
+
+    identifier = "create_write_prerender_alpha"
+    label = "Prerender Alpha (write)"

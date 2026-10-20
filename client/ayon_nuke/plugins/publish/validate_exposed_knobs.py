@@ -29,8 +29,8 @@ class RepairExposedKnobs(pyblish.api.Action):
                 if x.Class() == "Write":
                     write_node = x
 
-            product_base_type = instance.data["productBaseType"]
-            plugin_name = plugin.product_base_types_mapping[product_base_type]
+            creator_identifier = instance.data["creator_identifier"]
+            plugin_name = plugin.creator_settings_mapping[creator_identifier]
             nuke_settings = instance.context.data["project_settings"]["nuke"]
             create_settings = nuke_settings["create"][plugin_name]
             exposed_knobs = create_settings["exposed_knobs"]
@@ -55,18 +55,19 @@ class ValidateExposedKnobs(
 
     settings_category = "nuke"
 
-    product_base_types_mapping = {
-        "render": "CreateWriteRender",
-        "prerender": "CreateWritePrerender",
-        "image": "CreateWriteImage"
+    creator_settings_mapping = {
+        "create_write_render": "CreateWriteRender",
+        "create_write_prerender": "CreateWritePrerender",
+        "create_write_prerender_alpha": "CreateWritePrerenderAlpha",
+        "create_write_image": "CreateWriteImage"
     }
 
     def process(self, instance):
         if not self.is_active(instance.data):
             return
 
-        product_base_type = instance.data["productBaseType"]
-        plugin = self.product_base_types_mapping[product_base_type]
+        creator_identifier = instance.data["creator_identifier"]
+        plugin = self.creator_settings_mapping[creator_identifier]
         group_node = instance.data["transientData"]["node"]
         nuke_settings = instance.context.data["project_settings"]["nuke"]
         create_settings = nuke_settings["create"][plugin]
