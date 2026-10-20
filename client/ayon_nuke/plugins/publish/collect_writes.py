@@ -85,11 +85,14 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             instance, collected_frames
         )
 
-        # inject colorspace data
-        self.set_representation_colorspace(
-            representation, instance.context,
-            colorspace=colorspace
-        )
+        # Inject colorspace data only when files were collected. Empty
+        # representations must reach ValidateRenderedFrames unchanged so it
+        # can report the missing frames to the artist.
+        if representation.get("files"):
+            self.set_representation_colorspace(
+                representation, instance.context,
+                colorspace=colorspace
+            )
 
         instance.data["representations"].append(representation)
 
