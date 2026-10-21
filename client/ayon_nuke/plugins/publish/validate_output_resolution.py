@@ -92,7 +92,7 @@ class ValidateOutputResolution(
         reformat = cls.get_reformat(instance)
         reformat_class = (
             "Reformat"
-            if instance.creator_identifier
+            if instance.data["creator_identifier"]
             not in {"create_deepwrite_prerender", "create_deepwrite_render"}
             else "DeepReformat"
         )
