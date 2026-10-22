@@ -10,11 +10,14 @@ from ayon_nuke.api.lib import (
     maintained_selection,
     reset_selection,
     select_nodes,
-    get_avalon_knob_data,
-    set_avalon_knob_data
 )
 from ayon_nuke.api.command import undo_chunk
-from ayon_nuke.api import containerise, update_container
+from ayon_nuke.api import (
+    containerise,
+    parse_container,
+    imprint_container,
+    update_container,
+)
 
 
 class LoadBackdropNodes(load.LoaderPlugin):
@@ -204,7 +207,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
 
         xpos = GN.xpos()
         ypos = GN.ypos()
-        avalon_data = get_avalon_knob_data(GN)
+        container_data = parse_container(GN)
 
         # Preserve external connections (to/from outside the backdrop)
         backdrop_nodes = get_backdrop_nodes(GN)
@@ -220,7 +223,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
                 # create new backdrop so that the nodes can be
                 # filled within it
                 GN = self.set_autobackdrop(xpos, ypos, object_name)
-                set_avalon_knob_data(GN, avalon_data)
+                imprint_container(GN, container_data)
 
         # get all versions in list
         last_version_entity = ayon_api.get_last_version_by_product_id(

@@ -322,10 +322,7 @@ class LoadClip(plugin.NukeLoader):
             self.options_defaults["set_frame_range"]
         )
 
-        add_retime = [
-            key for key in read_node.knobs().keys()
-            if "addRetime" in key
-        ]
+        add_retime = container.get("addRetime")
 
         repre_id = repre_entity["id"]
         first, last = self._get_frame_range(version_attributes)
