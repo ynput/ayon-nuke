@@ -3080,8 +3080,6 @@ def get_group_io_nodes(nodes):
     named_output_node = next(
         (node for node in nodes if "Output" in node.name()), None
     )
-    if named_input_node is not None and named_output_node is not None:
-        return named_input_node, named_output_node
 
     # Nodes that can have inputs, but have none connected
     input_nodes = [
