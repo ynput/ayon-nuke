@@ -52,6 +52,7 @@ from .pipeline import (
     list_instances,
     remove_instance,
     containerise,
+    parse_container,
     update_container,
 )
 from .command import undo_chunk
@@ -682,11 +683,17 @@ class NukeLoader(LoaderPlugin):
         return id_knob.value() if id_knob else None
 
     def get_members(self, source):
-        """Return nodes that has same "containerId" as `source`"""
+        """Return nodes that has same "containerId" as `source`
+
+        A node that is a container itself is not a member. A copy of the
+        source node has the same "containerId" as the source node, but it
+        is managed as its own container.
+        """
         source_id = self.get_container_id(source)
         return [node for node in nuke.allNodes(recurseGroups=True)
                 if self.get_container_id(node) == source_id
-                and node is not source] if source_id else []
+                and node is not source
+                and not parse_container(node)] if source_id else []
 
     def set_as_member(self, node):
         source_id = self.get_container_id(node)
