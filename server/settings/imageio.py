@@ -14,6 +14,10 @@ from .common import (
 def nuke_creator_plugins_enum():
     return [
         {"value": "CreateWritePrerender", "label": "Prerender (write)"},
+        {
+            "value": "CreateWritePrerenderAlpha",
+            "label": "Prerender Alpha (write)",
+        },
         {"value": "CreateCamera", "label": "Camera (3d)"},
         {"value": "CreateGizmo", "label": "Gizmo (group)"},
         {"value": "CreateWriteImage", "label": "Image (write)"},
@@ -390,6 +394,41 @@ DEFAULT_IMAGEIO_SETTINGS = {
                         "color_gui": [171, 171, 10],
                     },
                     {"type": "text", "name": "channels", "text": "rgb"},
+                    {
+                        "type": "text",
+                        "name": "colorspace",
+                        "text": "scene_linear",
+                    },
+                    {
+                        "type": "boolean",
+                        "name": "create_directories",
+                        "boolean": True,
+                    },
+                ],
+            },
+            {
+                "plugins": ["CreateWritePrerenderAlpha"],
+                "nuke_node_class": "Write",
+                "custom_class": "",
+                "knobs": [
+                    {"type": "text", "name": "file_type", "text": "exr"},
+                    {
+                        "type": "text",
+                        "name": "datatype",
+                        "text": "16 bit half",
+                    },
+                    {
+                        "type": "text",
+                        "name": "compression",
+                        "text": "Zip (1 scanline)",
+                    },
+                    {"type": "boolean", "name": "autocrop", "boolean": True},
+                    {
+                        "type": "color_gui",
+                        "name": "tile_color",
+                        "color_gui": [200, 200, 200],
+                    },
+                    {"type": "text", "name": "channels", "text": "rgba"},
                     {
                         "type": "text",
                         "name": "colorspace",
