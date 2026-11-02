@@ -4,6 +4,7 @@ from ayon_server.settings import (
     BaseSettingsModel,
     SettingsField,
     ensure_unique_names,
+    task_types_enum,
 )
 
 from .common import (
@@ -70,6 +71,15 @@ class RequiredNodesModel(NodesModel):
 
 
 class OverrideNodesModel(NodesModel):
+    task_types: list[str] = SettingsField(
+        default_factory=list,
+        title="Task types",
+        description=(
+            "Apply override only for tasks of these types. "
+            "Leave empty to apply for all task types."
+        ),
+        enum_resolver=task_types_enum
+    )
     product_names: list[str] = SettingsField(
         default_factory=list,
         title="Product names"

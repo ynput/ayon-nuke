@@ -660,8 +660,53 @@ def get_nuke_imageio_settings():
     return get_project_settings(Context.project_name)["nuke"]["imageio"]
 
 
+@functools.lru_cache(maxsize=16)
+def _get_task_type(project_name, folder_path, task_name):
+    """Return task type of the given task, cached per context.
+
+    Cached because override matching runs for every write node, e.g. on
+    workfile open, and task type of an existing task does not change.
+
+    Returns:
+        Optional[str]: Task type or None if task could not be found.
+    """
+    if not all((project_name, folder_path, task_name)):
+        return None
+
+    folder_entity = ayon_api.get_folder_by_path(
+        project_name, folder_path, fields={"id"}
+    )
+    if not folder_entity:
+        return None
+
+    task_entity = ayon_api.get_task_by_name(
+        project_name, folder_entity["id"], task_name, fields={"taskType"}
+    )
+    if not task_entity:
+        return None
+    return task_entity["taskType"]
+
+
+def get_current_task_type():
+    """Return task type of the current context task.
+
+    Returns:
+        Optional[str]: Task type or None if there is no current task.
+    """
+    context = get_current_context()
+    return _get_task_type(
+        context["project_name"],
+        context["folder_path"],
+        context["task_name"],
+    )
+
+
 def get_matching_override_node(node_class, plugin_name, product_name):
     """Find matching override node for the given configuration.
+
+    Override node matches when node class and plugin match and, if set
+    in settings, current task type is one of its task types and product
+    name matches one of its product name regexes.
 
     Args:
         node_class (str): Nuke node class name
@@ -684,6 +729,11 @@ def get_matching_override_node(node_class, plugin_name, product_name):
             continue
 
         if plugin_name not in override_node["plugins"]:
+            continue
+
+        # empty task types means the override applies to all task types
+        task_types = override_node.get("task_types")
+        if task_types and get_current_task_type() not in task_types:
             continue
 
         product_names = override_node["product_names"]
