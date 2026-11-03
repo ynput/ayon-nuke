@@ -122,17 +122,15 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
 
     @staticmethod
     def _normalize_value(
-        value: Any) -> str | int | bool | float | list[str] | None:
-        """Normalize the value to a string, integer, boolean, float,
-        or a list of strings.
+        value: Any) -> str | int | bool | float | None:
+        """Normalize the value to a string, integer, boolean, or float.
 
         Args:
             value (Any): The value to normalize.
 
         Returns:
-            str | int | bool | float | list[str] | None: The normalized
-                string value, integer, boolean, float, list of
-                string values, or None.
+            str | int | bool | float | None: The normalized
+                string value, integer, boolean, float, or None.
         """
         if isinstance(value, (bool, int, float, str)) or value is None:
             return value
