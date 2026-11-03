@@ -67,10 +67,10 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
                 continue
             collected[key] = self._normalize_value(value)
 
-        missing = [
+        missing = {
             key for key in self.metadata_keys
             if not key.endswith("/") and key not in collected
-        ]
+        }
         if missing:
             self.log.debug(
                 f"Metadata keys not found on '{write_node.fullName()}'"
