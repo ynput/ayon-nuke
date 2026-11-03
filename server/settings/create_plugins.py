@@ -308,6 +308,10 @@ class CreatorPluginsSettings(BaseSettingsModel):
         default_factory=CreateWritePrerenderModel,
         title="Prerender (write)"
     )
+    CreateWritePrerenderAlpha: CreateWritePrerenderModel = SettingsField(
+        default_factory=CreateWritePrerenderModel,
+        title="Prerender Alpha (write)"
+    )
     CreateWriteImage: CreateWriteImageModel = SettingsField(
         default_factory=CreateWriteImageModel,
         title="Image (write)"
@@ -385,6 +389,32 @@ DEFAULT_CREATE_SETTINGS = {
     "CreateWritePrerender": {
         "enabled": True,
         "order": 100,
+        "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}",  # noqa: E501
+        "default_variants": [
+            "Key01",
+            "Bg01",
+            "Fg01",
+            "Branch01",
+            "Part01"
+        ],
+        "instance_attributes": [
+            "farm_rendering",
+            "use_range_limit"
+        ],
+        "conditional_reviewable": {"task_types": []},
+        "render_target": "local",
+        "exposed_knobs": [],
+        "prenodes": []
+    },
+    "CreateWritePrerenderAlpha": {
+        "enabled": True,
+        "order": 100,
+        "product_type_items": [
+            {
+                "product_type": "prerenderAlpha",
+                "label": "Prerender Alpha (write)"
+            }
+        ],
         "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}",  # noqa: E501
         "default_variants": [
             "Key01",
