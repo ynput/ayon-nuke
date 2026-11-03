@@ -137,10 +137,4 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
         """
         if isinstance(value, (bool, int, float, str)) or value is None:
             return value
-        if isinstance(value, (list, tuple)):
-            return [
-                item if isinstance(item, (bool, int, float, str))
-                else str(item)
-                for item in value
-            ]
         return str(value)
