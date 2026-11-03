@@ -81,6 +81,38 @@ class CollectSyncWorkfileVersionModel(BaseSettingsModel):
     )
 
 
+class CollectBurninMetadataModel(BaseSettingsModel):
+    """Expose Nuke metadata stream values as burnin and slate keys.
+
+    Values are read from the metadata entering the instance's Write node
+    (e.g. added by an upstream ModifyMetaData node) at the first frame.
+    Use a key in burnin templates as `{camera/focal}` and in slate
+    templates as `{custom[camera/focal]}`.
+    """
+    enabled: bool = SettingsField(True, title="Enabled")
+    metadata_keys: list[str] = SettingsField(
+        default_factory=list,
+        title="Metadata keys",
+        description=(
+            "Exact metadata keys (e.g. 'camera/focal') or prefixes ending "
+            "with '/' (e.g. 'camera/' collects all 'camera/*' keys)."
+        ),
+    )
+
+    @validator("metadata_keys")
+    def validate_metadata_keys(cls, value):
+        invalid_chars = set("{}:[].!")
+        for key in value:
+            if not key.strip():
+                raise ValueError("Metadata key must not be empty.")
+            if invalid_chars.intersection(key):
+                raise ValueError(
+                    f"Metadata key '{key}' contains one of the invalid "
+                    f"characters: {''.join(sorted(invalid_chars))}"
+                )
+        return value
+
+
 class OptionalPluginModel(BaseSettingsModel):
     enabled: bool = SettingsField(True)
     optional: bool = SettingsField(title="Optional")
@@ -282,6 +314,10 @@ class PublishPluginsModel(BaseSettingsModel):
             section="Collectors",
         )
     )
+    CollectBurninMetadata: CollectBurninMetadataModel = SettingsField(
+        title="Collect Burnin Metadata",
+        default_factory=CollectBurninMetadataModel,
+    )
     ValidateCorrectAssetContext: OptionalPluginModel = SettingsField(
         title="Validate Correct Folder Name",
         default_factory=OptionalPluginModel,
@@ -373,6 +409,12 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
             "source",
             "render",
             "write"
+        ]
+    },
+    "CollectBurninMetadata": {
+        "enabled": True,
+        "metadata_keys": [
+            "camera/"
         ]
     },
     "ValidateCorrectAssetContext": {
