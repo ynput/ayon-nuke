@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pyblish.api
 from typing import Any
 import nuke
