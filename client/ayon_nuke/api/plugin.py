@@ -1059,7 +1059,8 @@ class ExporterReview(object):
 
     def get_imageio_baking_profile(self):
         from . import lib as opnlib
-        nuke_imageio = opnlib.get_nuke_imageio_settings()
+        project_settings = self.instance.context.data["project_settings"]
+        nuke_imageio = opnlib.get_nuke_imageio_settings(project_settings)
 
         if nuke_imageio["baking_target"]["enabled"]:
             return nuke_imageio["baking_target"]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 import re
+import copy
 import json
 import functools
 import warnings
@@ -656,22 +657,42 @@ def get_node_path(path, padding=4):
     return filename, padding, ext
 
 
-def get_nuke_imageio_settings():
-    return get_project_settings(Context.project_name)["nuke"]["imageio"]
+def get_nuke_imageio_settings(project_settings: dict | None = None):
+    """Get the `nuke/imageio` project settings.
+
+    Args:
+        project_settings (Optional[dict]): Project settings, if the caller
+            already has them. Getting the project settings returns a deep
+            copy of all the project's settings, so pass them in when this
+            is used repeatedly (e.g. for each node in a loop).
+
+    Returns:
+        dict: The `nuke/imageio` settings.
+    """
+    if project_settings is None:
+        project_settings = get_project_settings(Context.project_name)
+    return project_settings["nuke"]["imageio"]
 
 
-def get_matching_override_node(node_class, plugin_name, product_name):
+def get_matching_override_node(
+    node_class,
+    plugin_name,
+    product_name,
+    project_settings: dict | None = None,
+):
     """Find matching override node for the given configuration.
 
     Args:
         node_class (str): Nuke node class name
         plugin_name (str): Plugin name
         product_name (str): Product name
+        project_settings (Optional[dict]): Project settings, queried if not
+            provided.
 
     Returns:
         dict or None: Matching override node or None if not found
     """
-    imageio_nodes = get_nuke_imageio_settings()["nodes"]
+    imageio_nodes = get_nuke_imageio_settings(project_settings)["nodes"]
     override_nodes = imageio_nodes["override_nodes"]
 
     for override_node in override_nodes:
@@ -702,9 +723,27 @@ def get_matching_override_node(node_class, plugin_name, product_name):
     return None
 
 
-def get_imageio_node_setting(node_class, plugin_name, product_name):
-    """Get preset data for dataflow (fileType, compression, bitDepth)"""
-    imageio_nodes = get_nuke_imageio_settings()["nodes"]
+def get_imageio_node_setting(
+    node_class,
+    plugin_name,
+    product_name,
+    project_settings: dict | None = None,
+):
+    """Get preset data for dataflow (fileType, compression, bitDepth)
+
+    Args:
+        node_class (str): Nuke node class name
+        plugin_name (str): Plugin name
+        product_name (str): Product name
+        project_settings (Optional[dict]): Project settings, queried if not
+            provided. Pass them in if the caller already has them, e.g. when
+            calling this for many nodes. They are not modified.
+
+    Returns:
+        dict or None: Required node settings, with the knobs resolved for
+            this product, or None if there is no matching required node.
+    """
+    imageio_nodes = get_nuke_imageio_settings(project_settings)["nodes"]
     required_nodes = imageio_nodes["required_nodes"]
 
     imageio_node = None
@@ -722,34 +761,58 @@ def get_imageio_node_setting(node_class, plugin_name, product_name):
     if not imageio_node:
         return
 
+    # The knobs of the node are replaced below, so work on a copy to not
+    # modify the (possibly shared) project settings.
+    imageio_node = copy.deepcopy(imageio_node)
+
     # Check if a node override exists for this configuration
     override_imageio_node = get_matching_override_node(
-        node_class, plugin_name, product_name
+        node_class, plugin_name, product_name, project_settings
     )
 
     # If node override exists,
     # use only override knobs
     # (don't merge with original master knobs)
     if override_imageio_node:
-        imageio_node["knobs"] = override_imageio_node.get("knobs", [])
+        imageio_node["knobs"] = copy.deepcopy(
+            override_imageio_node.get("knobs", [])
+        )
     else:
         # Otherwise apply partial overrides to original master knobs
         imageio_node["knobs"] = get_imageio_node_override_setting(
             node_class,
             plugin_name,
             product_name,
-            imageio_node["knobs"]
+            imageio_node["knobs"],
+            project_settings,
         )
     return imageio_node
 
 
 def get_imageio_node_override_setting(
-    node_class, plugin_name, product_name, knobs_settings
+    node_class,
+    plugin_name,
+    product_name,
+    knobs_settings,
+    project_settings: dict | None = None,
 ):
-    """Get imageio node overrides from settings"""
+    """Get imageio node overrides from settings
+
+    Args:
+        node_class (str): Nuke node class name
+        plugin_name (str): Plugin name
+        product_name (str): Product name
+        knobs_settings (list[dict]): Knobs to apply the overrides to. This
+            list is modified and returned.
+        project_settings (Optional[dict]): Project settings, queried if not
+            provided.
+
+    Returns:
+        list[dict]: The `knobs_settings` with the overrides applied.
+    """
     # find matching override node
     override_imageio_node = get_matching_override_node(
-        node_class, plugin_name, product_name
+        node_class, plugin_name, product_name, project_settings
     )
 
     # add overrides to imageio_node
@@ -764,7 +827,8 @@ def get_imageio_node_override_setting(
             for knob in knobs_settings:
                 # add missing knobs into imageio_node
                 if oknob_name not in knob_names:
-                    knobs_settings.append(oknob)
+                    # copy so the result does not share data with settings
+                    knobs_settings.append(copy.deepcopy(oknob))
                     knob_names.append(oknob_name)
                     continue
 
@@ -778,16 +842,28 @@ def get_imageio_node_override_setting(
                     knobs_settings.remove(knob)
                 else:
                     # override knob value with oknob's
-                    knob[knob_type] = oknob_value
+                    knob[knob_type] = copy.deepcopy(oknob_value)
 
     return knobs_settings
 
 
 # TODO: move into ./colorspace.py
-def get_imageio_input_colorspace(filename):
-    """Get input file colorspace based on regex in settings."""
+def get_imageio_input_colorspace(
+    filename, project_settings: dict | None = None
+):
+    """Get input file colorspace based on regex in settings.
+
+    Args:
+        filename (str): File path to match the regex inputs against.
+        project_settings (Optional[dict]): Project settings, queried if not
+            provided.
+
+    Returns:
+        str or None: The colorspace of the last matching regex input.
+    """
     imageio_regex_inputs = (
-        get_nuke_imageio_settings()["regex_inputs"]["inputs"])
+        get_nuke_imageio_settings(project_settings)["regex_inputs"]["inputs"]
+    )
 
     preset_clrsp = None
     for regexInput in imageio_regex_inputs:
@@ -1097,6 +1173,7 @@ def create_prenodes(
     nodes_setting,
     plugin_name=None,
     product_name=None,
+    project_settings: dict | None = None,
     **kwargs
 ):
     last_node = None
@@ -1126,7 +1203,8 @@ def create_prenodes(
                 now_node.Class(),
                 plugin_name,
                 product_name,
-                knobs
+                knobs,
+                project_settings,
             )
 
         # add data to knob
@@ -1157,6 +1235,7 @@ def create_write_node(
     input=None,
     prenodes=None,
     linked_knobs=None,
+    project_settings: dict | None = None,
     **kwargs
 ):
     """Creating write node which is group node
@@ -1169,6 +1248,8 @@ def create_write_node(
             with dependency
         review (bool)[optional]: adding review knob
         farm (bool)[optional]: rendering workflow target
+        project_settings (Optional[dict]): project settings, queried if not
+            provided. Creators can pass their `self.project_settings`.
         kwargs (dict)[optional]: additional key arguments for formatting
 
     Example:
@@ -1216,7 +1297,8 @@ def create_write_node(
     imageio_writes = get_imageio_node_setting(
         node_class="Write",
         plugin_name=plugin_name,
-        product_name=product_name
+        product_name=product_name,
+        project_settings=project_settings,
     )
 
     ext = None
@@ -1289,6 +1371,7 @@ def create_write_node(
             prenodes,
             plugin_name,
             product_name,
+            project_settings=project_settings,
             **kwargs
         )
         if last_prenode:
@@ -1996,10 +2079,13 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                 nuke_imageio_writes = get_imageio_node_setting(
                     node_class="Write",
                     plugin_name=avalon_knob_data["creator"],
-                    product_name=avalon_knob_data["productName"]
+                    product_name=avalon_knob_data["productName"],
+                    project_settings=self.project_settings,
                 )
             elif node_data:
-                nuke_imageio_writes = get_write_node_template_attr(node)
+                nuke_imageio_writes = get_write_node_template_attr(
+                    node, project_settings=self.project_settings
+                )
 
             if not nuke_imageio_writes:
                 continue
@@ -2122,7 +2208,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         """Setting colorspace following presets
         """
         # get imageio
-        nuke_colorspace = get_nuke_imageio_settings()
+        nuke_colorspace = get_nuke_imageio_settings(self.project_settings)
 
         log.info("Setting colorspace to workfile...")
         try:
@@ -2332,8 +2418,17 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         set_context_favorites(favorite_items)
 
 
-def get_write_node_template_attr(node):
-    """Gets all defined data from presets"""
+def get_write_node_template_attr(node, project_settings: dict | None = None):
+    """Gets all defined data from presets
+
+    Args:
+        node (nuke.Node): Write group node with AYON instance data.
+        project_settings (Optional[dict]): Project settings, queried if not
+            provided. Pass them in when calling this for multiple nodes.
+
+    Returns:
+        dict or None: The required node settings for the write node.
+    """
 
     # TODO: add identifiers to settings and rename settings key
     plugin_names_mapping = {
@@ -2352,7 +2447,8 @@ def get_write_node_template_attr(node):
     return get_imageio_node_setting(
         node_class="Write",
         plugin_name=plugin_names_mapping[identifier],
-        product_name=product_name
+        product_name=product_name,
+        project_settings=project_settings,
     )
 
 
