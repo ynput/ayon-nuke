@@ -81,7 +81,6 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
             return
 
         instance.data.setdefault("burninDataMembers", {}).update(collected)
-        instance.data.setdefault("customData", {}).update(collected)
 
         self.log.debug("Collected burnin metadata: {}".format(collected))
 
