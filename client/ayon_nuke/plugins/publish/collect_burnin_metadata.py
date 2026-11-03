@@ -87,7 +87,7 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
         """Get the Write node associated with the instance.
 
         Args:
-            instance (pyblish.api.Instance): The instance to get the Write 
+            instance (pyblish.api.Instance): The instance to get the Write
                 node for.
 
         Returns:
