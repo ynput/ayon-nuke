@@ -95,7 +95,7 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
         Returns:
             nuke.Node: The associated Write node, or None if not found.
         """
-        write_node = instance.data["transientData"]["writeNode"]
+        write_node = instance.data["transientData"].get("writeNode")
         if write_node is not None:
             return write_node
 
