@@ -203,6 +203,9 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
         Returns:
             bool: True if the key is requested, False otherwise.
         """
+        if any(char in key for char in "{}:[].!"):
+            return False
+
         for requested in self.metadata_keys:
             if requested.endswith("/"):
                 if key.startswith(requested):

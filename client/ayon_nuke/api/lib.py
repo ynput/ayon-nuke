@@ -523,13 +523,14 @@ def get_avalon_knob_data(node, prefix="avalon:", create=True):
     return data
 
 
-def add_write_node(name, file_path, knobs, **kwarg):
+def add_write_node(name, file_path, knobs, node_class="Write", **kwarg):
     """Adding nuke write node
 
     Arguments:
         name (str): nuke node name
         file_path (str): file path to write
         knobs (list[dict]): nuke knobs to be set from settings
+        node_class (str): nuke node class
         kwarg (dict): formatting attributes data for nuke knobs,
             must at least include `frame_range` key.
 
@@ -539,7 +540,7 @@ def add_write_node(name, file_path, knobs, **kwarg):
     use_range_limit = kwarg.get("use_range_limit", None)
 
     w = nuke.createNode(
-        "Write",
+        node_class,
         "name {}".format(name),
         inpanel=False
     )
@@ -1157,6 +1158,7 @@ def create_write_node(
     input=None,
     prenodes=None,
     linked_knobs=None,
+    node_class="Write",
     **kwargs
 ):
     """Creating write node which is group node
@@ -1214,7 +1216,7 @@ def create_write_node(
 
     # get knob settings for write node
     imageio_writes = get_imageio_node_setting(
-        node_class="Write",
+        node_class=node_class,
         plugin_name=plugin_name,
         product_name=product_name
     )
@@ -1299,6 +1301,7 @@ def create_write_node(
             "inside_{}".format(name),
             fpath,
             imageio_writes["knobs"],
+            node_class,
             **data
         )
         # connect to previous node
@@ -1988,6 +1991,18 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             ):
                 continue
 
+            # Only set colorspace on write nodes, not on nodes such
+            # as DeepWrite, and return early when no write node is present.
+            write_node = None
+            node.begin()
+            for x in nuke.allNodes():
+                if x.Class() == "Write":
+                    write_node = x
+            node.end()
+
+            if not write_node:
+                continue
+
             nuke_imageio_writes = None
             if avalon_knob_data:
                 # this shouldn't happen anymore, only with very old data
@@ -1999,16 +2014,12 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                     product_name=avalon_knob_data["productName"]
                 )
             elif node_data:
-                nuke_imageio_writes = get_write_node_template_attr(node)
+                nuke_imageio_writes = get_write_node_template_attr(
+                    node=node, node_class="Write"
+                )
 
             if not nuke_imageio_writes:
                 continue
-
-            # get write node from inside the group node
-            write_nodes = nuke.allNodes(filter="Write", group=node)
-            if not write_nodes:
-                return
-            write_node = write_nodes[-1]
 
             # Exclude exposed knobs from colorspace nodes.
             # This ensures that any values overwritten by the user is
@@ -2332,14 +2343,16 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         set_context_favorites(favorite_items)
 
 
-def get_write_node_template_attr(node):
+def get_write_node_template_attr(node, node_class="Write"):
     """Gets all defined data from presets"""
 
     # TODO: add identifiers to settings and rename settings key
     plugin_names_mapping = {
         "create_write_image": "CreateWriteImage",
         "create_write_prerender": "CreateWritePrerender",
-        "create_write_render": "CreateWriteRender"
+        "create_deepwrite_prerender": "CreateDeepWritePrerender",
+        "create_write_render": "CreateWriteRender",
+        "create_deepwrite_render": "CreateDeepWriteRender",
     }
     # get AYON data from node
     node_data = get_node_data(node, INSTANCE_DATA_KNOB)
@@ -2350,7 +2363,7 @@ def get_write_node_template_attr(node):
     if product_name is None:
         product_name = node_data["subset"]
     return get_imageio_node_setting(
-        node_class="Write",
+        node_class=node_class,
         plugin_name=plugin_names_mapping[identifier],
         product_name=product_name
     )
