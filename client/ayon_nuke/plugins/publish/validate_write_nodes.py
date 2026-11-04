@@ -7,6 +7,7 @@ from ayon_nuke.api.lib import (
     set_node_knobs_from_settings,
     color_gui_to_int
 )
+from ayon_nuke.api.plugin import get_creator_class_name
 
 from ayon_core.pipeline.publish import (
     PublishXmlValidationError,
@@ -32,10 +33,12 @@ class RepairNukeWriteNodeAction(pyblish.api.Action):
             # get write node from inside of group
             write_node = None
             for x in child_nodes:
-                if x.Class() == "Write":
+                if x.Class() in {"Write", "DeepWrite"}:
                     write_node = x
 
-            correct_data = get_write_node_template_attr(write_group_node)
+            correct_data = get_write_node_template_attr(
+                node=write_group_node, node_class=write_node.Class()
+            )
 
             set_node_knobs_from_settings(write_node, correct_data["knobs"])
 
@@ -61,11 +64,6 @@ class ValidateNukeWriteNode(
 
     settings_category = "nuke"
 
-    product_base_types_mapping = {
-        "render": "CreateWriteRender",
-        "prerender": "CreateWritePrerender",
-        "image": "CreateWriteImage"
-    }
 
     def process(self, instance):
         if not self.is_active(instance.data):
@@ -81,20 +79,22 @@ class ValidateNukeWriteNode(
         # get write node from inside of group
         write_node = None
         for x in child_nodes:
-            if x.Class() == "Write":
+            if x.Class() in {"Write", "DeepWrite"}:
                 write_node = x
 
         if write_node is None:
             return
 
         # gather exposed knobs to remove them from knobs check.
+        plugin_name = get_creator_class_name(instance)
+
         nuke_settings = instance.context.data["project_settings"]["nuke"]
-        product_base_type: str = instance.data["productBaseType"]
-        plugin = self.product_base_types_mapping[product_base_type]
-        create_settings = nuke_settings["create"][plugin]
+        create_settings = nuke_settings["create"][plugin_name]
         exposed_knobs = set(create_settings.get("exposed_knobs", []))
 
-        correct_data = get_write_node_template_attr(write_group_node)
+        correct_data = get_write_node_template_attr(
+            node=write_group_node, node_class=write_node.Class()
+        )
 
         check = []
 
