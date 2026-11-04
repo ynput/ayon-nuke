@@ -671,7 +671,7 @@ def _get_task_type(project_name, folder_path, task_name):
     Returns:
         Optional[str]: Task type or None if task could not be found.
     """
-    if task_name:
+    if not task_name:
         return None
 
     folder_entity = ayon_api.get_folder_by_path(
