@@ -35,7 +35,7 @@ class NukeRenderLocal(publish.Extractor,
 
         node = None
         for x in child_nodes:
-            if x.Class() == "Write":
+            if x.Class() in {"Write", "DeepWrite"}:
                 node = x
 
         self.log.debug("instance collected: {}".format(instance.data))

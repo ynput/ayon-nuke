@@ -12,6 +12,7 @@ class CreateWriteRender(napi.NukeWriteCreator):
     product_base_type = "render"
     product_type = product_base_type
     icon = "sign-out"
+    node_class = "Write"
 
     instance_attributes = [
         "reviewable"
@@ -28,11 +29,12 @@ class CreateWriteRender(napi.NukeWriteCreator):
         staging_dir=None,
         node_selection=None,
     ):
-        settings = self.project_settings["nuke"]["create"]["CreateWriteRender"]
+        creator = self.__class__.__name__
+        settings = self.project_settings["nuke"]["create"][creator]
 
         # add fpath_template
         write_data = {
-            "creator": self.__class__.__name__,
+            "creator": creator,
             "productName": product_name,
             "fpath_template": self.temp_rendering_path_template,
             "staging_dir": staging_dir,
@@ -62,6 +64,7 @@ class CreateWriteRender(napi.NukeWriteCreator):
             input=selected_node,
             prenodes=self.prenodes,
             linked_knobs=self.get_linked_knobs(),
+            node_class=self.node_class,
             **{
                 "width": width,
                 "height": height
@@ -78,10 +81,17 @@ class CreateWriteRender(napi.NukeWriteCreator):
         if "use_range_limit" not in self.instance_attributes:
             return
 
-        w_node = nuke.allNodes(filter="Write", group=write_node)[-1]
+        w_node = nuke.allNodes(filter=self.node_class, group=write_node)[-1]
 
         w_node["use_limit"].setValue(True)
         w_node["first"].setValue(nuke.root()["first_frame"].value())
         w_node["last"].setValue(nuke.root()["last_frame"].value())
 
         return write_node
+
+
+class CreateDeepWriteRender(CreateWriteRender):
+    identifier = "create_deepwrite_render"
+    label = "Render (deep write)"
+    node_class = "DeepWrite"
+    default_variants = ["DeepMain"]
