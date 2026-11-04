@@ -54,11 +54,8 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
 
         frame_start = int(instance.data.get("frameStartHandle", 1001))
         frame_end = int(instance.data.get("frameEndHandle", 1001))
-        sample_frames = sorted({
-            frame_start,
-            (frame_start + frame_end) // 2,
-            frame_end,
-        })
+        frame_ranges = range(frame_start, frame_end + 1)
+        sample_frames = list(frame_ranges)
 
         values_by_frame = {
             frame: self._get_requested_metadata(write_node, frame)
@@ -73,7 +70,7 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
                     write_node.fullName()
                 )
             )
-            for frame in range(frame_start, frame_end + 1):
+            for frame in frame_ranges:
                 if frame not in values_by_frame:
                     values_by_frame[frame] = self._get_requested_metadata(
                         write_node, frame
