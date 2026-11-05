@@ -4,7 +4,6 @@ from .workio import (
     save_file,
     open_file,
     current_file,
-    work_root,
 )
 from .command import (
     viewer_update_and_undo_stop
@@ -62,7 +61,6 @@ __all__ = (
     "save_file",
     "open_file",
     "current_file",
-    "work_root",
 
     "viewer_update_and_undo_stop",
 
