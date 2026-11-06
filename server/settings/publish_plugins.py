@@ -11,6 +11,11 @@ from .common import (
     validate_json_dict,
 )
 
+#: Characters that would break `str.format` field names, so metadata keys
+#: containing them cannot be used in burnin or slate templates. Mirrors the
+#: runtime check in the `CollectBurninMetadata` publish plugin.
+_INVALID_METADATA_KEY_CHARS = frozenset("{}:[].!")
+
 
 def nuke_render_publish_types_enum():
     """Return all nuke render families available in creators."""
@@ -79,6 +84,44 @@ class CollectSyncWorkfileVersionModel(BaseSettingsModel):
         enum_resolver=nuke_product_base_types_enum,
         title="Product base types"
     )
+
+
+class CollectBurninMetadataModel(BaseSettingsModel):
+    """Expose Nuke metadata stream values as burnin and slate keys.
+
+    Values are read from the metadata entering the instance's Write node
+    (e.g. added by an upstream ModifyMetaData node). Use a key in burnin
+    templates as `{camera/focal}` and in slate templates as
+    `{custom[camera/focal]}`. Metadata that changes over the frame range is
+    exposed as a range, e.g. "35-50".
+    """
+    enabled: bool = SettingsField(True, title="Enabled")
+    metadata_keys: list[str] = SettingsField(
+        default_factory=list,
+        title="Metadata keys",
+        description=(
+            "Exact metadata keys (e.g. 'camera/focal') or prefixes ending "
+            "with '/' (e.g. 'camera/' collects all 'camera/*' keys). Keys "
+            "cannot contain any of: { } : [ ] . !"
+        ),
+    )
+
+    @validator("metadata_keys")
+    def validate_metadata_keys(cls, value):
+        keys = []
+        for key in value:
+            key = key.strip()
+            if not key:
+                raise ValueError("Metadata key must not be empty.")
+            invalid_chars = _INVALID_METADATA_KEY_CHARS.intersection(key)
+            if invalid_chars:
+                raise ValueError(
+                    f"Metadata key '{key}' contains one of the invalid "
+                    f"characters: {''.join(sorted(invalid_chars))}"
+                )
+            if key not in keys:
+                keys.append(key)
+        return keys
 
 
 class OptionalPluginModel(BaseSettingsModel):
@@ -282,6 +325,10 @@ class PublishPluginsModel(BaseSettingsModel):
             section="Collectors",
         )
     )
+    CollectBurninMetadata: CollectBurninMetadataModel = SettingsField(
+        title="Collect Burnin Metadata",
+        default_factory=CollectBurninMetadataModel,
+    )
     ValidateCorrectAssetContext: OptionalPluginModel = SettingsField(
         title="Validate Correct Folder Name",
         default_factory=OptionalPluginModel,
@@ -373,6 +420,12 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
             "source",
             "render",
             "write"
+        ]
+    },
+    "CollectBurninMetadata": {
+        "enabled": True,
+        "metadata_keys": [
+            "camera/"
         ]
     },
     "ValidateCorrectAssetContext": {
