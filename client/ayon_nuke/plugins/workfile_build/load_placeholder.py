@@ -15,9 +15,7 @@ from ayon_nuke.api.lib import (
     refresh_nodes,
     reset_selection,
     get_names_from_nodes,
-    get_nodes_by_names,
     select_nodes,
-    duplicate_node,
     node_tempfile,
 )
 from ayon_nuke.api.workfile_template_builder import (
@@ -127,41 +125,15 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
             self._imprint_siblings(placeholder)
 
         if placeholder.data["nb_children"] == 0:
-            # save initial nodes positions and dimensions, update them
-            # and set inputs and outputs of loaded nodes
+            # update nodes positions and dimensions and set inputs and
+            # outputs of loaded nodes
             if placeholder.data.get("keep_placeholder"):
-                self._imprint_inits()
                 self._update_nodes(placeholder, nuke.allNodes(), nodes_loaded)
 
             self._set_loaded_connections(placeholder)
 
-        elif placeholder.data["siblings"]:
-            # create copies of placeholder siblings for the new loaded nodes,
-            # set their inputs and outputs and update all nodes positions and
-            # dimensions and siblings names
-
-            siblings = get_nodes_by_names(placeholder.data["siblings"])
-            refresh_nodes(siblings)
-            copies = self._create_sib_copies(placeholder)
-            new_nodes = list(copies.values())  # copies nodes
-            self._update_nodes(new_nodes, nodes_loaded)
-            placeholder_node.removeKnob(placeholder_node.knob("siblings"))
-            new_nodes_name = get_names_from_nodes(new_nodes)
-            imprint(placeholder_node, {"siblings": new_nodes_name})
-            self._set_copies_connections(placeholder, copies)
-
-            self._update_nodes(
-                nuke.allNodes(),
-                new_nodes + nodes_loaded,
-                20
-            )
-
-            new_siblings = get_names_from_nodes(new_nodes)
-            placeholder.data["siblings"] = new_siblings
-
         else:
-            # if the placeholder doesn't have siblings, the loaded
-            # nodes will be placed in a free space
+            # the loaded nodes will be placed in a free space
 
             xpointer, ypointer = find_free_space_to_paste_nodes(
                 nodes_loaded, direction="bottom", offset=200
@@ -263,25 +235,7 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
                 siblings = {"siblings": siblings_name}
                 imprint(node, siblings)
 
-    def _imprint_inits(self):
-        """Add initial positions and dimensions to the attributes"""
-
-        for node in nuke.allNodes():
-            refresh_node(node)
-            imprint(node, {"x_init": node.xpos(), "y_init": node.ypos()})
-            node.knob("x_init").setVisible(False)
-            node.knob("y_init").setVisible(False)
-            width = node.screenWidth()
-            height = node.screenHeight()
-            if node.knob("bdwidth") is not None:
-                imprint(node, {"w_init": width, "h_init": height})
-                node.knob("w_init").setVisible(False)
-                node.knob("h_init").setVisible(False)
-            refresh_node(node)
-
-    def _update_nodes(
-        self, placeholder, nodes, considered_nodes, offset_y=None
-    ):
+    def _update_nodes(self, placeholder, nodes, considered_nodes):
         """Adjust backdrop nodes dimensions and positions.
 
         Considering some nodes sizes.
@@ -290,30 +244,19 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
             nodes (list): list of nodes to update
             considered_nodes (list): list of nodes to consider while updating
                 positions and dimensions
-            offset (int): distance between copies
         """
 
         placeholder_node = nuke.toNode(placeholder.scene_identifier)
 
         min_x, min_y, max_x, max_y = get_extreme_positions(considered_nodes)
 
-        diff_x = diff_y = 0
-        contained_nodes: set[nuke.Node] = set()  # for backdrops
-
-        if offset_y is None:
-            width_ph = placeholder_node.screenWidth()
-            height_ph = placeholder_node.screenHeight()
-            diff_y = max_y - min_y - height_ph
-            diff_x = max_x - min_x - width_ph
-            contained_nodes = {placeholder_node}
-            min_x = placeholder_node.xpos()
-            min_y = placeholder_node.ypos()
-        else:
-            siblings = get_nodes_by_names(placeholder.data["siblings"])
-            minX, _, maxX, _ = get_extreme_positions(siblings)
-            diff_y = max_y - min_y + 20
-            diff_x = abs(max_x - min_x - maxX + minX)
-            contained_nodes = set(considered_nodes)
+        width_ph = placeholder_node.screenWidth()
+        height_ph = placeholder_node.screenHeight()
+        diff_y = max_y - min_y - height_ph
+        diff_x = max_x - min_x - width_ph
+        contained_nodes = {placeholder_node}  # for backdrops
+        min_x = placeholder_node.xpos()
+        min_y = placeholder_node.ypos()
 
         if diff_y <= 0 and diff_x <= 0:
             return
@@ -334,7 +277,7 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
                     and not contained_nodes <= set(get_backdrop_nodes(node))
                 )
             ):
-                if offset_y is None and node.xpos() >= min_x:
+                if node.xpos() >= min_x:
                     node.setXpos(node.xpos() + diff_x)
 
                 if node.ypos() >= min_y:
@@ -372,76 +315,3 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
             for idx in range(placeholder_node.inputs()):
                 if placeholder_node.input(idx) == node and input_node:
                     input_node.setInput(0, node)
-
-    def _create_sib_copies(self, placeholder):
-        """Creating copies of the placeholder siblings (the ones who were
-        loaded with it) for the new nodes added
-
-        Returns :
-            copies (dict) : with copied nodes names and their copies
-        """
-
-        copies = {}
-        siblings = get_nodes_by_names(placeholder.data["siblings"])
-        for node in siblings:
-            new_node = duplicate_node(node)
-
-            x_init = int(new_node.knob("x_init").getValue())
-            y_init = int(new_node.knob("y_init").getValue())
-            new_node.setXYpos(x_init, y_init)
-            if isinstance(new_node, nuke.BackdropNode):
-                w_init = new_node.knob("w_init").getValue()
-                h_init = new_node.knob("h_init").getValue()
-                new_node.knob("bdwidth").setValue(w_init)
-                new_node.knob("bdheight").setValue(h_init)
-                refresh_node(node)
-
-            repre_id_knob = node.knob("repre_id")
-            if repre_id_knob is not None:
-                node.removeKnob(repre_id_knob)
-            copies[node.name()] = new_node
-        return copies
-
-    def _set_copies_connections(self, placeholder, copies):
-        """Set inputs and outputs of the copies.
-
-        Args:
-            copies (dict): Copied nodes by their names.
-        """
-
-        last_input, last_output = get_group_io_nodes(
-            placeholder.data["last_loaded"]
-        )
-        siblings = get_nodes_by_names(placeholder.data["siblings"])
-        siblings_input, siblings_output = get_group_io_nodes(siblings)
-        copy_input = copies[siblings_input.name()]
-        copy_output = copies[siblings_output.name()]
-
-        for node_init in siblings:
-            if node_init == siblings_output:
-                continue
-
-            node_copy = copies[node_init.name()]
-            for node in node_init.dependent():
-                for idx in range(node.inputs()):
-                    if node.input(idx) != node_init:
-                        continue
-
-                    if node in siblings:
-                        copies[node.name()].setInput(idx, node_copy)
-                    else:
-                        last_input.setInput(0, node_copy)
-
-            for node in node_init.dependencies():
-                for idx in range(node_init.inputs()):
-                    if node_init.input(idx) != node:
-                        continue
-
-                    if node_init == siblings_input:
-                        copy_input.setInput(idx, node)
-                    elif node in siblings:
-                        node_copy.setInput(idx, copies[node.name()])
-                    else:
-                        node_copy.setInput(idx, last_output)
-
-        siblings_input.setInput(0, copy_output)
