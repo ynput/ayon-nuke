@@ -28,6 +28,7 @@ from ayon_nuke.api.workfile_template_builder import (
 class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
     identifier = "nuke.load"
     label = "Nuke load"
+    icon = {"type": "material-symbols", "name": "download"}
 
     item_class = LoadPlaceholderItem
 
