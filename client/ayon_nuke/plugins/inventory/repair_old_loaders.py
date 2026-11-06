@@ -1,6 +1,6 @@
 from ayon_core.lib import Logger
 from ayon_core.pipeline import InventoryAction
-from ayon_nuke.api.lib import set_avalon_knob_data
+from ayon_nuke.api import imprint_container
 
 
 class RepairOldLoaders(InventoryAction):
@@ -32,5 +32,4 @@ class RepairOldLoaders(InventoryAction):
                 "objectName": new_name
             })
             node.setName(new_name)
-            # get data from avalon knob
-            set_avalon_knob_data(node, cdata)
+            imprint_container(node, cdata)

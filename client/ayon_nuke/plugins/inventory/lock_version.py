@@ -1,5 +1,5 @@
 from ayon_core.pipeline import InventoryAction
-from ayon_nuke.api.lib import imprint
+from ayon_nuke.api import update_container
 
 
 class LockVersions(InventoryAction):
@@ -20,8 +20,7 @@ class LockVersions(InventoryAction):
                 continue
             node = nuke.toNode(container["objectName"])
             container["version_locked"] = True
-            imprint(node, {"avalon:version_locked": True})
-            node["avalon:version_locked"].setLabel("Version locked")
+            update_container(node, {"version_locked": True})
         return True
 
 
@@ -44,6 +43,5 @@ class UnlockVersions(InventoryAction):
 
             node = nuke.toNode(container["objectName"])
             container["version_locked"] = False
-            imprint(node, {"avalon:version_locked": False})
-            node["avalon:version_locked"].setLabel("Version locked")
+            update_container(node, {"version_locked": False})
         return True

@@ -9,7 +9,6 @@ from ayon_core.pipeline.template_data import get_template_data
 from ayon_core.pipeline.workfile import get_workdir_with_workdir_data
 
 from .utils import bake_gizmos_recursively
-from .lib import MENU_LABEL
 
 import nuke
 
@@ -17,29 +16,17 @@ import nuke
 def bake_container(container):
     """Bake containers to read nodes."""
 
+    # Imported here, because the pipeline module imports this module
+    from .pipeline import remove_container_data
+
     node = container["node"]
 
-    # Fetch knobs to remove in order.
-    knobs_to_remove = []
-    remove = False
-    for count in range(0, node.numKnobs()):
-        knob = node.knob(count)
+    # Knob that the loader uses to track the members of the container
+    container_id_knob = node.knob("containerId")
+    if container_id_knob is not None:
+        node.removeKnob(container_id_knob)
 
-        # All knobs from "AYON" tab knob onwards.
-        if knob.name() == MENU_LABEL:
-            remove = True
-
-        if remove:
-            knobs_to_remove.append(knob)
-
-        # Dont remove knobs from "containerId" onwards.
-        if knob.name() == "containerId":
-            remove = False
-
-    # Knobs needs to be remove in reverse order, because child knobs needs to
-    # be remove first.
-    for knob in reversed(knobs_to_remove):
-        node.removeKnob(knob)
+    remove_container_data(node)
 
     node["tile_color"].setValue(0)
 
