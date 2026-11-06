@@ -5,6 +5,7 @@
 from ayon_core.lib import Logger
 from ayon_core.pipeline import load
 from ayon_nuke.api import lib
+from ayon_nuke.api import traits as nuke_traits
 
 log = Logger.get_logger(__name__)
 
@@ -29,8 +30,9 @@ class SetFrameRangeLoader(load.LoaderPlugin):
     color = "white"
 
     def load(self, context, name, namespace, data):
-        version_entity = context["version"]
-        version_attributes = version_entity["attrib"]
+        version_attributes = (
+            nuke_traits.get_version_attributes_with_traits(context)
+        )
 
         start = version_attributes.get("frameStart")
         end = version_attributes.get("frameEnd")
@@ -63,7 +65,9 @@ class SetFrameRangeWithHandlesLoader(load.LoaderPlugin):
     color = "white"
 
     def load(self, context, name, namespace, data):
-        version_attributes = context["version"]["attrib"]
+        version_attributes = (
+            nuke_traits.get_version_attributes_with_traits(context)
+        )
         start = version_attributes.get("frameStart")
         end = version_attributes.get("frameEnd")
 

@@ -10,6 +10,7 @@ from ayon_nuke.api import (
     containerise,
     update_container,
 )
+from ayon_nuke.api import traits as nuke_traits
 from ayon_nuke.api.command import undo_chunk
 
 
@@ -34,7 +35,9 @@ class LinkAsGroup(load.LoaderPlugin):
         #     log.info("key: `{}`, value: {}\n".format(k, v))
         version_entity = context["version"]
 
-        version_attributes = version_entity["attrib"]
+        version_attributes = (
+            nuke_traits.get_version_attributes_with_traits(context)
+        )
         first = version_attributes.get("frameStart")
         last = version_attributes.get("frameEnd")
         colorspace = version_attributes.get("colorSpace")
@@ -126,7 +129,9 @@ class LinkAsGroup(load.LoaderPlugin):
 
         # Get start frame from version data
 
-        version_attributes = version_entity["attrib"]
+        version_attributes = (
+            nuke_traits.get_version_attributes_with_traits(context)
+        )
         updated_dict = {
             "representation": repre_entity["id"],
             "frameEnd": version_attributes.get("frameEnd"),
