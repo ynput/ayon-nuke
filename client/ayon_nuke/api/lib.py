@@ -885,6 +885,8 @@ def check_inventory_versions(show_popup=False):
 
     This will group containers by their version to outdated, not found,
     invalid or latest and colorize the nodes based on the category.
+    Outdated containers that are not used in the script are ignored, e.g.
+    an older version loaded only for comparison.
     """
     if not nuke.GUI:
         return
@@ -900,6 +902,18 @@ def check_inventory_versions(show_popup=False):
     except Exception as error:
         log.warning(error, exc_info=True)
         return
+
+    if filtered_containers.outdated:
+        try:
+            filtered_containers = filtered_containers._replace(
+                outdated=host.filtered_outdated_containers(
+                    filtered_containers.outdated
+                )
+            )
+        except Exception as error:
+            # Keep all outdated containers when the script cannot be
+            # inspected, rather than silently hiding them.
+            log.warning(error, exc_info=True)
 
     if show_popup:
         try:
@@ -3093,6 +3107,76 @@ def _get_route_lengths(end_node, nodes):
                 route_lengths[input_node] = route_length
                 nodes_to_visit.append(input_node)
     return route_lengths
+
+
+def get_used_nodes():
+    """Return nodes that are used by the current script.
+
+    Used nodes are Write nodes of the current script and nodes shown in a
+    Viewer, including all nodes connected upstream of them. Write nodes
+    inside loaded containers are not outputs of the current script.
+
+    Returns:
+        set[nuke.Node]: Used nodes.
+    """
+    script_nodes = set(nuke.allNodes(recurseGroups=True))
+    output_nodes = [
+        node for node in nuke.allNodes("Write", recurseGroups=True)
+        if not _is_inside_container(node)
+    ]
+    for viewer in nuke.allNodes("Viewer", recurseGroups=True):
+        output_nodes.append(viewer)
+        input_process_knob = viewer.knob("input_process_node")
+        if input_process_knob is not None:
+            input_process_node = nuke.toNode(input_process_knob.value())
+            if input_process_node is not None:
+                output_nodes.append(input_process_node)
+
+    used_nodes = set()
+    for node in output_nodes:
+        # A node inside a group is connected to the rest of the script
+        # through its parent groups.
+        for end_node in _iter_self_and_parents(node):
+            used_nodes.update(_get_route_lengths(end_node, script_nodes))
+
+    return used_nodes
+
+
+def is_node_used(node, used_nodes=None):
+    """Return whether a node is used by the current script.
+
+    A node is used when it, or any of its parent groups, is in
+    `used_nodes`.
+
+    Args:
+        node (nuke.Node): Node to check.
+        used_nodes (Optional[set[nuke.Node]]): Precomputed result of
+            `get_used_nodes`. Pass it when checking multiple nodes to avoid
+            traversing the script for each of them.
+
+    Returns:
+        bool: True when the node is used.
+    """
+    if used_nodes is None:
+        used_nodes = get_used_nodes()
+    return any(
+        parent in used_nodes for parent in _iter_self_and_parents(node)
+    )
+
+
+def _iter_self_and_parents(node):
+    """Yield the node and all its parent groups up to the root."""
+    while node is not None:
+        yield node
+        node = node.parent()
+
+
+def _is_inside_container(node):
+    """Return whether a node is inside a loaded container."""
+    return any(
+        parent.knob("avalon:id") or parent.knob("ak:id")
+        for parent in _iter_self_and_parents(node.parent())
+    )
 
 
 def get_group_io_nodes(nodes):
