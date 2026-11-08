@@ -63,9 +63,8 @@ from .lib import (
     get_node_data,
     set_node_data,
     MENU_LABEL,
-    get_used_nodes,
-    is_node_used,
 )
+from .validate_containers import install_outdated_containers_override
 from .workfile_template_builder import (
     build_workfile_template,
     create_placeholder,
@@ -137,6 +136,7 @@ class NukeHost(
         register_creator_plugin_path(CREATE_PATH)
         register_inventory_action_path(INVENTORY_PATH)
         register_workfile_build_plugin_path(WORKFILE_BUILD_PATH)
+        install_outdated_containers_override()
 
     def setup_ui_callbacks_and_menu(self):
         """Setup AYON menus."""
@@ -210,26 +210,6 @@ class NukeHost(
         if self.about_to_save:
             # Let's prompt the user to update the context settings or not
             prompt_reset_context()
-
-    def filtered_outdated_containers(
-            self, containers: list, context=None) -> list:
-        """Filter outdated containers to the ones used in the script.
-
-        Containers that are not connected to the render graph or to a
-        Viewer are ignored, e.g. older versions loaded only for comparison.
-
-        Args:
-            containers (list): Outdated containers from the scene.
-
-        Returns:
-            list: Outdated containers that are used in the script.
-        """
-        used_nodes = get_used_nodes()
-        return [
-            container for container in containers
-            if container.get("node") is not None
-            and is_node_used(container["node"], used_nodes)
-        ]
 
 
 def add_nuke_callbacks(project_settings: dict = None):

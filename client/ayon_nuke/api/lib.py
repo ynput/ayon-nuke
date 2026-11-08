@@ -905,10 +905,14 @@ def check_inventory_versions(show_popup=False):
 
     if filtered_containers.outdated:
         try:
+            used_nodes = get_used_nodes()
+            outdated_containers = [
+                container for container in filtered_containers.outdated
+                if container.get("node") is None
+                or is_node_used(container["node"], used_nodes)
+            ]
             filtered_containers = filtered_containers._replace(
-                outdated=host.filtered_outdated_containers(
-                    filtered_containers.outdated
-                )
+                outdated=outdated_containers
             )
         except Exception as error:
             # Keep all outdated containers when the script cannot be
@@ -3119,7 +3123,6 @@ def get_used_nodes():
     Returns:
         set[nuke.Node]: Used nodes.
     """
-    script_nodes = set(nuke.allNodes(recurseGroups=True))
     output_nodes = [
         node for node in nuke.allNodes("Write", recurseGroups=True)
         if not _is_inside_container(node)
@@ -3133,11 +3136,25 @@ def get_used_nodes():
                 output_nodes.append(input_process_node)
 
     used_nodes = set()
+    nodes_to_visit = []
     for node in output_nodes:
         # A node inside a group is connected to the rest of the script
         # through its parent groups.
         for end_node in _iter_self_and_parents(node):
-            used_nodes.update(_get_route_lengths(end_node, script_nodes))
+            if end_node in used_nodes:
+                continue
+
+            used_nodes.add(end_node)
+            nodes_to_visit.append(end_node)
+
+    while nodes_to_visit:
+        node = nodes_to_visit.pop()
+        for dependency in node.dependencies(nuke.INPUTS | nuke.HIDDEN_INPUTS):
+            if dependency in used_nodes:
+                continue
+
+            used_nodes.add(dependency)
+            nodes_to_visit.append(dependency)
 
     return used_nodes
 
