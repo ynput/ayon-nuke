@@ -903,17 +903,17 @@ def check_inventory_versions(show_popup=False):
         log.warning(error, exc_info=True)
         return
 
-    if filtered_containers.outdated:
+    # Outdated containers must also be used in the script, otherwise their
+    # version is not relevant for the render (e.g. comparison loads).
+    outdated_containers = filtered_containers.outdated
+    if outdated_containers:
         try:
             used_nodes = get_used_nodes()
             outdated_containers = [
-                container for container in filtered_containers.outdated
+                container for container in outdated_containers
                 if container.get("node") is None
                 or is_node_used(container["node"], used_nodes)
             ]
-            filtered_containers = filtered_containers._replace(
-                outdated=outdated_containers
-            )
         except Exception as error:
             # Keep all outdated containers when the script cannot be
             # inspected, rather than silently hiding them.
@@ -924,7 +924,7 @@ def check_inventory_versions(show_popup=False):
             # Match `any_outdated_containers` which ignores locked versions
             if any(
                 container.get("version_locked") is not True
-                for container in filtered_containers.outdated
+                for container in outdated_containers
             ):
                 log.warning("Scene has outdated content.")
                 _show_outdated_content_popup()
@@ -933,7 +933,13 @@ def check_inventory_versions(show_popup=False):
 
     # Colorize nodes
     try:
-        for category, containers in filtered_containers._asdict().items():
+        containers_by_category = {
+            "latest": filtered_containers.latest,
+            "outdated": outdated_containers,
+            "not_found": filtered_containers.not_found,
+            "invalid": filtered_containers.invalid,
+        }
+        for category, containers in containers_by_category.items():
             if category not in LOADER_CATEGORY_COLORS:
                 continue
             color = LOADER_CATEGORY_COLORS[category]
