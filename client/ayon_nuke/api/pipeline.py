@@ -64,7 +64,6 @@ from .lib import (
     set_node_data,
     MENU_LABEL,
 )
-from .validate_containers import install_outdated_containers_override
 from .workfile_template_builder import (
     build_workfile_template,
     create_placeholder,
@@ -136,7 +135,6 @@ class NukeHost(
         register_creator_plugin_path(CREATE_PATH)
         register_inventory_action_path(INVENTORY_PATH)
         register_workfile_build_plugin_path(WORKFILE_BUILD_PATH)
-        install_outdated_containers_override()
 
     def setup_ui_callbacks_and_menu(self):
         """Setup AYON menus."""
