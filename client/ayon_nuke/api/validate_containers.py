@@ -1,4 +1,4 @@
-"""Nuke specific validation of outdated loaded containers."""
+"""Nuke validation of outdated loaded containers."""
 
 import pyblish.api
 
@@ -13,6 +13,41 @@ from .lib import get_used_nodes, is_node_used
 # Instances can list loaded containers that should not be reported, e.g. a
 # studio addon collector can fill this up. Items are container node names.
 IGNORE_CONTAINERS_KEY = "validateOutdatedIgnoreContainers"
+
+
+def any_outdated_containers(context=None):
+    """Check if there are outdated containers used in the script.
+
+    Nuke variant of 'ayon_core.pipeline.load.any_outdated_containers'. The
+    only difference is that outdated containers which are not used in the
+    script, e.g. older versions loaded only for comparison, are ignored.
+
+    Args:
+        context (Optional[pyblish.api.Context]): Publishing context used to
+            get containers ignored by the instances.
+
+    Returns:
+        bool: True when an outdated container is used in the script.
+    """
+    outdated_containers = get_outdated_containers()
+    if not outdated_containers:
+        return False
+
+    used_nodes = get_used_nodes()
+    ignored_names = _get_ignored_names(context)
+    for container in outdated_containers:
+        node = container.get("node")
+        if node is None:
+            # Container without a node cannot be inspected, report it.
+            return True
+
+        if node.name() in ignored_names:
+            continue
+
+        if is_node_used(node, used_nodes):
+            return True
+
+    return False
 
 
 class ValidateOutdatedContainers(CoreValidateOutdatedContainers):
@@ -30,51 +65,17 @@ class ValidateOutdatedContainers(CoreValidateOutdatedContainers):
         if not self.is_active(context.data):
             return
 
-        outdated_containers = get_outdated_containers()
-        if not outdated_containers:
-            return
-
-        used_nodes = get_used_nodes()
-        ignored_names = _get_ignored_names(context)
-        reported = [
-            container for container in outdated_containers
-            if _is_reported(container, used_nodes, ignored_names)
-        ]
-        if not reported:
-            return
-
-        names = ", ".join(sorted(
-            container.get("name", "?") for container in reported
-        ))
-        msg = "Outdated containers used in the scene: {}".format(names)
-        raise PublishXmlValidationError(self, msg)
-
-
-def _is_reported(container, used_nodes, ignored_names):
-    """Return whether an outdated container should be reported.
-
-    Args:
-        container (dict): Container data from the scene.
-        used_nodes (set[nuke.Node]): Nodes used by the script.
-        ignored_names (set[str]): Container node names to ignore.
-
-    Returns:
-        bool: True when the container should be reported as outdated.
-    """
-    node = container.get("node")
-    if node is None:
-        # Container without a node cannot be inspected, report it.
-        return True
-
-    if node.name() in ignored_names:
-        return False
-
-    return is_node_used(node, used_nodes)
+        if any_outdated_containers(context):
+            msg = "There are outdated containers in the scene."
+            raise PublishXmlValidationError(self, msg)
 
 
 def _get_ignored_names(context):
     """Get container node names ignored by the published instances."""
     ignored_names = set()
+    if context is None:
+        return ignored_names
+
     for instance in context:
         for item in instance.data.get(IGNORE_CONTAINERS_KEY, []):
             name = _get_node_name(item)
