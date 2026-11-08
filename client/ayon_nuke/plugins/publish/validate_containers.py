@@ -1,23 +1,26 @@
-"""Nuke validation of outdated loaded containers."""
+"""Validate outdated loaded containers used in the Nuke script.
+
+The class intentionally has the same name as the core
+'ValidateOutdatedContainers' plugin. The Nuke plugin path is registered
+before the core plugin path, so pyblish uses this class and skips the core
+one, because duplicate plugin names are ignored.
+"""
+
 from ayon_core.pipeline import PublishXmlValidationError
 from ayon_core.pipeline.load import get_outdated_containers
 from ayon_core.plugins.publish.validate_containers import (
     ValidateOutdatedContainers as CoreValidateOutdatedContainers,
 )
 
-from .lib import get_used_nodes, is_node_used
+from ayon_nuke.api.lib import get_used_nodes, is_node_used
 
 
-def any_outdated_containers(context=None):
+def any_outdated_containers():
     """Check if there are outdated containers used in the script.
 
     Nuke variant of 'ayon_core.pipeline.load.any_outdated_containers'. The
     only difference is that outdated containers which are not used in the
     script, e.g. older versions loaded only for comparison, are ignored.
-
-    Args:
-        context (Optional[pyblish.api.Context]): Publishing context used to
-            get containers ignored by the instances.
 
     Returns:
         bool: True when an outdated container is used in the script.
@@ -32,6 +35,7 @@ def any_outdated_containers(context=None):
         if node is None:
             # Container without a node cannot be inspected, report it.
             return True
+
         if is_node_used(node, used_nodes):
             return True
 
@@ -50,6 +54,6 @@ class ValidateOutdatedContainers(CoreValidateOutdatedContainers):
         if not self.is_active(context.data):
             return
 
-        if any_outdated_containers(context):
+        if any_outdated_containers():
             msg = "There are outdated containers in the scene."
             raise PublishXmlValidationError(self, msg)
