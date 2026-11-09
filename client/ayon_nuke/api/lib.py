@@ -851,8 +851,13 @@ def get_imageio_input_colorspace(filename):
 def get_viewer_input_process_node():
     """Return the Viewer input process node that is baked into reviews.
 
-    This is the node `get_view_process_node` duplicates to bake the Viewer
-    input process (e.g. a LUT) into review outputs.
+    This is the node `duplicate_viewer_input_process_node` duplicates to bake
+    the Viewer input process (e.g. a LUT) into review outputs.
+
+    Note:
+        Only the last Viewer of `nuke.allNodes()` (newest first, so usually
+        the oldest Viewer) counts. If that Viewer has no input process node
+        set, None is returned even when another Viewer has one.
 
     Returns:
         Optional[nuke.Node]: The input process node, if any.
@@ -887,12 +892,21 @@ def get_viewer_input_process_node():
     return ipn_node
 
 
-def get_view_process_node():
+def duplicate_viewer_input_process_node():
+    """Return a duplicate of the Viewer input process node to bake with.
+
+    Returns:
+        Optional[nuke.Node]: The duplicate, if there is an input process node.
+    """
     reset_selection()
 
     ipn_node = get_viewer_input_process_node()
     if ipn_node:
         return duplicate_node(ipn_node)
+
+
+# Backwards compatibility
+get_view_process_node = duplicate_viewer_input_process_node
 
 
 def check_inventory_versions(show_popup=False):
