@@ -52,6 +52,8 @@ class NukeTemplateBuilder(AbstractTemplateBuilder):
 
 
 class NukePlaceholderPlugin(PlaceholderPlugin):
+    skip_discovery = True
+
     node_color = 4278190335
 
     item_class = PlaceholderItem
