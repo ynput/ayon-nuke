@@ -65,15 +65,23 @@ class CollectUpstreamInputs(pyblish.api.ContextPlugin):
             if not nodes:
                 continue
 
-            # Use dict as ordered set of representation ids
-            inputs = {}
+            # Use dict as ordered set of containers by their node
+            input_containers = {}
             if containers_by_node:
                 for node in iter_upstream_nodes(nodes, dependencies_cache):
                     for container in containers_by_node.get(node, []):
-                        inputs[container["representation"]] = None
-            inputs = list(inputs)
+                        input_containers[container["objectName"]] = container
+            input_containers = list(input_containers.values())
+            inputs = list(dict.fromkeys(
+                container["representation"] for container in input_containers
+            ))
 
             instance.data["inputRepresentations"] = inputs
+            # Containers include nodes, so they are stored as transient data.
+            # Used by `ValidateOutdatedContainers`.
+            instance.data["transientData"]["inputContainers"] = (
+                input_containers
+            )
             self.log.debug(
                 f"Collected inputs for {instance}: {inputs}"
             )
