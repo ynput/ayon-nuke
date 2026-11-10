@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 
 import nuke
@@ -20,16 +22,46 @@ class LoadEffects(plugin.NukeGroupLoader):
     color = "white"
 
     # Loaded from settings
-    exposed_knobs = []
+    exposed_knobs: list[str] = []
+    """Names of knobs to expose on the group node."""
 
     def on_load(self, group_node, namespace, context):
         assign_to = self._load_effects_to_group(context, group_node=group_node)
+        self._expose_knobs(group_node)
         self.connect_read_node(group_node, namespace, assign_to)
 
     def on_update(self, group_node, namespace, context):
         # Do the exact same os on load
         self.on_load(group_node, namespace, context)
         return group_node
+
+    def _expose_knobs(self, group_node: nuke.Group) -> None:
+        """Expose configured knobs from child nodes onto the group."""
+        if not self.exposed_knobs:
+            return
+
+        children = [
+            node for node in group_node.nodes()
+            if node.Class() not in ("Input", "Output")
+        ]
+
+        for knob_name in self.exposed_knobs:
+
+            # already exposed
+            if knob_name in group_node.knobs():
+                continue
+
+            for child in children:
+                if child.knob(knob_name):
+                    link_knobs([knob_name], child, group_node)
+
+                    # find the first child node with the knob
+                    # TODO: handle multiple children with the same knob
+                    break
+            else:
+                self.log.warning("No child contains a knob '%s'", knob_name)
+                continue
+
 
     def connect_read_node(self, group_node, namespace, product_name):
         """
