@@ -55,7 +55,6 @@ class LoadEffects(plugin.NukeGroupLoader):
                 if child.knob(knob_name):
                     link_knobs([knob_name], child, group_node)
 
-                    # find the first child node with the knob
                     # TODO: handle multiple children with the same knob
                     break
             else:
