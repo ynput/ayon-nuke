@@ -3,6 +3,7 @@ import json
 import nuke
 
 from ayon_nuke.api import plugin
+from ayon_nuke.api.lib import link_knobs
 
 
 class LoadEffects(plugin.NukeGroupLoader):
@@ -17,6 +18,9 @@ class LoadEffects(plugin.NukeGroupLoader):
     order = 0
     icon = "cc"
     color = "white"
+
+    # Loaded from settings
+    exposed_knobs = []
 
     def on_load(self, group_node, namespace, context):
         assign_to = self._load_effects_to_group(context, group_node=group_node)
