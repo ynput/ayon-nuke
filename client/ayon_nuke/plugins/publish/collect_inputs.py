@@ -28,6 +28,10 @@ class CollectUpstreamInputs(pyblish.api.ContextPlugin):
 
     The workfile instance is skipped.
 
+    The containers used by any instance are stored in
+    `context.data["usedContainers"]`, so core's `ValidateOutdatedContainers`
+    validates only those instead of all containers in the scene.
+
     This is a context plugin so the scene's containers are queried only once
     and the upstream dependencies of nodes are shared between instances,
     because both can be slow in heavy scripts.
@@ -60,6 +64,8 @@ class CollectUpstreamInputs(pyblish.api.ContextPlugin):
                 containers_by_node[member].append(container)
 
         dependencies_cache = {}
+        # Containers used by any instance, by their node
+        used_containers = {}
         for instance in instances:
             nodes = self.get_instance_nodes(instance)
             if not nodes:
@@ -71,20 +77,19 @@ class CollectUpstreamInputs(pyblish.api.ContextPlugin):
                 for node in iter_upstream_nodes(nodes, dependencies_cache):
                     for container in containers_by_node.get(node, []):
                         input_containers[container["objectName"]] = container
-            input_containers = list(input_containers.values())
+            used_containers.update(input_containers)
             inputs = list(dict.fromkeys(
-                container["representation"] for container in input_containers
+                container["representation"]
+                for container in input_containers.values()
             ))
 
             instance.data["inputRepresentations"] = inputs
-            # Containers include nodes, so they are stored as transient data.
-            # Used by `ValidateOutdatedContainers`.
-            instance.data["transientData"]["inputContainers"] = (
-                input_containers
-            )
             self.log.debug(
                 f"Collected inputs for {instance}: {inputs}"
             )
+
+        # Core's `ValidateOutdatedContainers` validates only these
+        context.data["usedContainers"] = list(used_containers.values())
 
     def get_instance_nodes(self, instance):
         """Return the nodes of an instance to walk upstream from.
