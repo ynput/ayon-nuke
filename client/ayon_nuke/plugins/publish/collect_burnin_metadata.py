@@ -54,7 +54,7 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
 
         values_by_frame = {
             frame: self._get_requested_metadata(write_node, frame)
-            for frame in sample_frames
+            for frame in sorted(sample_frames)
         }
 
         collected = {}
@@ -63,21 +63,18 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
             for values in values_by_frame.values()
             for key in values
         })
-
-        sorted_frames = sorted(values_by_frame)
         for key in all_frame_keys:
             values = [
-                values_by_frame[frame].get(key)
-                for frame in sorted_frames
+                metadata.get(key)
+                for metadata in values_by_frame.values()
             ]
-            present = [value for value in values if value is not None]
-            if not present:
-                continue
-
             # Keep one value per frame so burnin lists stay aligned with the
             # rendered frames. A key missing on a frame is an empty value.
+            if not any(values):
+                continue
             values = ["" if value is None else value for value in values]
-            if all(repr(value) == repr(values[0]) for value in values):
+            first_value = repr(values[0])
+            if all(repr(value) == first_value for value in values):
                 # Constant key: a single value keeps the burnin static.
                 collected[key] = values[0]
             else:
