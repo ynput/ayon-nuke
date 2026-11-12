@@ -2944,7 +2944,7 @@ def prompt_reset_context():
 
 def add_scripts_menu():
     try:
-        from scriptsmenu import launchfornuke
+        from . import launchfornuke
     except ImportError:
         log.warning(
             "Skipping studio.menu install, because "
