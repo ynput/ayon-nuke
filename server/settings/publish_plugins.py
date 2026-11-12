@@ -87,13 +87,13 @@ class CollectSyncWorkfileVersionModel(BaseSettingsModel):
 
 
 class CollectBurninMetadataModel(BaseSettingsModel):
-    """Expose Nuke metadata stream values as burnin and slate keys.
+    """Expose Nuke metadata stream values as burnin keys.
 
     Values are read from the metadata entering the instance's Write node
     (e.g. added by an upstream ModifyMetaData node). Use a key in burnin
-    templates as `{camera/focal}` and in slate templates as
-    `{custom[camera/focal]}`. Metadata that changes over the frame range is
-    exposed as a range, e.g. "35-50".
+    templates as `{camera/focal}`. Keys whose values differ per frame are
+    exposed as a list with one value per frame (animated burnin), constant
+    values are exposed as a single value.
     """
     enabled: bool = SettingsField(True, title="Enabled")
     metadata_keys: list[str] = SettingsField(

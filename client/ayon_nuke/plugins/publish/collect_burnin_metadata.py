@@ -7,7 +7,7 @@ from ayon_nuke import api as napi
 
 
 class CollectBurninMetadata(pyblish.api.InstancePlugin):
-    """Collect Nuke metadata stream values as burnin/slate formatting keys.
+    """Collect Nuke metadata stream values as burnin formatting keys.
 
     Metadata is read from the stream entering the instance's Write node
     (e.g. keys added upstream by a ModifyMetaData node such as
@@ -15,8 +15,8 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
 
     Each configured entry is either an exact metadata key or a prefix
     ending with "/" (e.g. "camera/" collects every "camera/*" key).
-    Collected keys are exposed unchanged, so `{camera/focal}` can be used
-    in burnin templates and `{custom[camera/focal]}` in slate templates.
+    Collected keys are exposed unchanged, so they can be used in burnin
+    templates, e.g. `{camera/focal}`.
 
     Metadata is sampled for every frame of the instance's handled range.
     Keys whose values differ between frames are stored as a list with one
