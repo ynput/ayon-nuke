@@ -18,16 +18,11 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
     Collected keys are exposed unchanged, so `{camera/focal}` can be used
     in burnin templates and `{custom[camera/focal]}` in slate templates.
 
-    Querying metadata makes Nuke validate the node graph for that frame,
-    which can be slow on heavy comps. To avoid doing it for every frame,
-    only the first, middle and last frames are sampled. The full frame
-    range is evaluated only when the sampled values differ. A value
-    animated only between the samples that ends up equal on all of them
-    is reported as static.
-
-    Burnins cannot change text per frame, so an animated value is
-    reported as a range: "min-max" for numbers (e.g. "35-50"), otherwise
-    "first-last" of the distinct values.
+    Metadata is sampled for every frame of the instance's handled range.
+    Keys whose values differ between frames are stored as a list with one
+    value per frame, in frame order (the same semantics as the Maya and
+    Houdini collectors' animated focal length). Constant keys are stored
+    as a single value.
     """
 
     order = pyblish.api.CollectorOrder + 0.3
@@ -62,20 +57,6 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
             for frame in sample_frames
         }
 
-        if self._get_animated_keys(values_by_frame):
-            self.log.debug(
-                "Metadata differs between sampled frames {}. Evaluating "
-                "frames {}-{} on '{}'.".format(
-                    sample_frames, frame_start, frame_end,
-                    write_node.fullName()
-                )
-            )
-            for frame in frame_ranges:
-                if frame not in values_by_frame:
-                    values_by_frame[frame] = self._get_requested_metadata(
-                        write_node, frame
-                    )
-
         collected = {}
         all_frame_keys = sorted({
             key
@@ -83,21 +64,25 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
             for key in values
         })
 
+        sorted_frames = sorted(values_by_frame)
         for key in all_frame_keys:
-            unique_values = {}
-            for frame in sorted(values_by_frame):
-                value = values_by_frame[frame].get(key)
-                if value is not None:
-                    unique_values.setdefault(value, None)
-
-            if not unique_values:
+            values = [
+                values_by_frame[frame].get(key)
+                for frame in sorted_frames
+            ]
+            present = [value for value in values if value is not None]
+            if not present:
                 continue
 
-            ordered = list(unique_values)
-            collected[key] = (
-                ordered[0] if len(ordered) == 1
-                else self._format_range(ordered)
-            )
+            # Keep one value per frame so burnin lists stay aligned with the
+            # rendered frames. A key missing on a frame is an empty value.
+            values = ["" if value is None else value for value in values]
+            if all(repr(value) == repr(values[0]) for value in values):
+                # Constant key: a single value keeps the burnin static.
+                collected[key] = values[0]
+            else:
+                # Animated key: one value per frame for the burnin script.
+                collected[key] = values
 
         missing = {
             key for key in self.metadata_keys
@@ -156,43 +141,6 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
             for key, value in metadata.items()
             if self._is_requested(key)
         }
-
-    @staticmethod
-    def _get_animated_keys(
-        values_by_frame: dict[int, dict[str, Any]]
-    ) -> set[str]:
-        """Get keys whose values differ between the given frames.
-
-        Args:
-            values_by_frame (dict[int, dict[str, Any]]): Metadata values
-                per frame.
-
-        Returns:
-            set[str]: Keys with differing values (or missing on some frames).
-        """
-        all_values = list(values_by_frame.values())
-        keys = {key for values in all_values for key in values}
-        return {
-            key for key in keys
-            if len({repr(values.get(key)) for values in all_values}) > 1
-        }
-
-    @staticmethod
-    def _format_range(values: list[Any]) -> str:
-        """Format distinct values of an animated key as a range string.
-
-        Args:
-            values (list[Any]): Distinct values in frame order.
-
-        Returns:
-            str: "min-max" for numeric values, otherwise "first-last".
-        """
-        if all(
-            isinstance(value, (int, float)) and not isinstance(value, bool)
-            for value in values
-        ):
-            return f"{min(values)}-{max(values)}"
-        return f"{values[0]}-{values[-1]}"
 
     def _is_requested(self, key: str) -> bool:
         """Check if the metadata key is requested.
