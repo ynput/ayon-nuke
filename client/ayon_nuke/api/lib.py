@@ -848,9 +848,24 @@ def get_imageio_input_colorspace(filename):
     return preset_clrsp
 
 
-def get_view_process_node():
-    reset_selection()
+def get_viewer_input_process_node():
+    """Return the Viewer input process node that is baked into reviews.
 
+    This is the node `duplicate_viewer_input_process_node` duplicates to bake
+    the Viewer input process (e.g. a LUT) into review outputs.
+
+    Note:
+        Only the last Viewer of `nuke.allNodes()` (newest first, so usually
+        the oldest Viewer) counts. If that Viewer has no input process node
+        set, None is returned even when another Viewer has one.
+
+    Returns:
+        Optional[nuke.Node]: The input process node, if any.
+
+    Raises:
+        NameError: When the input process node set on a Viewer does not
+            exist in the script.
+    """
     ipn_node = None
     for v_ in nuke.allNodes(filter="Viewer"):
         ipn = v_['input_process_node'].getValue()
@@ -874,10 +889,24 @@ def get_view_process_node():
                 "Viewer '{}' is doesn't exists in nodes"
             ).format(ipn, v_.name()))
 
-        ipn_node.setSelected(True)
+    return ipn_node
 
+
+def duplicate_viewer_input_process_node():
+    """Return a duplicate of the Viewer input process node to bake with.
+
+    Returns:
+        Optional[nuke.Node]: The duplicate, if there is an input process node.
+    """
+    reset_selection()
+
+    ipn_node = get_viewer_input_process_node()
     if ipn_node:
         return duplicate_node(ipn_node)
+
+
+# Backwards compatibility
+get_view_process_node = duplicate_viewer_input_process_node
 
 
 def check_inventory_versions(show_popup=False):
@@ -1576,6 +1605,90 @@ def get_backdrop_nodes(backdrop_node):
             continue
         contained.append(node)
     return contained
+
+
+def get_upstream_dependencies(node):
+    """Return the nodes that a node directly depends on.
+
+    These are the inputs and hidden inputs of the node. Groups (including
+    gizmos) are followed into: their internal Output node is included. An
+    Input node inside a group is followed out of the group: the connected
+    input of the parent group is included.
+
+    Args:
+        node (nuke.Node): Node to get the dependencies for.
+
+    Returns:
+        list[nuke.Node]: The nodes the node depends on.
+    """
+    dependencies = node.dependencies(nuke.INPUTS | nuke.HIDDEN_INPUTS)
+    if isinstance(node, nuke.Group):
+        # Precomp and LiveGroup are groups too, but without an output node
+        output_node = node.output()
+        if output_node is not None:
+            dependencies.append(output_node)
+    elif node.Class() == "Input":
+        parent = node.parent()
+        if parent is not None and parent.Class() != "Root":
+            input_node = parent.input(int(node["number"].value()))
+            if input_node is not None:
+                dependencies.append(input_node)
+    return dependencies
+
+
+def iter_upstream_nodes(nodes, dependencies_cache=None):
+    """Yield the nodes and all nodes upstream of them.
+
+    Each node is yielded only once. See `get_upstream_dependencies` for which
+    connections are followed.
+
+    Args:
+        nodes (Iterable[nuke.Node]): Nodes to start from.
+        dependencies_cache (Optional[dict[nuke.Node, list[nuke.Node]]]):
+            Cache of `get_upstream_dependencies` results per node. Pass the
+            same dictionary to multiple calls to query each node only once,
+            as long as the node graph does not change in between.
+
+    Yields:
+        nuke.Node: The nodes and their upstream nodes.
+    """
+    if dependencies_cache is None:
+        dependencies_cache = {}
+
+    queue = list(nodes)
+    visited = set()
+    while queue:
+        node = queue.pop()
+        if node in visited:
+            continue
+        visited.add(node)
+        yield node
+
+        dependencies = dependencies_cache.get(node)
+        if dependencies is None:
+            dependencies = get_upstream_dependencies(node)
+            dependencies_cache[node] = dependencies
+        queue.extend(dependencies)
+
+
+def get_container_members(container):
+    """Return the nodes that belong to a loaded container.
+
+    A container is its container node. A container loaded as a backdrop also
+    includes the nodes on the backdrop.
+
+    Args:
+        container (dict[str, Any]): Container as returned by the host's
+            `get_containers()`.
+
+    Returns:
+        set[nuke.Node]: The member nodes of the container.
+    """
+    node = container["node"]
+    members = {node}
+    if node.Class() == "BackdropNode":
+        members.update(get_backdrop_nodes(node))
+    return members
 
 
 def create_backdrop(label="", color=None, layer=0,
