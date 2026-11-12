@@ -44,7 +44,7 @@ from .lib import (
     set_node_knobs_from_settings,
     set_node_data,
     get_node_data,
-    get_view_process_node,
+    duplicate_viewer_input_process_node,
     get_filenames_without_hash,
     get_work_default_directory,
     link_knobs,
@@ -1207,7 +1207,7 @@ class ExporterReviewLut(ExporterReview):
         if bake_viewer_process:
             # Node View Process
             if bake_viewer_input_process_node:
-                ipn = get_view_process_node()
+                ipn = duplicate_viewer_input_process_node()
                 if ipn is not None:
                     # connect
                     ipn.setInput(0, self.previous_node)
@@ -1402,7 +1402,7 @@ class ExporterReviewMov(ExporterReview):
         if bake_viewer_process:
             if bake_viewer_input_process_node:
                 # View Process node
-                ipn = get_view_process_node()
+                ipn = duplicate_viewer_input_process_node()
                 if ipn is not None:
                     # connect to ViewProcess node
                     self._connect_to_above_nodes(
