@@ -1,9 +1,11 @@
 import collections
 from typing import Any
 import nuke
-from logging import getLogger
+
 from ayon_core.pipeline import registered_host
 from ayon_core.pipeline.workfile.workfile_template_builder import (
+    TemplateProfileNotFound,
+    TemplateLoadFailed,
     AbstractTemplateBuilder,
     PlaceholderPlugin,
     PlaceholderItem
@@ -15,8 +17,6 @@ from .lib import (
     get_main_window,
     WorkfileSettings,
 )
-
-logger = getLogger(__name__)
 
 PLACEHOLDER_SET = "PLACEHOLDERS_SET"
 
@@ -181,9 +181,12 @@ def trigger_on_new_file() -> None:
 def build_workfile_template():
     builder = NukeTemplateBuilder(registered_host())
     preset = builder.get_template_preset()
+    if not preset.profile:
+        raise TemplateProfileNotFound(
+            "No matching profile found for current context."
+        )
     if not preset.has_valid_path():
-        logger.warning(f"Invalid template path: {preset.path}")
-        return
+        raise TemplateLoadFailed(f"Invalid template path: {preset.path}")
     builder.build_template(preset=preset)
 
     # set all settings to shot context default
