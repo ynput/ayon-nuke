@@ -1,0 +1,16 @@
+# Installed into tests/.deps/py<version> for the Python that Nuke runs.
+# ayon-core client imports
+pyblish-base>=1.8.11
+clique==1.6.*
+ayon-python-api>=1.0.0
+structlog
+six
+jsonschema
+platformdirs
+semver
+arrow
+speedcopy
+qtpy
+qtawesome
+# test runner
+pytest>=8
