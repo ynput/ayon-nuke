@@ -7,7 +7,6 @@ from ayon_core.pipeline.workfile.workfile_template_builder import (
 )
 from ayon_nuke.api.lib import (
     find_free_space_to_paste_nodes,
-    get_backdrop_nodes,
     get_extreme_positions,
     get_group_io_nodes,
     imprint,
@@ -15,8 +14,6 @@ from ayon_nuke.api.lib import (
     refresh_nodes,
     reset_selection,
     get_names_from_nodes,
-    select_nodes,
-    node_tempfile,
 )
 from ayon_nuke.api.workfile_template_builder import (
     NukePlaceholderPlugin
@@ -152,28 +149,6 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
         # go back to root group
         nuke.root().begin()
 
-    def _move_to_placeholder_group(self, placeholder, nodes_loaded):
-        """
-        opening the placeholder's group and copying loaded nodes in it.
-
-        Returns :
-            nodes_loaded (list): the new list of pasted nodes
-        """
-
-        groups_name = placeholder.data["group_name"]
-        reset_selection()
-        select_nodes(nodes_loaded)
-        if groups_name:
-            with node_tempfile() as filepath:
-                nuke.nodeCopy(filepath)
-                for node in nuke.selectedNodes():
-                    nuke.delete(node)
-                group = nuke.toNode(groups_name)
-                group.begin()
-                nuke.nodePaste(filepath)
-                nodes_loaded = nuke.selectedNodes()
-        return nodes_loaded
-
     def _fix_z_order(self, placeholder):
         """Fix the problem of z_order when a backdrop is loaded."""
 
@@ -234,62 +209,6 @@ class NukePlaceholderLoadPlugin(NukePlaceholderPlugin, PlaceholderLoadMixin):
                 siblings_name = get_names_from_nodes(siblings)
                 siblings = {"siblings": siblings_name}
                 imprint(node, siblings)
-
-    def _update_nodes(self, placeholder, nodes, considered_nodes):
-        """Adjust backdrop nodes dimensions and positions.
-
-        Considering some nodes sizes.
-
-        Args:
-            nodes (list): list of nodes to update
-            considered_nodes (list): list of nodes to consider while updating
-                positions and dimensions
-        """
-
-        placeholder_node = nuke.toNode(placeholder.scene_identifier)
-
-        min_x, min_y, max_x, max_y = get_extreme_positions(considered_nodes)
-
-        width_ph = placeholder_node.screenWidth()
-        height_ph = placeholder_node.screenHeight()
-        diff_y = max_y - min_y - height_ph
-        diff_x = max_x - min_x - width_ph
-        contained_nodes = {placeholder_node}  # for backdrops
-        min_x = placeholder_node.xpos()
-        min_y = placeholder_node.ypos()
-
-        if diff_y <= 0 and diff_x <= 0:
-            return
-
-        for node in nodes:
-            refresh_node(node)
-
-            if (
-                node == placeholder_node
-                or node in considered_nodes
-            ):
-                continue
-
-            if (
-                not isinstance(node, nuke.BackdropNode)
-                or (
-                    isinstance(node, nuke.BackdropNode)
-                    and not contained_nodes <= set(get_backdrop_nodes(node))
-                )
-            ):
-                if node.xpos() >= min_x:
-                    node.setXpos(node.xpos() + diff_x)
-
-                if node.ypos() >= min_y:
-                    node.setYpos(node.ypos() + diff_y)
-
-            else:
-                width = node.screenWidth()
-                height = node.screenHeight()
-                node.knob("bdwidth").setValue(width + diff_x)
-                node.knob("bdheight").setValue(height + diff_y)
-
-            refresh_node(node)
 
     def _set_loaded_connections(self, placeholder):
         """
