@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import json
 
 import nuke
 
 from ayon_nuke.api import plugin
+from ayon_nuke.api.lib import link_knobs
 
 
 class LoadEffects(plugin.NukeGroupLoader):
@@ -18,14 +21,55 @@ class LoadEffects(plugin.NukeGroupLoader):
     icon = "cc"
     color = "white"
 
+    # Loaded from settings
+    exposed_knobs: list[str] = []
+    """Names of knobs to expose on the group node."""
+
     def on_load(self, group_node, namespace, context):
         assign_to = self._load_effects_to_group(context, group_node=group_node)
+        self._expose_knobs(group_node)
         self.connect_read_node(group_node, namespace, assign_to)
 
     def on_update(self, group_node, namespace, context):
         # Do the exact same os on load
         self.on_load(group_node, namespace, context)
         return group_node
+
+    def _expose_knobs(self, group_node: nuke.Group) -> None:
+        """Expose configured knobs from child nodes onto the group.
+
+        On update the child nodes are rebuilt, so links created by a previous
+        load point at deleted nodes. Those are removed and linked again.
+        """
+        if not self.exposed_knobs:
+            return
+
+        children = [
+            node for node in group_node.nodes()
+            if node.Class() not in ("Input", "Output")
+        ]
+
+        for knob_name in self.exposed_knobs:
+            existing = group_node.knobs().get(knob_name)
+            if existing is not None:
+                if existing.Class() != "Link_Knob":
+                    # A real knob of the group, never replace it.
+                    self.log.warning(
+                        "Group already has a knob '%s', not exposing it.",
+                        knob_name
+                    )
+                    continue
+                # Stale link from a previous load or update.
+                group_node.removeKnob(existing)
+
+            for child in children:
+                if child.knob(knob_name):
+                    link_knobs([knob_name], child, group_node)
+
+                    # TODO: handle multiple children with the same knob
+                    break
+            else:
+                self.log.warning("No child contains a knob '%s'", knob_name)
 
     def connect_read_node(self, group_node, namespace, product_name):
         """
