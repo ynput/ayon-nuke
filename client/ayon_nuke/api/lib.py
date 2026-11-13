@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 import re
+import copy
 import json
 import functools
 import warnings
@@ -523,13 +524,14 @@ def get_avalon_knob_data(node, prefix="avalon:", create=True):
     return data
 
 
-def add_write_node(name, file_path, knobs, **kwarg):
+def add_write_node(name, file_path, knobs, node_class="Write", **kwarg):
     """Adding nuke write node
 
     Arguments:
         name (str): nuke node name
         file_path (str): file path to write
         knobs (list[dict]): nuke knobs to be set from settings
+        node_class (str): nuke node class
         kwarg (dict): formatting attributes data for nuke knobs,
             must at least include `frame_range` key.
 
@@ -539,7 +541,7 @@ def add_write_node(name, file_path, knobs, **kwarg):
     use_range_limit = kwarg.get("use_range_limit", None)
 
     w = nuke.createNode(
-        "Write",
+        node_class,
         "name {}".format(name),
         inpanel=False
     )
@@ -656,22 +658,87 @@ def get_node_path(path, padding=4):
     return filename, padding, ext
 
 
-def get_nuke_imageio_settings():
-    return get_project_settings(Context.project_name)["nuke"]["imageio"]
+def get_nuke_imageio_settings(project_settings: dict | None = None):
+    """Get the `nuke/imageio` project settings.
+
+    Args:
+        project_settings (Optional[dict]): Project settings, if the caller
+            already has them. Getting the project settings returns a deep
+            copy of all the project's settings, so pass them in when this
+            is used repeatedly (e.g. for each node in a loop).
+
+    Returns:
+        dict: The `nuke/imageio` settings.
+    """
+    if project_settings is None:
+        project_settings = get_project_settings(Context.project_name)
+    return project_settings["nuke"]["imageio"]
 
 
-def get_matching_override_node(node_class, plugin_name, product_name):
+@functools.lru_cache(maxsize=16)
+def _get_task_type(project_name, folder_path, task_name):
+    """Return task type of the given task, cached per context.
+
+    Cached because override matching runs for every write node, e.g. on
+    workfile open, and task type of an existing task does not change.
+
+    Returns:
+        Optional[str]: Task type or None if task could not be found.
+    """
+    if not task_name:
+        return None
+
+    folder_entity = ayon_api.get_folder_by_path(
+        project_name, folder_path, fields={"id"}
+    )
+    if not folder_entity:
+        return None
+
+    task_entity = ayon_api.get_task_by_name(
+        project_name, folder_entity["id"], task_name, fields={"taskType"}
+    )
+    if not task_entity:
+        return None
+    return task_entity["taskType"]
+
+
+def get_current_task_type():
+    """Return task type of the current context task.
+
+    Returns:
+        Optional[str]: Task type or None if there is no current task.
+    """
+    context = get_current_context()
+    return _get_task_type(
+        context["project_name"],
+        context["folder_path"],
+        context["task_name"],
+    )
+
+
+def get_matching_override_node(
+    node_class,
+    plugin_name,
+    product_name,
+    project_settings: dict | None = None,
+):
     """Find matching override node for the given configuration.
+
+    Override node matches when node class and plugin match and, if set
+    in settings, current task type is one of its task types and product
+    name matches one of its product name regexes.
 
     Args:
         node_class (str): Nuke node class name
         plugin_name (str): Plugin name
         product_name (str): Product name
+        project_settings (Optional[dict]): Project settings, queried if not
+            provided.
 
     Returns:
         dict or None: Matching override node or None if not found
     """
-    imageio_nodes = get_nuke_imageio_settings()["nodes"]
+    imageio_nodes = get_nuke_imageio_settings(project_settings)["nodes"]
     override_nodes = imageio_nodes["override_nodes"]
 
     for override_node in override_nodes:
@@ -684,6 +751,11 @@ def get_matching_override_node(node_class, plugin_name, product_name):
             continue
 
         if plugin_name not in override_node["plugins"]:
+            continue
+
+        # empty task types means the override applies to all task types
+        task_types = override_node.get("task_types")
+        if task_types and get_current_task_type() not in task_types:
             continue
 
         product_names = override_node["product_names"]
@@ -702,9 +774,27 @@ def get_matching_override_node(node_class, plugin_name, product_name):
     return None
 
 
-def get_imageio_node_setting(node_class, plugin_name, product_name):
-    """Get preset data for dataflow (fileType, compression, bitDepth)"""
-    imageio_nodes = get_nuke_imageio_settings()["nodes"]
+def get_imageio_node_setting(
+    node_class,
+    plugin_name,
+    product_name,
+    project_settings: dict | None = None,
+):
+    """Get preset data for dataflow (fileType, compression, bitDepth)
+
+    Args:
+        node_class (str): Nuke node class name
+        plugin_name (str): Plugin name
+        product_name (str): Product name
+        project_settings (Optional[dict]): Project settings, queried if not
+            provided. Pass them in if the caller already has them, e.g. when
+            calling this for many nodes. They are not modified.
+
+    Returns:
+        dict or None: Required node settings, with the knobs resolved for
+            this product, or None if there is no matching required node.
+    """
+    imageio_nodes = get_nuke_imageio_settings(project_settings)["nodes"]
     required_nodes = imageio_nodes["required_nodes"]
 
     imageio_node = None
@@ -722,34 +812,58 @@ def get_imageio_node_setting(node_class, plugin_name, product_name):
     if not imageio_node:
         return
 
+    # The knobs of the node are replaced below, so work on a copy to not
+    # modify the (possibly shared) project settings.
+    imageio_node = copy.deepcopy(imageio_node)
+
     # Check if a node override exists for this configuration
     override_imageio_node = get_matching_override_node(
-        node_class, plugin_name, product_name
+        node_class, plugin_name, product_name, project_settings
     )
 
     # If node override exists,
     # use only override knobs
     # (don't merge with original master knobs)
     if override_imageio_node:
-        imageio_node["knobs"] = override_imageio_node.get("knobs", [])
+        imageio_node["knobs"] = copy.deepcopy(
+            override_imageio_node.get("knobs", [])
+        )
     else:
         # Otherwise apply partial overrides to original master knobs
         imageio_node["knobs"] = get_imageio_node_override_setting(
             node_class,
             plugin_name,
             product_name,
-            imageio_node["knobs"]
+            imageio_node["knobs"],
+            project_settings,
         )
     return imageio_node
 
 
 def get_imageio_node_override_setting(
-    node_class, plugin_name, product_name, knobs_settings
+    node_class,
+    plugin_name,
+    product_name,
+    knobs_settings,
+    project_settings: dict | None = None,
 ):
-    """Get imageio node overrides from settings"""
+    """Get imageio node overrides from settings
+
+    Args:
+        node_class (str): Nuke node class name
+        plugin_name (str): Plugin name
+        product_name (str): Product name
+        knobs_settings (list[dict]): Knobs to apply the overrides to. This
+            list is modified and returned.
+        project_settings (Optional[dict]): Project settings, queried if not
+            provided.
+
+    Returns:
+        list[dict]: The `knobs_settings` with the overrides applied.
+    """
     # find matching override node
     override_imageio_node = get_matching_override_node(
-        node_class, plugin_name, product_name
+        node_class, plugin_name, product_name, project_settings
     )
 
     # add overrides to imageio_node
@@ -764,7 +878,8 @@ def get_imageio_node_override_setting(
             for knob in knobs_settings:
                 # add missing knobs into imageio_node
                 if oknob_name not in knob_names:
-                    knobs_settings.append(oknob)
+                    # copy so the result does not share data with settings
+                    knobs_settings.append(copy.deepcopy(oknob))
                     knob_names.append(oknob_name)
                     continue
 
@@ -778,16 +893,28 @@ def get_imageio_node_override_setting(
                     knobs_settings.remove(knob)
                 else:
                     # override knob value with oknob's
-                    knob[knob_type] = oknob_value
+                    knob[knob_type] = copy.deepcopy(oknob_value)
 
     return knobs_settings
 
 
 # TODO: move into ./colorspace.py
-def get_imageio_input_colorspace(filename):
-    """Get input file colorspace based on regex in settings."""
+def get_imageio_input_colorspace(
+    filename, project_settings: dict | None = None
+):
+    """Get input file colorspace based on regex in settings.
+
+    Args:
+        filename (str): File path to match the regex inputs against.
+        project_settings (Optional[dict]): Project settings, queried if not
+            provided.
+
+    Returns:
+        str or None: The colorspace of the last matching regex input.
+    """
     imageio_regex_inputs = (
-        get_nuke_imageio_settings()["regex_inputs"]["inputs"])
+        get_nuke_imageio_settings(project_settings)["regex_inputs"]["inputs"]
+    )
 
     preset_clrsp = None
     for regexInput in imageio_regex_inputs:
@@ -797,9 +924,24 @@ def get_imageio_input_colorspace(filename):
     return preset_clrsp
 
 
-def get_view_process_node():
-    reset_selection()
+def get_viewer_input_process_node():
+    """Return the Viewer input process node that is baked into reviews.
 
+    This is the node `duplicate_viewer_input_process_node` duplicates to bake
+    the Viewer input process (e.g. a LUT) into review outputs.
+
+    Note:
+        Only the last Viewer of `nuke.allNodes()` (newest first, so usually
+        the oldest Viewer) counts. If that Viewer has no input process node
+        set, None is returned even when another Viewer has one.
+
+    Returns:
+        Optional[nuke.Node]: The input process node, if any.
+
+    Raises:
+        NameError: When the input process node set on a Viewer does not
+            exist in the script.
+    """
     ipn_node = None
     for v_ in nuke.allNodes(filter="Viewer"):
         ipn = v_['input_process_node'].getValue()
@@ -823,10 +965,24 @@ def get_view_process_node():
                 "Viewer '{}' is doesn't exists in nodes"
             ).format(ipn, v_.name()))
 
-        ipn_node.setSelected(True)
+    return ipn_node
 
+
+def duplicate_viewer_input_process_node():
+    """Return a duplicate of the Viewer input process node to bake with.
+
+    Returns:
+        Optional[nuke.Node]: The duplicate, if there is an input process node.
+    """
+    reset_selection()
+
+    ipn_node = get_viewer_input_process_node()
     if ipn_node:
         return duplicate_node(ipn_node)
+
+
+# Backwards compatibility
+get_view_process_node = duplicate_viewer_input_process_node
 
 
 def check_inventory_versions(show_popup=False):
@@ -1097,6 +1253,7 @@ def create_prenodes(
     nodes_setting,
     plugin_name=None,
     product_name=None,
+    project_settings: dict | None = None,
     **kwargs
 ):
     last_node = None
@@ -1126,7 +1283,8 @@ def create_prenodes(
                 now_node.Class(),
                 plugin_name,
                 product_name,
-                knobs
+                knobs,
+                project_settings,
             )
 
         # add data to knob
@@ -1157,6 +1315,8 @@ def create_write_node(
     input=None,
     prenodes=None,
     linked_knobs=None,
+    project_settings: dict | None = None,
+    node_class="Write",
     **kwargs
 ):
     """Creating write node which is group node
@@ -1169,6 +1329,8 @@ def create_write_node(
             with dependency
         review (bool)[optional]: adding review knob
         farm (bool)[optional]: rendering workflow target
+        project_settings (Optional[dict]): project settings, queried if not
+            provided. Creators can pass their `self.project_settings`.
         kwargs (dict)[optional]: additional key arguments for formatting
 
     Example:
@@ -1214,9 +1376,10 @@ def create_write_node(
 
     # get knob settings for write node
     imageio_writes = get_imageio_node_setting(
-        node_class="Write",
+        node_class=node_class,
         plugin_name=plugin_name,
-        product_name=product_name
+        product_name=product_name,
+        project_settings=project_settings,
     )
 
     ext = None
@@ -1289,6 +1452,7 @@ def create_write_node(
             prenodes,
             plugin_name,
             product_name,
+            project_settings=project_settings,
             **kwargs
         )
         if last_prenode:
@@ -1299,6 +1463,7 @@ def create_write_node(
             "inside_{}".format(name),
             fpath,
             imageio_writes["knobs"],
+            node_class,
             **data
         )
         # connect to previous node
@@ -1523,6 +1688,90 @@ def get_backdrop_nodes(backdrop_node):
             continue
         contained.append(node)
     return contained
+
+
+def get_upstream_dependencies(node):
+    """Return the nodes that a node directly depends on.
+
+    These are the inputs and hidden inputs of the node. Groups (including
+    gizmos) are followed into: their internal Output node is included. An
+    Input node inside a group is followed out of the group: the connected
+    input of the parent group is included.
+
+    Args:
+        node (nuke.Node): Node to get the dependencies for.
+
+    Returns:
+        list[nuke.Node]: The nodes the node depends on.
+    """
+    dependencies = node.dependencies(nuke.INPUTS | nuke.HIDDEN_INPUTS)
+    if isinstance(node, nuke.Group):
+        # Precomp and LiveGroup are groups too, but without an output node
+        output_node = node.output()
+        if output_node is not None:
+            dependencies.append(output_node)
+    elif node.Class() == "Input":
+        parent = node.parent()
+        if parent is not None and parent.Class() != "Root":
+            input_node = parent.input(int(node["number"].value()))
+            if input_node is not None:
+                dependencies.append(input_node)
+    return dependencies
+
+
+def iter_upstream_nodes(nodes, dependencies_cache=None):
+    """Yield the nodes and all nodes upstream of them.
+
+    Each node is yielded only once. See `get_upstream_dependencies` for which
+    connections are followed.
+
+    Args:
+        nodes (Iterable[nuke.Node]): Nodes to start from.
+        dependencies_cache (Optional[dict[nuke.Node, list[nuke.Node]]]):
+            Cache of `get_upstream_dependencies` results per node. Pass the
+            same dictionary to multiple calls to query each node only once,
+            as long as the node graph does not change in between.
+
+    Yields:
+        nuke.Node: The nodes and their upstream nodes.
+    """
+    if dependencies_cache is None:
+        dependencies_cache = {}
+
+    queue = list(nodes)
+    visited = set()
+    while queue:
+        node = queue.pop()
+        if node in visited:
+            continue
+        visited.add(node)
+        yield node
+
+        dependencies = dependencies_cache.get(node)
+        if dependencies is None:
+            dependencies = get_upstream_dependencies(node)
+            dependencies_cache[node] = dependencies
+        queue.extend(dependencies)
+
+
+def get_container_members(container):
+    """Return the nodes that belong to a loaded container.
+
+    A container is its container node. A container loaded as a backdrop also
+    includes the nodes on the backdrop.
+
+    Args:
+        container (dict[str, Any]): Container as returned by the host's
+            `get_containers()`.
+
+    Returns:
+        set[nuke.Node]: The member nodes of the container.
+    """
+    node = container["node"]
+    members = {node}
+    if node.Class() == "BackdropNode":
+        members.update(get_backdrop_nodes(node))
+    return members
 
 
 def create_backdrop(label="", color=None, layer=0,
@@ -1988,6 +2237,18 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
             ):
                 continue
 
+            # Only set colorspace on write nodes, not on nodes such
+            # as DeepWrite, and return early when no write node is present.
+            write_node = None
+            node.begin()
+            for x in nuke.allNodes():
+                if x.Class() == "Write":
+                    write_node = x
+            node.end()
+
+            if not write_node:
+                continue
+
             nuke_imageio_writes = None
             if avalon_knob_data:
                 # this shouldn't happen anymore, only with very old data
@@ -1996,19 +2257,18 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
                 nuke_imageio_writes = get_imageio_node_setting(
                     node_class="Write",
                     plugin_name=avalon_knob_data["creator"],
-                    product_name=avalon_knob_data["productName"]
+                    product_name=avalon_knob_data["productName"],
+                    project_settings=self.project_settings,
                 )
             elif node_data:
-                nuke_imageio_writes = get_write_node_template_attr(node)
+                nuke_imageio_writes = get_write_node_template_attr(
+                    node=node,
+                    node_class="Write",
+                    project_settings=self.project_settings,
+                )
 
             if not nuke_imageio_writes:
                 continue
-
-            # get write node from inside the group node
-            write_nodes = nuke.allNodes(filter="Write", group=node)
-            if not write_nodes:
-                return
-            write_node = write_nodes[-1]
 
             # Exclude exposed knobs from colorspace nodes.
             # This ensures that any values overwritten by the user is
@@ -2122,7 +2382,7 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         """Setting colorspace following presets
         """
         # get imageio
-        nuke_colorspace = get_nuke_imageio_settings()
+        nuke_colorspace = get_nuke_imageio_settings(self.project_settings)
 
         log.info("Setting colorspace to workfile...")
         try:
@@ -2332,14 +2592,28 @@ Reopening Nuke should synchronize these paths and resolve any discrepancies.
         set_context_favorites(favorite_items)
 
 
-def get_write_node_template_attr(node):
-    """Gets all defined data from presets"""
+def get_write_node_template_attr(
+    node, node_class="Write", project_settings: dict | None = None
+):
+    """Gets all defined data from presets
+
+    Args:
+        node (nuke.Node): Write group node with AYON instance data.
+        node_class (str): Nuke node class name of the write node.
+        project_settings (Optional[dict]): Project settings, queried if not
+            provided. Pass them in when calling this for multiple nodes.
+
+    Returns:
+        dict or None: The required node settings for the write node.
+    """
 
     # TODO: add identifiers to settings and rename settings key
     plugin_names_mapping = {
         "create_write_image": "CreateWriteImage",
         "create_write_prerender": "CreateWritePrerender",
-        "create_write_render": "CreateWriteRender"
+        "create_deepwrite_prerender": "CreateDeepWritePrerender",
+        "create_write_render": "CreateWriteRender",
+        "create_deepwrite_render": "CreateDeepWriteRender",
     }
     # get AYON data from node
     node_data = get_node_data(node, INSTANCE_DATA_KNOB)
@@ -2350,9 +2624,10 @@ def get_write_node_template_attr(node):
     if product_name is None:
         product_name = node_data["subset"]
     return get_imageio_node_setting(
-        node_class="Write",
+        node_class=node_class,
         plugin_name=plugin_names_mapping[identifier],
-        product_name=product_name
+        product_name=product_name,
+        project_settings=project_settings,
     )
 
 
@@ -2768,7 +3043,7 @@ def prompt_reset_context():
 
 def add_scripts_menu():
     try:
-        from scriptsmenu import launchfornuke
+        from . import launchfornuke
     except ImportError:
         log.warning(
             "Skipping studio.menu install, because "
@@ -3004,40 +3279,124 @@ def duplicate_node(node):
     return dupli_node
 
 
+def _get_route_lengths(end_node, nodes):
+    """Get the longest route to `end_node` from each node upstream of it.
+
+    Args:
+        end_node (nuke.Node): The node to walk upstream from.
+        nodes (set[nuke.Node]): The nodes the route may go through.
+
+    Returns:
+        dict[nuke.Node, int]: The number of connections on the longest
+            route from each upstream node to `end_node`. This includes
+            `end_node` itself, with a route length of 0.
+    """
+    route_lengths = {end_node: 0}
+    nodes_to_visit = [end_node]
+    while nodes_to_visit:
+        node = nodes_to_visit.pop()
+        for input_node in node.dependencies(nuke.INPUTS | nuke.HIDDEN_INPUTS):
+            if input_node not in nodes:
+                continue
+
+            # Only walk further up when this is a longer route to the node
+            route_length = route_lengths[node] + 1
+            if route_length > route_lengths.get(input_node, -1):
+                route_lengths[input_node] = route_length
+                nodes_to_visit.append(input_node)
+    return route_lengths
+
+
 def get_group_io_nodes(nodes):
-    """Get the input and the output of a group of nodes."""
+    """Get the input and the output node of a group of newly added nodes.
+
+    Nodes with "Input" or "Output" in their name are used when present.
+    Otherwise, the nodes with a free input or output are used:
+
+    - Input nodes can have inputs, but have none connected.
+    - Output nodes can have outputs, but have none connected.
+
+    The first input node and the first output node are used. When there
+    are multiple output nodes, the connected input and output node with
+    the longest route between them are used instead, assuming that the
+    longest route is the most important one. For example, for `A -> B -> C`
+    the input node is A and the output node is C.
+
+    The nodes are expected to be new, so any connection they have is to
+    another one of the given nodes. They are sorted by name, so the result
+    is consistent when there are multiple candidates, e.g. when a
+    placeholder loaded multiple Read nodes.
+
+    Args:
+        nodes (list[nuke.Node]): The group of nodes.
+
+    Returns:
+        tuple[Optional[nuke.Node], Optional[nuke.Node]]: The input and
+            output node. Either is None when there is none, e.g. there is
+            no input node when the nodes start with a Read node.
+    """
 
     if not nodes:
         raise ValueError("there is no nodes in the list")
 
-    nodes = [
+    # Avoid non-connectable nodes, like Backdrops, and sort by name so the
+    # result does not depend on the order of the given nodes
+    nodes = sorted(
+        (
+            node for node in nodes
+            if node.maxInputs() > 0 or node.maxOutputs() > 0
+        ),
+        key=lambda node: node.name()
+    )
+
+    named_input_node = next(
+        (node for node in nodes if "Input" in node.name()), None
+    )
+    named_output_node = next(
+        (node for node in nodes if "Output" in node.name()), None
+    )
+
+    # Nodes that can have inputs, but have none connected
+    input_nodes = [
         node for node in nodes
-        # Avoid non-connectable nodes, like Backdrops
-        if node.maxInputs() > 0 or node.maxOutputs() > 0
+        if node.maxInputs() > 0
+        and not node.dependencies(nuke.INPUTS | nuke.HIDDEN_INPUTS)
+    ]
+    # Nodes that can have outputs, but have none connected
+    output_nodes = [
+        node for node in nodes
+        if node.maxOutputs() > 0
+        and not node.dependent(
+            nuke.INPUTS | nuke.HIDDEN_INPUTS, forceEvaluate=False
+        )
     ]
 
-    input_node = None
-    output_node = None
+    input_node = input_nodes[0] if input_nodes else None
+    output_node = output_nodes[0] if output_nodes else None
 
-    if len(nodes) == 1:
-        input_node = output_node = nodes[0]
+    # With multiple output nodes, prefer the connected input and output
+    # node with the longest route
+    if len(output_nodes) > 1:
+        nodes_set = set(nodes)
+        longest_route_length = -1
+        for end_node in output_nodes:
+            route_lengths = _get_route_lengths(end_node, nodes_set)
+            for start_node in input_nodes:
+                route_length = route_lengths.get(start_node, -1)
+                if route_length > longest_route_length:
+                    longest_route_length = route_length
+                    input_node = start_node
+                    output_node = end_node
 
-    else:
-        for node in nodes:
-            if "Input" in node.name():
-                input_node = node
+    if named_input_node is not None:
+        input_node = named_input_node
+    if named_output_node is not None:
+        output_node = named_output_node
 
-            if "Output" in node.name():
-                output_node = node
-
-            if input_node is not None and output_node is not None:
-                break
-
-        if input_node is None:
-            log.warning("No Input found")
-
-        if output_node is None:
-            log.warning("No Output found")
+    if input_node is None:
+        log.debug("No Input found")
+    if output_node is None:
+        log.debug("No Output found")
 
     return input_node, output_node
 

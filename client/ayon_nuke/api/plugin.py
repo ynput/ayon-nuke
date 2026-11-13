@@ -3,12 +3,16 @@ import nuke
 import re
 import os
 import copy
+import inspect
 import pathlib
 import random
 import string
 from collections import defaultdict
+from typing import Optional
 
 import ayon_api
+import pyblish.api
+
 from ayon_core.settings import get_current_project_settings
 from ayon_core.lib import (
     BoolDef,
@@ -32,6 +36,7 @@ from ayon_core.pipeline.colorspace import (
 from ayon_core.lib.transcoding import (
     VIDEO_EXTENSIONS
 )
+
 from .lib import (
     INSTANCE_DATA_KNOB,
     Knobby,
@@ -41,7 +46,7 @@ from .lib import (
     set_node_knobs_from_settings,
     set_node_data,
     get_node_data,
-    get_view_process_node,
+    duplicate_viewer_input_process_node,
     get_filenames_without_hash,
     get_work_default_directory,
     link_knobs,
@@ -52,6 +57,7 @@ from .pipeline import (
     list_instances,
     remove_instance,
     containerise,
+    parse_container,
     update_container,
 )
 from .command import undo_chunk
@@ -327,6 +333,7 @@ class NukeWriteCreator(NukeCreator):
     product_type = "write"
     product_base_type = "write"
     icon = "sign-out"
+    node_class = "Write"
 
     # default to be applied if settings is missing
     temp_rendering_path_template = (
@@ -426,7 +433,9 @@ class NukeWriteCreator(NukeCreator):
         # Update values with new formatted path
         instance_node = created_inst.transient_data["node"]
         formatting_data = copy.deepcopy(data)
-        write_node = nuke.allNodes(group=instance_node, filter="Write")[0]
+        write_node = nuke.allNodes(
+            group=instance_node, filter=self.node_class
+        )[0]
         _, ext = os.path.splitext(write_node["file"].value())
         formatting_data.update({"ext": ext[1:]})
 
@@ -581,7 +590,10 @@ class NukeWriteCreator(NukeCreator):
             )
 
             exposed_write_knobs(
-                self.project_settings, self.__class__.__name__, instance_node
+                self.project_settings,
+                self.__class__.__name__,
+                instance_node,
+                self.node_class,
             )
 
             return instance
@@ -638,6 +650,10 @@ def get_instance_group_node_children(instance):
 
 
 def get_colorspace_from_node(node):
+    # DeepWrite nodes do not have a colorspace, so return None.
+    if node.Class() == "DeepWrite":
+        return None
+
     # Add version data to instance
     colorspace = node["colorspace"].value()
 
@@ -669,6 +685,25 @@ def get_publish_config():
     return settings["nuke"].get("publish", {})
 
 
+def get_creator_class_name(instance: pyblish.api.Instance) -> str:
+    """Return creator class name from publish instance.
+
+    Often used as lookup in settings for creator-specific overrides.
+
+    Args:
+        instance (pyblish.api.Instance): Instance to process.
+
+    Returns:
+        str: The creator class name.
+
+    """
+    creator_identifier = instance.data["creator_identifier"]
+    creator = instance.context.data["create_context"].creators.get(
+        creator_identifier
+    )
+    return creator.__class__.__name__
+
+
 class NukeLoader(LoaderPlugin):
     container_id_knob = "containerId"
     container_id = None
@@ -682,11 +717,17 @@ class NukeLoader(LoaderPlugin):
         return id_knob.value() if id_knob else None
 
     def get_members(self, source):
-        """Return nodes that has same "containerId" as `source`"""
+        """Return nodes that has same "containerId" as `source`
+
+        A node that is a container itself is not a member. A copy of the
+        source node has the same "containerId" as the source node, but it
+        is managed as its own container.
+        """
         source_id = self.get_container_id(source)
         return [node for node in nuke.allNodes(recurseGroups=True)
                 if self.get_container_id(node) == source_id
-                and node is not source] if source_id else []
+                and node is not source
+                and not parse_container(node)] if source_id else []
 
     def set_as_member(self, node):
         source_id = self.get_container_id(node)
@@ -743,11 +784,44 @@ class NukeGroupLoader(LoaderPlugin):
     ignore_attr = ["useLifetime"]
     node_color = "0x3469ffff"
 
-    def on_load(self, group_node: nuke.Node, namespace: str, context: dict):
+    def on_load(
+        self,
+        group_node: nuke.Node,
+        namespace: str,
+        context: dict,
+        options: Optional[dict] = None
+    ):
         """Logic to be implemented on subclass to describe what to do on load.
+
+        Subclasses written before `options` existed, with only
+        `(group_node, namespace, context)`, are still supported: they are
+        called without it.
         """
         # Override to do anything
         pass
+
+    def _call_on_load(self, group_node, namespace, context, options):
+        """Call `on_load`, with `options` only if the subclass takes them."""
+        if self._on_load_takes_options():
+            self.on_load(group_node, namespace, context, options)
+        else:
+            self.on_load(group_node, namespace, context)
+
+    def _on_load_takes_options(self) -> bool:
+        try:
+            parameters = inspect.signature(self.on_load).parameters.values()
+        except (TypeError, ValueError):
+            return False
+        positional = 0
+        for parameter in parameters:
+            if parameter.kind is parameter.VAR_POSITIONAL:
+                return True
+            if parameter.kind in (
+                parameter.POSITIONAL_ONLY, parameter.POSITIONAL_OR_KEYWORD
+            ):
+                positional += 1
+        # group_node, namespace, context, options
+        return positional >= 4
 
     def on_update(
         self,
@@ -800,7 +874,7 @@ class NukeGroupLoader(LoaderPlugin):
         object_name = "{}_{}".format(name, namespace)
 
         group_node = self._create_group(object_name, context)
-        self.on_load(group_node, namespace, context)
+        self._call_on_load(group_node, namespace, context, options)
         # On load may have deleted the group node. If it did, then we stop here
         if not group_node:
             return
@@ -1059,7 +1133,8 @@ class ExporterReview(object):
 
     def get_imageio_baking_profile(self):
         from . import lib as opnlib
-        nuke_imageio = opnlib.get_nuke_imageio_settings()
+        project_settings = self.instance.context.data["project_settings"]
+        nuke_imageio = opnlib.get_nuke_imageio_settings(project_settings)
 
         if nuke_imageio["baking_target"]["enabled"]:
             return nuke_imageio["baking_target"]
@@ -1175,7 +1250,7 @@ class ExporterReviewLut(ExporterReview):
         if bake_viewer_process:
             # Node View Process
             if bake_viewer_input_process_node:
-                ipn = get_view_process_node()
+                ipn = duplicate_viewer_input_process_node()
                 if ipn is not None:
                     # connect
                     ipn.setInput(0, self.previous_node)
@@ -1370,7 +1445,7 @@ class ExporterReviewMov(ExporterReview):
         if bake_viewer_process:
             if bake_viewer_input_process_node:
                 # View Process node
-                ipn = get_view_process_node()
+                ipn = duplicate_viewer_input_process_node()
                 if ipn is not None:
                     # connect to ViewProcess node
                     self._connect_to_above_nodes(
@@ -1711,11 +1786,11 @@ def _remove_old_knobs(node):
             pass
 
 
-def exposed_write_knobs(settings, plugin_name, instance_node):
+def exposed_write_knobs(settings, plugin_name, instance_node, node_class):
     exposed_knobs = settings["nuke"]["create"][plugin_name].get(
         "exposed_knobs", []
     )
     if exposed_knobs:
         instance_node.addKnob(nuke.Text_Knob('', 'Write Knobs'))
-    write_node = nuke.allNodes(group=instance_node, filter="Write")[0]
+    write_node = nuke.allNodes(group=instance_node, filter=node_class)[0]
     link_knobs(exposed_knobs, write_node, instance_node)

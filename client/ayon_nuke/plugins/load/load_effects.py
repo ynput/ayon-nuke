@@ -1,66 +1,34 @@
+from __future__ import annotations
+
+import abc
 import json
 
 import nuke
 
+from ayon_core.lib import BoolDef
 from ayon_nuke.api import plugin
+from ayon_nuke.api.lib import link_knobs
 
 
-class LoadEffects(plugin.NukeGroupLoader):
-    """Loading colorspace soft effect exported from nukestudio"""
+class _BaseEffectsLoader(
+    abc.ABC,
+    plugin.NukeGroupLoader,
+):
+    """Base class for loading effects"""
 
     product_base_types = {"effect"}
     product_types = product_base_types
     representations = {"*"}
     extensions = {"json"}
 
-    label = "Load Effects - nodes"
+    label = "Load Effects"
     order = 0
     icon = "cc"
     color = "white"
 
-    def on_load(self, group_node, namespace, context):
-        assign_to = self._load_effects_to_group(context, group_node=group_node)
-        self.connect_read_node(group_node, namespace, assign_to)
-
-    def on_update(self, group_node, namespace, context):
-        # Do the exact same os on load
-        self.on_load(group_node, namespace, context)
-        return group_node
-
-    def connect_read_node(self, group_node, namespace, product_name):
-        """
-        Finds read node and selects it
-
-        Arguments:
-            group_node (nuke.Node): Group node to connect to.
-            namespace (str): namespace name to search read node for.
-            product_name (str): product name to search read node for.
-
-        Returns:
-            nuke node: node is selected
-            None: if nothing found
-        """
-        search_name = "{0}_{1}".format(namespace, product_name)
-
-        read_node = next(
-            (
-                n for n in nuke.allNodes(filter="Read")
-                if search_name in n["file"].value()
-            ),
-            None
-        )
-
-        # Parent read node has been found
-        # solving connections
-        if read_node:
-            dep_nodes = read_node.dependent()
-
-            if len(dep_nodes) > 0:
-                for dn in dep_nodes:
-                    dn.setInput(0, group_node)
-
-            group_node.setInput(0, read_node)
-            group_node.autoplace()
+    @abc.abstractmethod
+    def on_load(self, group_node, namespace, context, options=None):
+        pass
 
     def _load_effects_to_group(
             self, context: dict, group_node: nuke.Node) -> str:
@@ -151,15 +119,124 @@ class LoadEffects(plugin.NukeGroupLoader):
                 if track_index == val["trackIndex"]}
 
 
+class LoadEffects(_BaseEffectsLoader):
+    """Loading colorspace soft effect exported from nukestudio"""
 
-class LoadEffectsInputProcess(LoadEffects):
+    label = "Load Effects - nodes"
+    order = 0
+    icon = "cc"
+    color = "white"
+
+    attach_to_read_node = True
+
+    # Loaded from settings
+    exposed_knobs: list[str] = []
+    """Names of knobs to expose on the group node."""
+
+    @classmethod
+    def get_options(cls, *args):
+        return [
+            BoolDef(
+                "attach_to_read_node",
+                label="Attach to Read Node",
+                default=cls.attach_to_read_node,
+            ),
+        ]
+
+    def on_load(self, group_node, namespace, context, options=None):
+        assign_to = self._load_effects_to_group(context, group_node=group_node)
+        self._expose_knobs(group_node)
+        options = options or {}
+        # Without the option (update, scripts, workfile builder) the
+        # setting decides: loads always attached to the Read node before.
+        if options.get("attach_to_read_node", self.attach_to_read_node):
+            self.connect_read_node(group_node, namespace, assign_to)
+
+    def on_update(self, group_node, namespace, context):
+        # Do the exact same os on load
+        self.on_load(group_node, namespace, context)
+        return group_node
+
+    def _expose_knobs(self, group_node: nuke.Group) -> None:
+        """Expose configured knobs from child nodes onto the group.
+
+        On update the child nodes are rebuilt, so links created by a previous
+        load point at deleted nodes. Those are removed and linked again.
+        """
+        if not self.exposed_knobs:
+            return
+
+        children = [
+            node for node in group_node.nodes()
+            if node.Class() not in ("Input", "Output")
+        ]
+
+        for knob_name in self.exposed_knobs:
+            existing = group_node.knobs().get(knob_name)
+            if existing is not None:
+                if existing.Class() != "Link_Knob":
+                    # A real knob of the group, never replace it.
+                    self.log.warning(
+                        "Group already has a knob '%s', not exposing it.",
+                        knob_name
+                    )
+                    continue
+                # Stale link from a previous load or update.
+                group_node.removeKnob(existing)
+
+            for child in children:
+                if child.knob(knob_name):
+                    link_knobs([knob_name], child, group_node)
+
+                    # TODO: handle multiple children with the same knob
+                    break
+            else:
+                self.log.warning("No child contains a knob '%s'", knob_name)
+
+    def connect_read_node(self, group_node, namespace, product_name):
+        """
+        Finds read node and selects it
+
+        Arguments:
+            group_node (nuke.Node): Group node to connect to.
+            namespace (str): namespace name to search read node for.
+            product_name (str): product name to search read node for.
+
+        Returns:
+            nuke node: node is selected
+            None: if nothing found
+        """
+        search_name = "{0}_{1}".format(namespace, product_name)
+
+        read_node = next(
+            (
+                n for n in nuke.allNodes(filter="Read")
+                if search_name in n["file"].value()
+            ),
+            None
+        )
+
+        # Parent read node has been found
+        # solving connections
+        if read_node:
+            dep_nodes = read_node.dependent()
+
+            if len(dep_nodes) > 0:
+                for dn in dep_nodes:
+                    dn.setInput(0, group_node)
+
+            group_node.setInput(0, read_node)
+            group_node.autoplace()
+
+
+class LoadEffectsInputProcess(_BaseEffectsLoader):
     """Loading colorspace soft effect exported from nukestudio"""
 
     label = "Load Effects - Input Process"
     icon = "eye"
     color = "#cc0000"
 
-    def on_load(self, group_node, namespace, context):
+    def on_load(self, group_node, namespace, context, options=None):
         # try to place it under Viewer1
         self._load_effects_to_group(context, group_node=group_node)
         if not self.connect_active_viewer(group_node):
