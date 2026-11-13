@@ -4,9 +4,15 @@ import pyblish.api
 from typing import Any
 import nuke
 from ayon_nuke import api as napi
+from ayon_core.pipeline import OptionalPyblishPluginMixin
+
+#: Characters that are not allowed in `str.format` field names, and thus
+#: cannot be used in burnin/slate template keys like `{camera/focal}`.
+INVALID_METADATA_KEY_CHARS = frozenset("{}:[].!")
 
 
-class CollectBurninMetadata(pyblish.api.InstancePlugin):
+class CollectBurninMetadata(pyblish.api.InstancePlugin,
+                            OptionalPyblishPluginMixin):
     """Collect Nuke metadata stream values as burnin formatting keys.
 
     Metadata is read from the stream entering the instance's Write node
@@ -29,12 +35,18 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
     label = "Collect Burnin Metadata"
     hosts = ["nuke", "nukeassist"]
     families = ["render", "prerender", "image"]
-
+    optional = True
     settings_category = "nuke"
 
+    # Settings are applied automatically by AYON's plugin discovery using
+    # `settings_category` and the plugin class name, so no extra mixin is
+    # needed to load `metadata_keys` (or `enabled`) from the addon settings.
     metadata_keys = ["camera/"]
 
     def process(self, instance):
+        if not self.is_active(instance.data):
+            return
+
         if not self.metadata_keys:
             self.log.debug("No metadata keys configured. Skipping.")
             return
@@ -47,8 +59,9 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
             )
             return
 
-        frame_start = int(instance.data.get("frameStartHandle", 1001))
-        frame_end = int(instance.data.get("frameEndHandle", 1001))
+        # CollectWrites adds the handled frame range to every write instance
+        frame_start = int(instance.data["frameStartHandle"])
+        frame_end = int(instance.data["frameEndHandle"])
         frame_ranges = range(frame_start, frame_end + 1)
         sample_frames = list(frame_ranges)
 
@@ -88,7 +101,8 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
         if missing:
             self.log.debug(
                 f"Metadata keys not found on '{write_node.fullName()}'"
-                f" at frames {sample_frames}: {', '.join(sorted(missing))}"
+                f" at frames {frame_start}-{frame_end}: "
+                f"{', '.join(sorted(missing))}"
             )
 
         if not collected:
@@ -142,13 +156,20 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin):
     def _is_requested(self, key: str) -> bool:
         """Check if the metadata key is requested.
 
+        Metadata keys containing characters that cannot be used in
+        `str.format` field names are ignored, because the collected keys
+        are referenced by burnin/slate templates as format fields, e.g.
+        `{camera/focal}`. Such keys could never be used in a template.
+        The same restriction is enforced for the configured keys by the
+        addon settings model.
+
         Args:
             key (str): The metadata key to check.
 
         Returns:
             bool: True if the key is requested, False otherwise.
         """
-        if any(char in key for char in "{}:[].!"):
+        if any(char in key for char in INVALID_METADATA_KEY_CHARS):
             return False
 
         for requested in self.metadata_keys:
