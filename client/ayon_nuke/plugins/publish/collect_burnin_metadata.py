@@ -6,10 +6,6 @@ import nuke
 from ayon_nuke import api as napi
 from ayon_core.pipeline import OptionalPyblishPluginMixin
 
-#: Characters that are not allowed in `str.format` field names, and thus
-#: cannot be used in burnin/slate template keys like `{camera/focal}`.
-INVALID_METADATA_KEY_CHARS = frozenset("{}:[].!")
-
 
 class CollectBurninMetadata(pyblish.api.InstancePlugin,
                             OptionalPyblishPluginMixin):
@@ -38,9 +34,9 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin,
     optional = True
     settings_category = "nuke"
 
-    # Settings are applied automatically by AYON's plugin discovery using
-    # `settings_category` and the plugin class name, so no extra mixin is
-    # needed to load `metadata_keys` (or `enabled`) from the addon settings.
+    # `metadata_keys` and `enabled` are applied automatically by AYON's
+    # plugin discovery; the mixin adds the optional `active` attribute
+    # support used by `is_active`.
     metadata_keys = ["camera/"]
 
     def process(self, instance):
@@ -71,6 +67,8 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin,
         }
 
         collected = {}
+        # TODO: Skip metadata keys that cannot be used in burnin templates
+        #  (characters that are special in `str.format` field names).
         all_frame_keys = sorted({
             key
             for values in values_by_frame.values()
@@ -156,22 +154,12 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin,
     def _is_requested(self, key: str) -> bool:
         """Check if the metadata key is requested.
 
-        Metadata keys containing characters that cannot be used in
-        `str.format` field names are ignored, because the collected keys
-        are referenced by burnin/slate templates as format fields, e.g.
-        `{camera/focal}`. Such keys could never be used in a template.
-        The same restriction is enforced for the configured keys by the
-        addon settings model.
-
         Args:
             key (str): The metadata key to check.
 
         Returns:
             bool: True if the key is requested, False otherwise.
         """
-        if any(char in key for char in INVALID_METADATA_KEY_CHARS):
-            return False
-
         for requested in self.metadata_keys:
             if requested.endswith("/"):
                 if key.startswith(requested):
