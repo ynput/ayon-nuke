@@ -147,7 +147,9 @@ class LoadEffects(_BaseEffectsLoader):
         assign_to = self._load_effects_to_group(context, group_node=group_node)
         self._expose_knobs(group_node)
         options = options or {}
-        if options.get("attach_to_read_node", False):
+        # Without the option (update, scripts, workfile builder) the
+        # setting decides: loads always attached to the Read node before.
+        if options.get("attach_to_read_node", self.attach_to_read_node):
             self.connect_read_node(group_node, namespace, assign_to)
 
     def on_update(self, group_node, namespace, context):
