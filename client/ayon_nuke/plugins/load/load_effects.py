@@ -169,7 +169,8 @@ class LoadEffects(_BaseEffectsLoader):
             return
 
         children = [
-            node for node in group_node.nodes()
+            node
+            for node in group_node.nodes()
             if node.Class() not in ("Input", "Output")
         ]
 
@@ -177,18 +178,20 @@ class LoadEffects(_BaseEffectsLoader):
 
         for knob_name in self.exposed_knobs:
             existing = group_knobs.get(knob_name)
-            if existing is not None and existing.Class() != "Link_Knob":
+            if existing is not None and not isinstance(
+                existing, nuke.Link_Knob
+            ):
                 # A real knob of the group, never replace or remove it.
                 self.log.warning(
                     "Group already has a knob '%s', not exposing it.",
-                    knob_name
+                    knob_name,
                 )
                 continue
 
             # TODO: handle multiple children with the same knob
             owner = next(
                 (child for child in children if child.knob(knob_name)),
-                None
+                None,
             )
             if owner is None:
                 self.log.warning("No child contains a knob '%s'", knob_name)
