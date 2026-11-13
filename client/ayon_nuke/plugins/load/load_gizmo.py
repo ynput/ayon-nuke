@@ -35,7 +35,7 @@ class LoadGizmo(plugin.NukeGroupLoader):
 
         return group_node
 
-    def on_load(self, group_node, namespace, context):
+    def on_load(self, group_node, namespace, context, options=None):
         # Do no post process on load, because `_create_group` did the work
         # for us already
         pass
@@ -74,7 +74,7 @@ class LoadGizmoInputProcess(LoadGizmo):
 
     node_color = "0x7533c1ff"
 
-    def on_load(self, group_node, namespace, context):
+    def on_load(self, group_node, namespace, context, options=None):
         # try to place it under Viewer1
         if not self.connect_active_viewer(group_node):
             nuke.delete(group_node)

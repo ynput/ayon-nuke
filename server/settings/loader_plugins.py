@@ -77,6 +77,10 @@ class LoadClipModel(LoaderEnabledModel):
 
 
 class LoadEffectsModel(LoaderEnabledModel):
+    attach_to_read_node: bool = SettingsField(
+        title="Attach to Read Node",
+        default=True,
+    )
     exposed_knobs: list[str] = SettingsField(
         title="Exposed Knobs",
         default_factory=list,
@@ -194,6 +198,7 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
     },
     "LoadEffects": {
         "enabled": True,
+        "attach_to_read_node": True,
         "exposed_knobs": []
     },
     "LoadEffectsInputProcess": {
