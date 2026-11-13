@@ -40,6 +40,7 @@ class NukePlaceholderScriptPlugin(NukePlaceholderPlugin):
     """
     identifier = "nuke.runscript"
     label = "Run Python Script"
+    icon = {"type": "material-symbols", "name": "code"}
 
     def get_placeholder_options(self, options=None):
         options = options or {}

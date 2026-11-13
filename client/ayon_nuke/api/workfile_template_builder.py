@@ -145,6 +145,17 @@ class NukePlaceholderPlugin(PlaceholderPlugin):
         placeholder_node = nuke.toNode(placeholder.scene_identifier)
         nuke.delete(placeholder_node)
 
+    def select_placeholder(self, placeholder):
+        """Select placeholder node in the scene.
+
+        Args:
+            placeholder (PlaceholderItem): Placeholder item to select.
+
+        """
+        placeholder_node = nuke.toNode(placeholder.scene_identifier)
+        if placeholder_node is not None:
+            placeholder_node.select()
+
     def collect_placeholders(self):
         output = []
         scene_placeholders = self._collect_scene_placeholders()
@@ -196,6 +207,48 @@ def build_workfile_template():
 def update_workfile_template(*args):
     builder = NukeTemplateBuilder(registered_host())
     builder.rebuild_template()
+
+
+class _TemplateBuilderWindowCache:
+    window = None
+
+
+def show_template_builder(*args) -> None:
+    """Show the workfile template builder tool for Nuke.
+
+    The window is reused when it was opened before. The placeholder that is
+    selected in the node graph is selected in the tool.
+    """
+    from ayon_core.tools.workfile_template_build import (
+        show_workfile_template_builder,
+    )
+
+    window = _TemplateBuilderWindowCache.window
+    if window is not None:
+        try:
+            window.refresh()
+            window.show()
+            window.raise_()
+            window.activateWindow()
+        except RuntimeError:
+            # The Qt object was deleted
+            window = None
+
+    if window is None:
+        builder = NukeTemplateBuilder(registered_host())
+        window = show_workfile_template_builder(
+            builder, parent=get_main_window()
+        )
+        _TemplateBuilderWindowCache.window = window
+
+    # Added in a later ayon-core version than the tool itself
+    select_placeholder = getattr(window, "select_placeholder", None)
+    if select_placeholder is None:
+        return
+
+    for node in nuke.selectedNodes():
+        if select_placeholder(node.fullName()):
+            break
 
 
 def open_template() -> None:
