@@ -22,6 +22,7 @@ class RepairNukeWriteNodeAction(pyblish.api.Action):
 
     def process(self, context, plugin):
         instances = get_errored_instances_from_context(context)
+        project_settings = context.data["project_settings"]
 
         for instance in instances:
             child_nodes = (
@@ -37,7 +38,9 @@ class RepairNukeWriteNodeAction(pyblish.api.Action):
                     write_node = x
 
             correct_data = get_write_node_template_attr(
-                node=write_group_node, node_class=write_node.Class()
+                node=write_group_node,
+                node_class=write_node.Class(),
+                project_settings=project_settings,
             )
 
             set_node_knobs_from_settings(write_node, correct_data["knobs"])
@@ -88,12 +91,15 @@ class ValidateNukeWriteNode(
         # gather exposed knobs to remove them from knobs check.
         plugin_name = get_creator_class_name(instance)
 
-        nuke_settings = instance.context.data["project_settings"]["nuke"]
+        project_settings = instance.context.data["project_settings"]
+        nuke_settings = project_settings["nuke"]
         create_settings = nuke_settings["create"][plugin_name]
         exposed_knobs = set(create_settings.get("exposed_knobs", []))
 
         correct_data = get_write_node_template_attr(
-            node=write_group_node, node_class=write_node.Class()
+            node=write_group_node,
+            node_class=write_node.Class(),
+            project_settings=project_settings,
         )
 
         check = []
