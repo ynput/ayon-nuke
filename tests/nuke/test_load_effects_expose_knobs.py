@@ -2,7 +2,9 @@
 
 Covers ayon-nuke#416: the `exposed_knobs` setting, the links on the group,
 the update of a loaded group and the settings a client or server without
-the setting still sends.
+the setting still sends. The loader shares its code with the
+`attach_to_read_node` option of #425, tested in
+`test_load_effects_options.py`.
 """
 
 import pytest

@@ -1,6 +1,8 @@
-"""LoadEffects `attach_to_read_node` option (ayon-nuke#389).
+"""LoadEffects `attach_to_read_node` option (ayon-nuke#389, #425).
 
-Skipped until the option exists in the addon.
+#389 added the option, #425 continued it on `develop` and keeps what
+worked before it: loads and updates without options still attach, and
+loaders with the old three argument `on_load` still load.
 """
 
 import inspect
@@ -13,11 +15,6 @@ from ayon_nuke.plugins.load import load_effects
 from ayon_nuke.plugins.load.load_effects import (
     LoadEffects,
     LoadEffectsInputProcess,
-)
-
-pytestmark = pytest.mark.skipif(
-    not hasattr(LoadEffects, "attach_to_read_node"),
-    reason="LoadEffects has no attach_to_read_node option (ayon-nuke#389)",
 )
 
 CONTEXT = {}
