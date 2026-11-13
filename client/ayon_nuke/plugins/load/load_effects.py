@@ -160,8 +160,10 @@ class LoadEffects(_BaseEffectsLoader):
     def _expose_knobs(self, group_node: nuke.Group) -> None:
         """Expose configured knobs from child nodes onto the group.
 
-        On update the child nodes are rebuilt, so links created by a previous
-        load point at deleted nodes. Those are removed and linked again.
+        On update the child nodes are rebuilt, so a link created by a
+        previous load points at a deleted node. The link knob is kept and
+        pointed at the new node (not removed and added again), so it stays
+        at its place and in its tab of the group.
         """
         if not self.exposed_knobs:
             return
@@ -175,21 +177,30 @@ class LoadEffects(_BaseEffectsLoader):
 
         for knob_name in self.exposed_knobs:
             existing = group_knobs.get(knob_name)
+            if existing is not None and existing.Class() != "Link_Knob":
+                # A real knob of the group, never replace or remove it.
+                self.log.warning(
+                    "Group already has a knob '%s', not exposing it.",
+                    knob_name
+                )
+                continue
 
-            found = False
-            for child in children:
-                if child.knob(knob_name):
-                    link_knobs([knob_name], child, group_node)
-                    found = True
-
-                    # TODO: handle multiple children with the same knob
-                    break
-            else:
+            # TODO: handle multiple children with the same knob
+            owner = next(
+                (child for child in children if child.knob(knob_name)),
+                None
+            )
+            if owner is None:
                 self.log.warning("No child contains a knob '%s'", knob_name)
+                if existing is not None:
+                    # Stale link from a previous load or update.
+                    group_node.removeKnob(existing)
+                continue
 
-            # stale link from a previous load or update
-            if existing and not found:
-                group_node.removeKnob(existing)
+            if existing is None:
+                link_knobs([knob_name], owner, group_node)
+            else:
+                existing.makeLink(owner.name(), knob_name)
 
     def connect_read_node(self, group_node, namespace, product_name):
         """
