@@ -163,3 +163,7 @@ Temporary Items
 
 # ignore mkdocs build
 site/
+
+# In-Nuke test dependencies and results (tests/run_nuke_tests.py)
+/tests/.deps/
+/tests/.results/
