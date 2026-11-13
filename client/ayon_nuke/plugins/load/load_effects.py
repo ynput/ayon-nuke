@@ -36,7 +36,11 @@ class LoadEffects(plugin.NukeGroupLoader):
         return group_node
 
     def _expose_knobs(self, group_node: nuke.Group) -> None:
-        """Expose configured knobs from child nodes onto the group."""
+        """Expose configured knobs from child nodes onto the group.
+
+        On update the child nodes are rebuilt, so links created by a previous
+        load point at deleted nodes. Those are removed and linked again.
+        """
         if not self.exposed_knobs:
             return
 
@@ -46,10 +50,17 @@ class LoadEffects(plugin.NukeGroupLoader):
         ]
 
         for knob_name in self.exposed_knobs:
-
-            # already exposed
-            if knob_name in group_node.knobs():
-                continue
+            existing = group_node.knobs().get(knob_name)
+            if existing is not None:
+                if existing.Class() != "Link_Knob":
+                    # A real knob of the group, never replace it.
+                    self.log.warning(
+                        "Group already has a knob '%s', not exposing it.",
+                        knob_name
+                    )
+                    continue
+                # Stale link from a previous load or update.
+                group_node.removeKnob(existing)
 
             for child in children:
                 if child.knob(knob_name):
@@ -59,8 +70,6 @@ class LoadEffects(plugin.NukeGroupLoader):
                     break
             else:
                 self.log.warning("No child contains a knob '%s'", knob_name)
-                continue
-
 
     def connect_read_node(self, group_node, namespace, product_name):
         """
