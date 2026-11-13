@@ -67,16 +67,19 @@ def loader(monkeypatch):
     that sets the JSON file the next load or update reads. The loader's log
     is a `RecordingLog`.
     """
+    from ayon_nuke.plugins.load import load_effects
     from ayon_nuke.plugins.load.load_effects import LoadEffects
 
     files = {}
-    monkeypatch.setattr(
-        LoadEffects,
-        "filepath_from_context",
-        classmethod(lambda cls, context: files["path"]),
-    )
     log = RecordingLog()
-    monkeypatch.setattr(LoadEffects, "log", log)
+    # `LoadEffectsInputProcess` is a separate class of the same family.
+    for cls in (LoadEffects, load_effects.LoadEffectsInputProcess):
+        monkeypatch.setattr(
+            cls,
+            "filepath_from_context",
+            classmethod(lambda cls, context: files["path"]),
+        )
+        monkeypatch.setattr(cls, "log", log)
     # Whatever a test sets, the class attribute goes back afterwards.
     monkeypatch.setattr(LoadEffects, "exposed_knobs", [])
     return LoadEffects(), lambda path: files.update(path=path)
