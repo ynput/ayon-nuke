@@ -96,6 +96,8 @@ class CollectBurninMetadataModel(BaseSettingsModel):
     values are exposed as a single value.
     """
     enabled: bool = SettingsField(True, title="Enabled")
+    optional: bool = SettingsField(title="Optional")
+    active: bool = SettingsField(title="Active")
     metadata_keys: list[str] = SettingsField(
         default_factory=list,
         title="Metadata keys",
@@ -424,6 +426,8 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
     },
     "CollectBurninMetadata": {
         "enabled": True,
+        "optional": False,
+        "active": True,
         "metadata_keys": [
             "camera/"
         ]

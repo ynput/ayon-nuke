@@ -31,7 +31,7 @@ class CollectBurninMetadata(pyblish.api.InstancePlugin,
     label = "Collect Burnin Metadata"
     hosts = ["nuke", "nukeassist"]
     families = ["render", "prerender", "image"]
-    optional = True
+    optional = False
     settings_category = "nuke"
 
     # `metadata_keys` and `enabled` are applied automatically by AYON's
