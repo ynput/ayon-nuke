@@ -15,6 +15,7 @@ from ayon_nuke.api.lib import (
 )
 from ayon_nuke.api.command import undo_chunk
 from ayon_nuke.api import containerise, update_container
+from ayon_nuke.api import traits as nuke_traits
 
 
 class LoadBackdropNodes(load.LoaderPlugin):
@@ -54,7 +55,9 @@ class LoadBackdropNodes(load.LoaderPlugin):
         namespace = namespace or context["folder"]["name"]
         version_entity = context["version"]
 
-        version_attributes = version_entity["attrib"]
+        version_attributes = (
+            nuke_traits.get_version_attributes_with_traits(context)
+        )
         colorspace = version_attributes.get("colorSpace")
 
         object_name = "{}_{}".format(name, namespace)
@@ -184,7 +187,9 @@ class LoadBackdropNodes(load.LoaderPlugin):
         namespace = container["namespace"]
         object_name = "{}_{}".format(name, namespace)
 
-        version_attributes = version_entity["attrib"]
+        version_attributes = (
+            nuke_traits.get_version_attributes_with_traits(context)
+        )
         colorspace = version_attributes.get("colorSpace")
 
         data_imprint = {
