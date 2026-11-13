@@ -171,27 +171,25 @@ class LoadEffects(_BaseEffectsLoader):
             if node.Class() not in ("Input", "Output")
         ]
 
-        for knob_name in self.exposed_knobs:
-            existing = group_node.knobs().get(knob_name)
-            if existing is not None:
-                if existing.Class() != "Link_Knob":
-                    # A real knob of the group, never replace it.
-                    self.log.warning(
-                        "Group already has a knob '%s', not exposing it.",
-                        knob_name
-                    )
-                    continue
-                # Stale link from a previous load or update.
-                group_node.removeKnob(existing)
+        group_knobs = group_node.knobs()
 
+        for knob_name in self.exposed_knobs:
+            existing = group_knobs.get(knob_name)
+
+            found = False
             for child in children:
                 if child.knob(knob_name):
                     link_knobs([knob_name], child, group_node)
+                    found = True
 
                     # TODO: handle multiple children with the same knob
                     break
             else:
                 self.log.warning("No child contains a knob '%s'", knob_name)
+
+            # stale link from a previous load or update
+            if existing and not found:
+                group_node.removeKnob(existing)
 
     def connect_read_node(self, group_node, namespace, product_name):
         """
