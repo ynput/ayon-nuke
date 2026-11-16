@@ -7,6 +7,7 @@ the setting still sends. The loader shares its code with the
 `test_load_effects_options.py`.
 """
 
+import nuke
 import pytest
 
 from ayon_nuke.plugins.load.load_effects import (
@@ -28,6 +29,17 @@ def _timewarp(group):
 def _is_link(group, name):
     knob = group.knobs().get(name)
     return knob is not None and knob.Class() == "Link_Knob"
+
+
+def _tab_of(group, name):
+    """Name of the tab the knob `name` of the group sits in."""
+    tab = None
+    for knob in group.allKnobs():
+        if knob.Class() == "Tab_Knob":
+            tab = knob.name()
+        elif knob.name() == name:
+            return tab
+    return None
 
 
 def _load(load_effects, group):
@@ -204,6 +216,75 @@ def test_update_drops_link_when_the_node_is_gone(
 
     assert "lookup" not in group.knobs()
     assert any("lookup" in w for w in LoadEffects.log.warnings)
+
+
+def test_update_keeps_the_links_in_their_tab(
+    loader, make_effect_file, new_group
+):
+    """An update must not move the links to the last tab of the group.
+
+    The links are made in the `User` tab. A tab the artist adds after them
+    must not take them over when the effect is updated.
+    """
+    load_effects, set_file = loader
+    LoadEffects.exposed_knobs = ["lookup", "multiply"]
+    set_file(make_effect_file([("TimeWarp", {}), ("Grade", {})]))
+    group = new_group()
+    _load(load_effects, group)
+    group.addKnob(nuke.Tab_Knob("custom", "Custom"))
+    group.addKnob(nuke.String_Knob("note", "note"))
+    knobs_before = [k.name() for k in group.allKnobs()]
+    assert _tab_of(group, "lookup") == "User"
+
+    set_file(make_effect_file([("TimeWarp", {}), ("Grade", {})]))
+    load_effects.on_update(group, "ns", CONTEXT)
+    load_effects.on_update(group, "ns", CONTEXT)
+
+    assert _tab_of(group, "lookup") == "User"
+    assert _tab_of(group, "multiply") == "User"
+    assert _tab_of(group, "note") == "custom"
+    # Same knobs in the same order, nothing removed and added again.
+    assert [k.name() for k in group.allKnobs()] == knobs_before
+    group["lookup"].setValue(6.0)
+    assert _timewarp(group)["lookup"].value() == 6.0
+
+
+def test_update_relinks_when_another_node_owns_the_knob(
+    loader, make_effect_file, new_group
+):
+    """The node behind the link is gone, the knob is on a new node."""
+    load_effects, set_file = loader
+    LoadEffects.exposed_knobs = ["mix"]
+    set_file(make_effect_file([("Grade", {})]))
+    group = new_group()
+    _load(load_effects, group)
+    group.addKnob(nuke.Tab_Knob("custom", "Custom"))
+
+    set_file(make_effect_file([("Blur", {})]))
+    load_effects.on_update(group, "ns", CONTEXT)
+
+    assert _is_link(group, "mix")
+    assert _tab_of(group, "mix") == "User"
+    group["mix"].setValue(0.3)
+    blur = next(n for n in group.nodes() if n.Class() == "Blur")
+    assert blur["mix"].value() == 0.3
+
+
+def test_group_knob_without_a_child_knob_is_not_removed(
+    loader, make_effect_file, new_group
+):
+    """`export_as_gizmo` is a knob of the group, no child has it."""
+    load_effects, set_file = loader
+    LoadEffects.exposed_knobs = ["export_as_gizmo"]
+    set_file(make_effect_file([("TimeWarp", {})]))
+    group = new_group()
+
+    _load(load_effects, group)
+    load_effects.on_update(group, "ns", CONTEXT)
+
+    assert "export_as_gizmo" in group.knobs()
+    assert not _is_link(group, "export_as_gizmo")
+    assert any("export_as_gizmo" in w for w in LoadEffects.log.warnings)
 
 
 # -- Settings --------------------------------------------------------------

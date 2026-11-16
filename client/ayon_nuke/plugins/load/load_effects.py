@@ -160,38 +160,50 @@ class LoadEffects(_BaseEffectsLoader):
     def _expose_knobs(self, group_node: nuke.Group) -> None:
         """Expose configured knobs from child nodes onto the group.
 
-        On update the child nodes are rebuilt, so links created by a previous
-        load point at deleted nodes. Those are removed and linked again.
+        On update the child nodes are rebuilt, so a link created by a
+        previous load points at a deleted node. The link knob is kept and
+        pointed at the new node (not removed and added again), so it stays
+        at its place and in its tab of the group.
         """
         if not self.exposed_knobs:
             return
 
         children = [
-            node for node in group_node.nodes()
+            node
+            for node in group_node.nodes()
             if node.Class() not in ("Input", "Output")
         ]
 
+        group_knobs = group_node.knobs()
+
         for knob_name in self.exposed_knobs:
-            existing = group_node.knobs().get(knob_name)
-            if existing is not None:
-                if existing.Class() != "Link_Knob":
-                    # A real knob of the group, never replace it.
-                    self.log.warning(
-                        "Group already has a knob '%s', not exposing it.",
-                        knob_name
-                    )
-                    continue
-                # Stale link from a previous load or update.
-                group_node.removeKnob(existing)
+            existing = group_knobs.get(knob_name)
+            if existing is not None and not isinstance(
+                existing, nuke.Link_Knob
+            ):
+                # A real knob of the group, never replace or remove it.
+                self.log.warning(
+                    "Group already has a knob '%s', not exposing it.",
+                    knob_name,
+                )
+                continue
 
-            for child in children:
-                if child.knob(knob_name):
-                    link_knobs([knob_name], child, group_node)
-
-                    # TODO: handle multiple children with the same knob
-                    break
-            else:
+            # TODO: handle multiple children with the same knob
+            owner = next(
+                (child for child in children if child.knob(knob_name)),
+                None,
+            )
+            if owner is None:
                 self.log.warning("No child contains a knob '%s'", knob_name)
+                if existing is not None:
+                    # Stale link from a previous load or update.
+                    group_node.removeKnob(existing)
+                continue
+
+            if existing is None:
+                link_knobs([knob_name], owner, group_node)
+            else:
+                existing.makeLink(owner.name(), knob_name)
 
     def connect_read_node(self, group_node, namespace, product_name):
         """
