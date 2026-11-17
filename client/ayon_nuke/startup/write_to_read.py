@@ -40,15 +40,13 @@ def detect_file_on_disk(
     filepath = None
     firstframe = first_frame
     lastframe = first_frame
-    if not os.path.exists(k_eval):
-        raise FileNotFoundError(
-            "Cannot create Read node as the "
-            f"file does not exist: `{k_eval}`"
-        )
-    if k_eval is not None and project_dir is not None:
-        combined_relative_path = os.path.abspath(
-            os.path.join(project_dir, k_eval)
-        )
+    if not k_eval or not os.path.exists(k_eval):
+        # The render folder and the rendered files are created by rendering,
+        # so this is not an error; the caller tells the user to render first.
+        return None, 0, 0
+    combined_relative_path = os.path.abspath(
+        os.path.join(project_dir or "", k_eval)
+    )
     directory = os.path.dirname(k_eval)
     if directory and not os.path.isdir(directory):
         return None, 0, 0
@@ -99,12 +97,13 @@ def detect_file_on_disk(
                 firstframe = min(coll.indexes)
                 lastframe = max(coll.indexes)
                 filepath = f"{coll.head}{'#' * coll.padding}{coll.tail}"
+    if filepath is None:
+        return None, 0, 0
     # Convert to relative path if requested
-    if filepath and allow_relative and project_dir:
+    if allow_relative and project_dir:
         filepath = os.path.relpath(filepath, project_dir)
-    filepath = filepath.replace('\\', '/')
 
-    return filepath, firstframe, lastframe
+    return filepath.replace('\\', '/'), firstframe, lastframe
 
 
 def create_read_node(ndata, comp_start):
@@ -135,8 +134,9 @@ def write_to_read(gn,
 
     comp_start = nuke.Root().knob('first_frame').value()
     project_dir = nuke.Root().knob('project_directory').getValue()
-    if not os.path.exists(project_dir):
-        project_dir = nuke.Root().knob('project_directory').evaluate()
+    if not project_dir or not os.path.exists(project_dir):
+        # Nuke can evaluate the project directory to `None` (issue #427).
+        project_dir = nuke.Root().knob('project_directory').evaluate() or ""
 
     group_read_nodes = []
     with gn:
@@ -151,19 +151,28 @@ def write_to_read(gn,
             n = group_writes[0]
 
             if n.knob('file') is not None:
-                myfile, firstFrame, lastFrame = detect_file_on_disk(
+                file_path = n.knob('file').evaluate()
+                target_file, firstFrame, lastFrame = detect_file_on_disk(
                     n.knob('file').getValue(),
-                    n.knob('file').evaluate(),
+                    file_path,
                     project_dir,
                     comp_start,
                     allow_relative
                 )
-                if not myfile:
+                if not target_file:
+                    message = (
+                        "Cannot create Read node: no rendered files were "
+                        f"found at `{file_path}`.\n\n"
+                        "Render the Write node first, the render folder and "
+                        "the files are created by rendering."
+                    )
+                    log.warning(message)
+                    nuke.message(message)
                     return
 
                 # get node data
                 ndata = {
-                    'filepath': myfile,
+                    'filepath': target_file,
                     'firstframe': int(firstFrame),
                     'lastframe': int(lastFrame),
                     'new_xpos': new_xpos,
