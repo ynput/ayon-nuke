@@ -209,10 +209,6 @@ def update_workfile_template(*args):
     builder.rebuild_template()
 
 
-class _TemplateBuilderWindowCache:
-    window = None
-
-
 def show_template_builder(*args) -> None:
     """Show the workfile template builder tool for Nuke.
 
@@ -223,23 +219,10 @@ def show_template_builder(*args) -> None:
         show_workfile_template_builder,
     )
 
-    window = _TemplateBuilderWindowCache.window
-    if window is not None:
-        try:
-            window.refresh()
-            window.show()
-            window.raise_()
-            window.activateWindow()
-        except RuntimeError:
-            # The Qt object was deleted
-            window = None
-
-    if window is None:
-        builder = NukeTemplateBuilder(registered_host())
-        window = show_workfile_template_builder(
-            builder, parent=get_main_window()
-        )
-        _TemplateBuilderWindowCache.window = window
+    builder = NukeTemplateBuilder(registered_host())
+    window = show_workfile_template_builder(
+        builder, parent=get_main_window()
+    )
 
     # Added in a later ayon-core version than the tool itself
     select_placeholder = getattr(window, "select_placeholder", None)
