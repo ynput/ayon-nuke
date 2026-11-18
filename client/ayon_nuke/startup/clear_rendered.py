@@ -1,43 +1,12 @@
-from __future__ import annotations
+"""Old entry point of the `Clear Rendered` button.
 
-import os
-import typing
-
-from ayon_core.lib import Logger
-
-
-if typing.TYPE_CHECKING:
-    import nuke
-
-
-log = Logger.get_logger(__name__)
-
-
-def clear_rendered(dir_path):
-    """Delete rendered files for the given directory."""
-    for _f in os.listdir(dir_path):
-        _f_path = os.path.join(dir_path, _f)
-        log.info("Removing: `{}`".format(_f_path))
-        os.remove(_f_path)
-
-
-def _clear_rendered_for_write_node(node: nuke.Node) -> None:
-    """Delete rendered files for the given write node."""
-    path = node["file"].evaluate()
-    dir_path = os.path.dirname(path)
-    clear_rendered(dir_path)
-
-
-def clear_rendered_from_node(node: nuke.Node) -> None:
-    """Delete rendered files for the given node and all its children."""
-    node_class = node.Class()
-    if node_class == "Write":
-        _clear_rendered_for_write_node(node)
-        return
-
-    if node_class == "Group":
-        for child in node.nodes():
-            clear_rendered_from_node(child)
-        return
-
-    log.error(f"Unsupported node class: `{node_class}`")
+Render groups store the button's command in the workfile; groups made
+before the code moved to `ayon_nuke.api.utils` run
+`import clear_rendered; clear_rendered.clear_rendered_from_node(...)`, and
+older ones `clear_rendered.clear_rendered("<render folder>")`. This module
+keeps both commands working.
+"""
+from ayon_nuke.api.utils import (  # noqa: F401
+    clear_rendered,
+    clear_rendered_from_node,
+)
