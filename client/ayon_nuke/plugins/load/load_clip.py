@@ -432,8 +432,8 @@ class LoadClip(plugin.NukeLoader):
 
     @undo_chunk("Remove Clip")
     def remove(self, container):
+        # The node is a Read or DeepRead node, see the node type option
         read_node = container["node"]
-        assert read_node.Class() == "Read", "Must be Read"
 
         # update undo name
         name = container.get("name") or read_node.name()

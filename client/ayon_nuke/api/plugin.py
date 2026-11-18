@@ -3,10 +3,12 @@ import nuke
 import re
 import os
 import copy
+import inspect
 import pathlib
 import random
 import string
 from collections import defaultdict
+from typing import Optional
 
 import ayon_api
 import pyblish.api
@@ -55,6 +57,7 @@ from .pipeline import (
     list_instances,
     remove_instance,
     containerise,
+    parse_container,
     update_container,
 )
 from .command import undo_chunk
@@ -714,11 +717,17 @@ class NukeLoader(LoaderPlugin):
         return id_knob.value() if id_knob else None
 
     def get_members(self, source):
-        """Return nodes that has same "containerId" as `source`"""
+        """Return nodes that has same "containerId" as `source`
+
+        A node that is a container itself is not a member. A copy of the
+        source node has the same "containerId" as the source node, but it
+        is managed as its own container.
+        """
         source_id = self.get_container_id(source)
         return [node for node in nuke.allNodes(recurseGroups=True)
                 if self.get_container_id(node) == source_id
-                and node is not source] if source_id else []
+                and node is not source
+                and not parse_container(node)] if source_id else []
 
     def set_as_member(self, node):
         source_id = self.get_container_id(node)
@@ -775,11 +784,44 @@ class NukeGroupLoader(LoaderPlugin):
     ignore_attr = ["useLifetime"]
     node_color = "0x3469ffff"
 
-    def on_load(self, group_node: nuke.Node, namespace: str, context: dict):
+    def on_load(
+        self,
+        group_node: nuke.Node,
+        namespace: str,
+        context: dict,
+        options: Optional[dict] = None
+    ):
         """Logic to be implemented on subclass to describe what to do on load.
+
+        Subclasses written before `options` existed, with only
+        `(group_node, namespace, context)`, are still supported: they are
+        called without it.
         """
         # Override to do anything
         pass
+
+    def _call_on_load(self, group_node, namespace, context, options):
+        """Call `on_load`, with `options` only if the subclass takes them."""
+        if self._on_load_takes_options():
+            self.on_load(group_node, namespace, context, options)
+        else:
+            self.on_load(group_node, namespace, context)
+
+    def _on_load_takes_options(self) -> bool:
+        try:
+            parameters = inspect.signature(self.on_load).parameters.values()
+        except (TypeError, ValueError):
+            return False
+        positional = 0
+        for parameter in parameters:
+            if parameter.kind is parameter.VAR_POSITIONAL:
+                return True
+            if parameter.kind in (
+                parameter.POSITIONAL_ONLY, parameter.POSITIONAL_OR_KEYWORD
+            ):
+                positional += 1
+        # group_node, namespace, context, options
+        return positional >= 4
 
     def on_update(
         self,
@@ -832,7 +874,7 @@ class NukeGroupLoader(LoaderPlugin):
         object_name = "{}_{}".format(name, namespace)
 
         group_node = self._create_group(object_name, context)
-        self.on_load(group_node, namespace, context)
+        self._call_on_load(group_node, namespace, context, options)
         # On load may have deleted the group node. If it did, then we stop here
         if not group_node:
             return
@@ -1091,7 +1133,8 @@ class ExporterReview(object):
 
     def get_imageio_baking_profile(self):
         from . import lib as opnlib
-        nuke_imageio = opnlib.get_nuke_imageio_settings()
+        project_settings = self.instance.context.data["project_settings"]
+        nuke_imageio = opnlib.get_nuke_imageio_settings(project_settings)
 
         if nuke_imageio["baking_target"]["enabled"]:
             return nuke_imageio["baking_target"]
