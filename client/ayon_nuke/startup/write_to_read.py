@@ -139,10 +139,12 @@ def _write_frame_range(write_node):
 
 
 def _set_read_range(read, ndata):
-    read.knob('first').setValue(int(ndata['firstframe']))
-    read.knob('last').setValue(int(ndata['lastframe']))
-    read.knob('origfirst').setValue(int(ndata['firstframe']))
-    read.knob('origlast').setValue(int(ndata['lastframe']))
+    first_frame = int(ndata["firstframe"])
+    last_frame = int(ndata["lastframe"])
+    read.knob('first').setValue(first_frame)
+    read.knob('last').setValue(last_frame)
+    read.knob('origfirst').setValue(first_frame)
+    read.knob('origlast').setValue(last_frame)
 
 
 def _movie_read_data(file_path, frame_range, project_dir, allow_relative):
