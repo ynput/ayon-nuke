@@ -15,6 +15,12 @@ def _normalize_path(path):
     return path.replace('\\', '/')
 
 
+def _is_movie(path):
+    """Whether the path is a single video file (mov, mp4, ...)."""
+    ext = os.path.splitext(path)[1].lstrip('.').lower()
+    return ext in SINGLE_FILE_FORMATS
+
+
 def detect_file_on_disk(
         k_value: str,
         k_eval: str,
@@ -132,6 +138,35 @@ def _write_frame_range(write_node):
     return first_frame, max(first_frame, last_frame)
 
 
+def _set_read_range(read, ndata):
+    first_frame = int(ndata["firstframe"])
+    last_frame = int(ndata["lastframe"])
+    read.knob('first').setValue(first_frame)
+    read.knob('last').setValue(last_frame)
+    read.knob('origfirst').setValue(first_frame)
+    read.knob('origlast').setValue(last_frame)
+
+
+def _movie_read_data(file_path, frame_range, project_dir, allow_relative):
+    """Return the file, frame range and start frame of a movie render.
+
+    A movie is one file, even when the Write path holds a frame token: Nuke
+    names it after the first frame (`render.####.mov` writes
+    `render.1001.mov`), so the evaluated path at that frame is the file.
+    """
+    first_frame, last_frame = frame_range
+    exists = os.path.isfile(file_path)
+    if allow_relative and project_dir:
+        file_path = os.path.relpath(file_path, project_dir)
+    return {
+        'filepath': _normalize_path(file_path),
+        'firstframe': 1,
+        'lastframe': last_frame - first_frame + 1,
+        'movie_start': first_frame,
+        'movie_exists': exists,
+    }
+
+
 def create_read_node(ndata, comp_start):
     filepath = ndata["filepath"]
     if ndata.get("node_class") == "DeepWrite":
@@ -140,11 +175,16 @@ def create_read_node(ndata, comp_start):
         read = nuke.createNode("Read", f'file "{filepath}"')
         read.knob('colorspace').setValue(int(ndata['colorspace']))
         read.knob('raw').setValue(ndata['rawdata'])
-    read.knob('first').setValue(int(ndata['firstframe']))
-    read.knob('last').setValue(int(ndata['lastframe']))
-    read.knob('origfirst').setValue(int(ndata['firstframe']))
-    read.knob('origlast').setValue(int(ndata['lastframe']))
-    if comp_start == int(ndata['firstframe']):
+    # A movie counts its frames from 1 and starts at the first frame of the
+    # render range. Nuke reads the range from an existing movie file; a
+    # missing one gets the length of the render range.
+    movie_start = ndata.get('movie_start')
+    if movie_start is None or not ndata['movie_exists']:
+        _set_read_range(read, ndata)
+    if movie_start is not None:
+        read.knob('frame_mode').setValue("1")
+        read.knob('frame').setValue(str(movie_start))
+    elif comp_start == int(ndata['firstframe']):
         read.knob('frame_mode').setValue("1")
         read.knob('frame').setValue(str(comp_start))
     else:
@@ -181,13 +221,25 @@ def write_to_read(gn,
                 # Check the first frame of the render range, not the
                 # playhead, so the result does not depend on scrubbing.
                 frame_range = _write_frame_range(n)
-                myfile, firstFrame, lastFrame = detect_file_on_disk(
-                    n.knob('file').getValue(),
-                    n.knob('file').evaluate(frame_range[0]),
-                    project_dir,
-                    comp_start,
-                    allow_relative
-                )
+                file_path = n.knob('file').evaluate(frame_range[0]) or ""
+                movie = {}
+                if _is_movie(file_path):
+                    movie = _movie_read_data(
+                        file_path, frame_range, project_dir, allow_relative
+                    )
+                    myfile = movie['filepath']
+                    firstFrame = movie['firstframe']
+                    lastFrame = movie['lastframe']
+                    if not movie['movie_exists']:
+                        not_rendered.append(myfile)
+                else:
+                    myfile, firstFrame, lastFrame = detect_file_on_disk(
+                        n.knob('file').getValue(),
+                        file_path,
+                        project_dir,
+                        comp_start,
+                        allow_relative
+                    )
                 if not myfile:
                     # Nothing rendered yet (the render folder may not exist
                     # either): point the Read at the render path, Nuke loads
@@ -205,6 +257,7 @@ def write_to_read(gn,
                     'new_ypos': new_ypos,
                     'node_class': n.Class(),
                 }
+                ndata.update(movie)
                 if n.Class() == "Write":
                     ndata.update({
                         'colorspace': n.knob('colorspace').getValue(),

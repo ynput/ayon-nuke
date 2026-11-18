@@ -122,18 +122,6 @@ def test_missing_render_uses_write_frame_range(
     assert read["last"].value() == 1010
 
 
-def test_missing_single_file_creates_read(dialogs, frame_range, tmp_path):
-    movie = _posix(tmp_path / "missing.mov")
-    group = _new_group_with_write(movie)
-
-    write_to_read.write_to_read(group)
-
-    assert len(dialogs) == 1
-    read_nodes = nuke.allNodes("Read")
-    assert len(read_nodes) == 1
-    assert read_nodes[0]["file"].value() == movie
-
-
 def test_missing_deep_render_creates_deep_read(
     dialogs, frame_range, tmp_path
 ):
@@ -211,19 +199,6 @@ def test_single_rendered_frame_is_read(dialogs, frame_range, tmp_path):
     assert (read["first"].value(), read["last"].value()) == (1001, 1001)
 
 
-def test_single_file_is_read(dialogs, frame_range, tmp_path):
-    movie = tmp_path / "movie.mov"
-    movie.write_text("")
-    group = _new_group_with_write(_posix(movie))
-
-    write_to_read.write_to_read(group)
-
-    assert dialogs == []
-    read_nodes = nuke.allNodes("Read")
-    assert len(read_nodes) == 1
-    assert read_nodes[0]["file"].value() == _posix(movie)
-
-
 def test_project_directory_none_does_not_raise(tmp_path):
     """Issue #427: a `None` project directory used to reach clique."""
     directory = tmp_path / "renders"
@@ -240,3 +215,58 @@ def test_project_directory_none_does_not_raise(tmp_path):
     )
 
     assert filepath is not None
+
+
+# -- Movies (single video file) ---------------------------------------------
+
+
+def _render_movie(group):
+    """Render a real movie with the group's Write node, 1001-1010."""
+    with group:
+        write_node = nuke.allNodes("Write")[0]
+        source = nuke.createNode(
+            "CheckerBoard2", "format square_256", inpanel=False
+        )
+        write_node.setInput(0, source)
+        write_node["file_type"].setValue("mov")
+        nuke.execute(write_node, 1001, 1010)
+
+
+@pytest.mark.parametrize("name", ["renderComp.####.mov", "renderComp.mov"])
+def test_rendered_movie_is_read(dialogs, frame_range, tmp_path, name):
+    """The movie file is read with its own range, starting at 1001.
+
+    With a frame token in the path Nuke writes one file named after the
+    first frame, `renderComp.1001.mov`.
+    """
+    group = _new_group_with_write(
+        _posix(tmp_path / name), use_limit=True,
+        first_frame=1001, last_frame=1010,
+    )
+    _render_movie(group)
+    nuke.root()["frame"].setValue(1005)
+
+    write_to_read.write_to_read(group)
+
+    assert dialogs == []
+    read = nuke.allNodes("Read")[0]
+    expected = name.replace("####", "1001")
+    assert read["file"].value() == _posix(tmp_path / expected)
+    assert (read["first"].value(), read["last"].value()) == (1, 10)
+    assert read["frame_mode"].value() == "start at"
+    assert read["frame"].value() == "1001"
+
+
+def test_missing_movie_creates_read(dialogs, frame_range, tmp_path):
+    first_frame, last_frame = frame_range
+    group = _new_group_with_write(_posix(tmp_path / "missing.####.mov"))
+
+    write_to_read.write_to_read(group)
+
+    assert len(dialogs) == 1
+    read = nuke.allNodes("Read")[0]
+    assert read["file"].value() == _posix(tmp_path / "missing.1001.mov")
+    assert (read["first"].value(), read["last"].value()) == (
+        1, last_frame - first_frame + 1
+    )
+    assert read["frame"].value() == str(first_frame)
