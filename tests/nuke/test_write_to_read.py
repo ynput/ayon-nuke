@@ -1,8 +1,8 @@
 """Tests for the `Read From Rendered` Write-node button (#427).
 
 The button creates a Read node from the rendered media of a Write node.
-When nothing has been rendered yet the Read node is prepared for the
-future render path instead of failing (issue #427, PR #428).
+When nothing has been rendered yet the Read node points to the render
+path instead of failing (issue #427, PR #428).
 """
 
 import nuke
@@ -33,6 +33,11 @@ def frame_range():
 def _posix(path):
     """Nuke stores and evaluates file paths with forward slashes."""
     return str(path).replace("\\", "/")
+
+
+def _as_hashes(path):
+    """Nuke stores a `####` file knob value as `%04d`."""
+    return path.replace("%04d", "####")
 
 
 def _pattern(directory, name="renderComp"):
@@ -80,12 +85,10 @@ def _new_group_with_deep_write(write_pattern):
     return group
 
 
-# -- Preparing a Read before anything is rendered --------------------------
+# -- Nothing rendered yet ---------------------------------------------------
 
 
-def test_missing_render_folder_prepares_read(
-    dialogs, frame_range, tmp_path
-):
+def test_missing_render_folder_creates_read(dialogs, frame_range, tmp_path):
     first_frame, last_frame = frame_range
     pattern = _pattern(tmp_path / "not_rendered_yet")
     group = _new_group_with_write(pattern)
@@ -93,19 +96,18 @@ def test_missing_render_folder_prepares_read(
     write_to_read.write_to_read(group)
 
     assert len(dialogs) == 1
-    assert "is prepared" in dialogs[0]
+    assert "Nothing is rendered yet" in dialogs[0]
     assert "not_rendered_yet" in dialogs[0]
 
     read_nodes = nuke.allNodes("Read")
     assert len(read_nodes) == 1
     read = read_nodes[0]
-    assert "not_rendered_yet" in read["file"].value()
-    assert read["label"].value() == write_to_read.PREPARED_LABEL
+    assert _as_hashes(read["file"].value()) == pattern
     assert read["first"].value() == first_frame
     assert read["last"].value() == last_frame
 
 
-def test_prepared_read_uses_write_frame_range(
+def test_missing_render_uses_write_frame_range(
     dialogs, frame_range, tmp_path
 ):
     pattern = _pattern(tmp_path / "not_rendered_yet")
@@ -120,43 +122,7 @@ def test_prepared_read_uses_write_frame_range(
     assert read["last"].value() == 1010
 
 
-def test_prepared_read_is_not_duplicated(dialogs, frame_range, tmp_path):
-    pattern = _pattern(tmp_path / "not_rendered_yet")
-    group = _new_group_with_write(pattern)
-
-    write_to_read.write_to_read(group)
-    write_to_read.write_to_read(group)
-
-    assert len(nuke.allNodes("Read")) == 1
-
-
-def test_prepared_read_is_promoted_when_rendered(
-    dialogs, frame_range, tmp_path
-):
-    directory = tmp_path / "renders"
-    pattern = _pattern(directory)
-    group = _new_group_with_write(pattern)
-
-    write_to_read.write_to_read(group)
-    assert len(dialogs) == 1
-    prepared = nuke.allNodes("Read")[0]
-    assert prepared["label"].value() == write_to_read.PREPARED_LABEL
-
-    _render(directory, range(1001, 1011))
-    nuke.root()["frame"].setValue(1001)
-    write_to_read.write_to_read(group)
-
-    # No second dialog: the media was found this time.
-    assert len(dialogs) == 1
-    read_nodes = nuke.allNodes("Read")
-    assert len(read_nodes) == 1
-    read = read_nodes[0]
-    assert read["label"].value() == ""
-    assert read["first"].value() == 1001
-    assert read["last"].value() == 1010
-
-
-def test_missing_single_file_prepares_read(dialogs, frame_range, tmp_path):
+def test_missing_single_file_creates_read(dialogs, frame_range, tmp_path):
     movie = _posix(tmp_path / "missing.mov")
     group = _new_group_with_write(movie)
 
@@ -165,11 +131,12 @@ def test_missing_single_file_prepares_read(dialogs, frame_range, tmp_path):
     assert len(dialogs) == 1
     read_nodes = nuke.allNodes("Read")
     assert len(read_nodes) == 1
-    assert "missing.mov" in read_nodes[0]["file"].value()
-    assert read_nodes[0]["label"].value() == write_to_read.PREPARED_LABEL
+    assert read_nodes[0]["file"].value() == movie
 
 
-def test_prepared_deep_read(dialogs, frame_range, tmp_path):
+def test_missing_deep_render_creates_deep_read(
+    dialogs, frame_range, tmp_path
+):
     pattern = _pattern(tmp_path / "not_rendered_yet", name="renderDeep")
     group = _new_group_with_deep_write(pattern)
 
@@ -178,8 +145,7 @@ def test_prepared_deep_read(dialogs, frame_range, tmp_path):
     assert len(dialogs) == 1
     deep_reads = nuke.allNodes("DeepRead")
     assert len(deep_reads) == 1
-    assert "not_rendered_yet" in deep_reads[0]["file"].value()
-    assert deep_reads[0]["label"].value() == write_to_read.PREPARED_LABEL
+    assert _as_hashes(deep_reads[0]["file"].value()) == pattern
 
 
 # -- Reading rendered media ------------------------------------------------
@@ -218,27 +184,30 @@ def test_single_frame_sequence_is_detected(tmp_path):
     assert (first_frame, last_frame) == (1001, 1001)
 
 
-def test_prepared_read_is_promoted_for_single_frame(
-    dialogs, frame_range, tmp_path
-):
-    """A single rendered frame must not break the promotion (IndexError)."""
+def test_rendered_sequence_ignores_playhead(dialogs, frame_range, tmp_path):
+    """The render is found even when the playhead is past the last frame."""
     directory = tmp_path / "renders"
-    pattern = _pattern(directory)
-    group = _new_group_with_write(pattern)
+    _render(directory, range(1001, 1011))
+    group = _new_group_with_write(_pattern(directory))
+    nuke.root()["frame"].setValue(1030)
 
     write_to_read.write_to_read(group)
-    assert nuke.allNodes("Read")[0]["label"].value() == (
-        write_to_read.PREPARED_LABEL
-    )
 
+    assert dialogs == []
+    read = nuke.allNodes("Read")[0]
+    assert (read["first"].value(), read["last"].value()) == (1001, 1010)
+
+
+def test_single_rendered_frame_is_read(dialogs, frame_range, tmp_path):
+    """A single rendered frame used to raise `IndexError`."""
+    directory = tmp_path / "renders"
     _render(directory, [1001])
-    nuke.root()["frame"].setValue(1001)
+    group = _new_group_with_write(_pattern(directory))
+
     write_to_read.write_to_read(group)
 
-    read_nodes = nuke.allNodes("Read")
-    assert len(read_nodes) == 1
-    read = read_nodes[0]
-    assert read["label"].value() == ""
+    assert dialogs == []
+    read = nuke.allNodes("Read")[0]
     assert (read["first"].value(), read["last"].value()) == (1001, 1001)
 
 
@@ -253,7 +222,6 @@ def test_single_file_is_read(dialogs, frame_range, tmp_path):
     read_nodes = nuke.allNodes("Read")
     assert len(read_nodes) == 1
     assert read_nodes[0]["file"].value() == _posix(movie)
-    assert read_nodes[0]["label"].value() == ""
 
 
 def test_project_directory_none_does_not_raise(tmp_path):
