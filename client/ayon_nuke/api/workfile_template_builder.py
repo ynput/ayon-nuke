@@ -253,8 +253,36 @@ def show_template_builder(*args) -> None:
 
 def open_template() -> None:
     """Open the workfile template UI for Nuke."""
-    from ayon_core.tools.workfile_template_build import open_template_ui
     builder = NukeTemplateBuilder(registered_host())
+    try:
+        from ayon_core.tools.workfile_template_build import open_template_ui
+    except ImportError:
+        # Older ayon-core version without the template builder UI.
+        from qtpy import QtWidgets
+
+        answer = QtWidgets.QMessageBox.question(
+            get_main_window(),
+            "Opening template",
+            (
+                "Caution! You will lose unsaved changes.\n"
+                "Do you want to continue?"
+            ),
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+        )
+        if answer != QtWidgets.QMessageBox.Yes:
+            return
+        import traceback
+
+        try:
+            builder.open_template()
+        except Exception:
+            QtWidgets.QMessageBox.critical(
+                get_main_window(),
+                "Template Load Failed",
+                traceback.format_exc(),
+            )
+        return
+
     open_template_ui(builder, main_window=get_main_window())
 
 
