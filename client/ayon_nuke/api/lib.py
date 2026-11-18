@@ -1229,8 +1229,8 @@ def add_button_write_to_read(node):
     name = "createReadNode"
     label = "Read From Rendered"
     value = (
-        "import write_to_read;"
-        "write_to_read.write_to_read(nuke.thisNode(), allow_relative=False)"
+        "from ayon_nuke.api.utils import read_from_rendered;"
+        "read_from_rendered(nuke.thisNode())"
     )
     knob = nuke.PyScript_Knob(name, label, value)
     knob.clearFlag(nuke.STARTLINE)
@@ -1241,8 +1241,8 @@ def add_button_clear_rendered(node):
     name = "clearRendered"
     label = "Clear Rendered"
     value = (
-        "import clear_rendered;"
-        "clear_rendered.clear_rendered_from_node(nuke.thisNode())"
+        "from ayon_nuke.api.utils import clear_rendered_from_node;"
+        "clear_rendered_from_node(nuke.thisNode())"
     )
     knob = nuke.PyScript_Knob(name, label, value)
     node.addKnob(knob)
