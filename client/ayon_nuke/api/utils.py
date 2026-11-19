@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 import os
 
@@ -7,8 +9,12 @@ import pyblish.util
 import pyblish.api
 
 from ayon_core import resources
+from ayon_core.lib import Logger
+from ayon_core.lib.transcoding import VIDEO_EXTENSIONS
 from ayon_core.pipeline import registered_host
 from ayon_core.pipeline.create import CreateContext
+
+log = Logger.get_logger(__name__)
 
 
 def render_single_frame(group_node: nuke.Node) -> None:
@@ -21,6 +27,194 @@ def render_single_frame(group_node: nuke.Node) -> None:
     write_node = nuke.allNodes("Write", group=group_node)[0]
     frame = int(write_node["first"].value())
     nuke.execute(write_node.fullName(), frame, frame)
+
+
+def get_write_frame_range(write_node: nuke.Node) -> tuple[int, int]:
+    """Return the frame range a Write or DeepWrite node renders.
+
+    The node's own range when `use_limit` is on (AYON's render creators set
+    it from the workfile), otherwise the workfile frame range.
+    """
+    if write_node["use_limit"].value():
+        first_frame = int(write_node["first"].value())
+        last_frame = int(write_node["last"].value())
+    else:
+        root = nuke.root()
+        first_frame = int(root["first_frame"].value())
+        last_frame = int(root["last_frame"].value())
+    return first_frame, last_frame
+
+
+def _get_render_write_node(group_node: nuke.Node) -> nuke.Node | None:
+    """Return the Write or DeepWrite node of a render group, if any."""
+    for node in group_node.nodes():
+        if node.Class() in {"Write", "DeepWrite"}:
+            return node
+    return None
+
+
+def _get_rendered_media(
+    write_node: nuke.Node
+) -> tuple[str, int, int, int | None, bool]:
+    """Return what a Read node needs to load the Write node's render.
+
+    Returns:
+        tuple: file path, first and last frame of the Read, the frame a movie
+            starts at in the comp (None for images) and whether the media
+            exists on disk.
+    """
+    first_frame, last_frame = get_write_frame_range(write_node)
+    last_frame = max(first_frame, last_frame)
+    file_knob = write_node["file"]
+    first_path = file_knob.evaluate(first_frame) or ""
+
+    ext = os.path.splitext(first_path)[1].lower()
+    if ext in VIDEO_EXTENSIONS:
+        # A movie is one file whose frames count from 1. With a frame token
+        # in the path Nuke names it after the first frame
+        # (`render.####.mov` writes `render.1001.mov`).
+        return (
+            first_path,
+            1,
+            last_frame - first_frame + 1,
+            first_frame,
+            os.path.isfile(first_path),
+        )
+
+    if first_path == file_knob.evaluate(first_frame + 1):
+        # One image without a frame token (e.g. a still image product).
+        return (
+            first_path, first_frame, first_frame, None,
+            os.path.isfile(first_path),
+        )
+
+    # An image sequence: read the frames of the render range that exist,
+    # or the whole range when nothing is rendered yet.
+    rendered_frames = [
+        frame
+        for frame in range(first_frame, last_frame + 1)
+        if os.path.isfile(file_knob.evaluate(frame))
+    ]
+    if rendered_frames:
+        first_frame, last_frame = rendered_frames[0], rendered_frames[-1]
+    pattern = nuke.filename(write_node) or file_knob.value()
+    return (
+        pattern.replace("\\", "/"),
+        first_frame,
+        last_frame,
+        None,
+        bool(rendered_frames),
+    )
+
+
+def _get_parent(node: nuke.Node) -> nuke.Node:
+    """Return the group (or root) that contains `node`."""
+    parent_path = node.fullName().rpartition(".")[0]
+    if not parent_path:
+        return nuke.root()
+    # `toNode` looks names up in the current group: start from the root.
+    with nuke.root():
+        return nuke.toNode(parent_path)
+
+
+def read_from_rendered(group_node: nuke.Node) -> nuke.Node | None:
+    """Create a Read node for the media rendered by a render group.
+
+    The `Read From Rendered` button of AYON's render groups. The Read node
+    gets the Write node's colorspace and the rendered frame range; a movie
+    starts at the first frame of the render range. When nothing is
+    rendered yet the Read node points to the render path and the artist is
+    asked to press Reload on it after rendering.
+
+    Args:
+        group_node (nuke.Node): Render group with a Write or DeepWrite node.
+
+    Returns:
+        nuke.Node | None: The created Read or DeepRead node.
+    """
+    write_node = _get_render_write_node(group_node)
+    if write_node is None:
+        return None
+
+    file_path, first, last, movie_start, exists = (
+        _get_rendered_media(write_node)
+    )
+
+    # A button runs inside its group: create the Read next to the group.
+    read_class = "DeepRead" if write_node.Class() == "DeepWrite" else "Read"
+    with _get_parent(group_node):
+        read_node = nuke.createNode(
+            read_class, f'file "{file_path}"', inpanel=False
+        )
+
+    if read_class == "Read":
+        # Imported here: `plugin` imports `lib`, which imports this module.
+        from .plugin import get_colorspace_from_node
+
+        read_node["colorspace"].setValue(
+            get_colorspace_from_node(write_node)
+        )
+        read_node["raw"].setValue(write_node["raw"].value())
+
+    # Nuke reads the range of an existing movie itself.
+    if movie_start is None or not exists:
+        for knob_name, value in (
+            ("first", first), ("origfirst", first),
+            ("last", last), ("origlast", last),
+        ):
+            read_node[knob_name].setValue(int(value))
+
+    comp_start = int(nuke.root()["first_frame"].value())
+    start_frame = movie_start
+    if start_frame is None and first == comp_start:
+        start_frame = comp_start
+    if start_frame is None:
+        read_node["frame_mode"].setValue("0")
+    else:
+        read_node["frame_mode"].setValue("1")
+        read_node["frame"].setValue(str(start_frame))
+
+    read_node["xpos"].setValue(int(group_node["xpos"].value()))
+    read_node["ypos"].setValue(
+        int(group_node["ypos"].value()) + group_node.screenHeight() + 20
+    )
+    nuke.inputs(read_node, 0)
+
+    if not exists:
+        message = (
+            f"Nothing is rendered yet for:\n{file_path}\n\n"
+            "The Read node points to the render path. Render the Write "
+            "node, then press Reload on the Read node."
+        )
+        log.warning(message)
+        nuke.message(message)
+    return read_node
+
+
+def clear_rendered(dir_path: str) -> None:
+    """Delete the files in a render folder."""
+    for file_name in os.listdir(dir_path):
+        file_path = os.path.join(dir_path, file_name)
+        log.info("Removing: `{}`".format(file_path))
+        os.remove(file_path)
+
+
+def clear_rendered_from_node(node: nuke.Node) -> None:
+    """Delete the rendered files of a Write node or of a group's Writes.
+
+    The `Clear Rendered` button of AYON's render groups.
+    """
+    node_class = node.Class()
+    if node_class == "Write":
+        clear_rendered(os.path.dirname(node["file"].evaluate()))
+        return
+
+    if node_class == "Group":
+        for child in node.nodes():
+            clear_rendered_from_node(child)
+        return
+
+    log.error(f"Unsupported node class: `{node_class}`")
 
 
 @dataclass(frozen=True)
