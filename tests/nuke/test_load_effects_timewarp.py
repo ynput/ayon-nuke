@@ -537,3 +537,73 @@ def test_update_keeps_the_input_of_an_unattached_group(
     type(load_effects)().on_update(group, "ns", CONTEXT)
 
     assert group.input(0) == source
+
+
+# -- Load Effects - Input Process --------------------------------------------
+
+
+@pytest.fixture
+def input_process(monkeypatch):
+    """`LoadEffectsInputProcess` with TimeWarp in its own setting.
+
+    Uses the `loader` fixture's effect file, through the autouse fixture.
+    """
+    from ayon_nuke.plugins.load.load_effects import LoadEffectsInputProcess
+
+    monkeypatch.setattr(
+        LoadEffectsInputProcess, "skip_node_classes", ["TimeWarp"])
+    monkeypatch.setattr(
+        LoadEffectsInputProcess, "connect_active_viewer", lambda *a: True)
+    return LoadEffectsInputProcess()
+
+
+def test_input_process_skips_timewarp_when_read_has_retime(
+        loader, input_process, make_effect_file, new_group, retimed_read):
+    _, set_file = loader
+    set_file(make_effect_file(
+        [("TimeWarp", {"lookup": 2.0}), ("Grade", {})]))
+    group = new_group()
+
+    input_process.on_load(group, "ns", CONTEXT)
+
+    assert not _effect_timewarps(group)
+    assert any(n.Class() == "Grade" for n in group.nodes())
+    # The input process is not attached: the plate's chain is untouched.
+    assert _plate_timewarp().input(0) == retimed_read
+    assert len(_script_timewarps()) == 1
+
+
+def test_input_process_has_its_own_setting(
+        loader, input_process, make_effect_file, new_group, retimed_read,
+        monkeypatch):
+    """Load Effects lists TimeWarp (autouse fixture), the IP does not."""
+    _, set_file = loader
+    monkeypatch.setattr(type(input_process), "skip_node_classes", [])
+    set_file(make_effect_file([("TimeWarp", {"lookup": 2.0})]))
+    group = new_group()
+
+    input_process.on_load(group, "ns", CONTEXT)
+
+    assert len(_effect_timewarps(group)) == 1
+
+
+def test_input_process_keeps_timewarp_when_read_has_no_retime(
+        loader, input_process, make_effect_file, new_group, loaded_read):
+    _, set_file = loader
+    set_file(make_effect_file([("TimeWarp", {"lookup": 2.0})]))
+    group = new_group()
+
+    input_process.on_load(group, "ns", CONTEXT)
+
+    assert len(_effect_timewarps(group)) == 1
+
+
+def test_input_process_keeps_timewarp_without_the_plate(
+        loader, input_process, make_effect_file, new_group):
+    _, set_file = loader
+    set_file(make_effect_file([("TimeWarp", {"lookup": 2.0})]))
+    group = new_group()
+
+    input_process.on_load(group, "ns", CONTEXT)
+
+    assert len(_effect_timewarps(group)) == 1

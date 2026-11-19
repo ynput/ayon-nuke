@@ -80,9 +80,10 @@ def loader(monkeypatch):
             classmethod(lambda cls, context: files["path"]),
         )
         monkeypatch.setattr(cls, "log", log)
+        # Each loader has its own setting, empty by default.
+        monkeypatch.setattr(cls, "skip_node_classes", [])
     # Whatever a test sets, the class attribute goes back afterwards.
     monkeypatch.setattr(LoadEffects, "exposed_knobs", [])
-    monkeypatch.setattr(LoadEffects, "skip_node_classes", [])
     return LoadEffects(), lambda path: files.update(path=path)
 
 

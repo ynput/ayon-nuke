@@ -30,6 +30,10 @@ class _BaseEffectsLoader(
     icon = "cc"
     color = "white"
 
+    # Loaded from settings, each loader has its own list.
+    skip_node_classes: list[str] = []
+    """Node classes not to create when the plate is loaded with retime."""
+
     @abc.abstractmethod
     def on_load(self, group_node, namespace, context, options=None):
         pass
@@ -175,6 +179,153 @@ class _BaseEffectsLoader(
                 if sub_track_index == val["subTrackIndex"]
                 if track_index == val["trackIndex"]}
 
+    def _get_skip_classes(self, json_f: dict, read_node) -> tuple:
+        """Return the node classes not to create, and the retime they skip.
+
+        A loaded plate already re-creates its retime on the read node. The
+        effect JSON contains that same retime, creating it here as well
+        would apply it twice. Opt-in: the setting lists the classes.
+
+        Args:
+            json_f (dict): The effect JSON data.
+            read_node (nuke.Node): The plate's read node, or None.
+
+        Returns:
+            tuple[frozenset, list]: The node classes not to create, and the
+                read node's retime nodes when the effect's copy of them is
+                skipped (the effect belongs after them), else an empty list.
+        """
+        if read_node is None or not self.skip_node_classes:
+            return frozenset(), []
+
+        # Each lookup scans the whole script, so it runs once per load.
+        retime_nodes = self._get_retime_nodes(read_node)
+        if not retime_nodes:
+            return frozenset(), []
+
+        skip_classes = frozenset(self.skip_node_classes)
+        # Only an effect that had the Read's retime on top of it was above
+        # the TimeWarp in the editor, so only that one belongs after the
+        # Read's retime nodes.
+        retime_classes = {node.Class() for node in retime_nodes}
+        nodes_order = self._reorder_nodes(json_f)
+        retime_keys = [
+            key
+            for key, entry in nodes_order.items()
+            if entry["class"] in skip_classes
+            and entry["class"] in retime_classes
+        ]
+        if not retime_keys:
+            return skip_classes, []
+
+        self._warn_nodes_below_retime(
+            nodes_order, skip_classes, retime_keys[0])
+        return skip_classes, retime_nodes
+
+    def _get_retime_nodes(self, read_node) -> list:
+        """Return the retime nodes `LoadClip` made for the read node.
+
+        `LoadClip` marks its retime nodes with the read node's container id.
+        Unlike the imprinted `addRetime`, this also sees a plate updated to
+        a version without retime, or a retime deleted by hand.
+        """
+        id_knob_name = plugin.NukeLoader.container_id_knob
+        id_knob = read_node.knob(id_knob_name)
+        container_id = id_knob.value() if id_knob else None
+        if not container_id:
+            return []
+
+        read_name = read_node.fullName()
+        return [
+            node
+            for node in nuke.allNodes(recurseGroups=True)
+            if (
+                node.fullName() != read_name
+                and node.knob(id_knob_name) is not None
+                and node.knob(id_knob_name).value() == container_id
+                # A copy of the read node is a container of its own.
+                and not parse_container(node)
+            )
+        ]
+
+    def _warn_nodes_below_retime(
+            self,
+            nodes_order: dict,
+            skip_classes: Collection[str],
+            retime_key: str) -> None:
+        """Warn about the effect nodes that were below the skipped retime.
+
+        The effect runs after the Read's retime as a whole, so the nodes
+        that came before the retime in the effect now run after it too,
+        and their animated knobs are read on other frames than in the
+        editor.
+        """
+        below = []
+        for key, entry in nodes_order.items():
+            if key == retime_key:
+                break
+            if entry["class"] not in skip_classes:
+                below.append((entry.get("node") or {}).get("name") or key)
+
+        if below:
+            self.log.warning(
+                "Effect nodes %s were below '%s' in the editor, they now "
+                "run after the Read's retime: their animation may be "
+                "shifted by the retime.",
+                ", ".join(below),
+                retime_key,
+            )
+
+    def _find_read_node(self, namespace, product_name):
+        """Find the read node loaded for the effect's product.
+
+        Loaded clips are matched on the container data (`namespace` and
+        `name`), so a renamed node or a custom file path still finds the
+        right Read. Reads without container data fall back to the old
+        `"<namespace>_<product>"` path match.
+
+        Several loads of the same product cannot be told apart: the first
+        by node name is used and a warning lists the candidates.
+
+        Arguments:
+            namespace (str): namespace name to search read node for.
+            product_name (str): product name to search read node for.
+
+        Returns:
+            nuke.Node: the read node, or None when nothing was found.
+        """
+        matches = []
+        for node in nuke.allNodes(filter="Read"):
+            container = parse_container(node) or {}
+            if (
+                container.get("namespace") == namespace
+                and container.get("name") == product_name
+            ):
+                matches.append(node)
+
+        if matches:
+            matches.sort(key=lambda node: node.fullName())
+            if len(matches) > 1:
+                self.log.warning(
+                    "Several Read nodes were loaded for '%s_%s': %s. "
+                    "Using '%s'.",
+                    namespace,
+                    product_name,
+                    ", ".join(node.fullName() for node in matches),
+                    matches[0].fullName(),
+                )
+            return matches[0]
+
+        search_name = "{0}_{1}".format(namespace, product_name)
+
+        return next(
+            (
+                n for n in nuke.allNodes(filter="Read")
+                if search_name in n["file"].value()
+            ),
+            None
+        )
+
 
 class LoadEffects(_BaseEffectsLoader):
     """Loading colorspace soft effect exported from nukestudio"""
@@ -189,9 +340,6 @@ class LoadEffects(_BaseEffectsLoader):
     # Loaded from settings
     exposed_knobs: list[str] = []
     """Names of knobs to expose on the group node."""
-
-    skip_node_classes: list[str] = []
-    """Node classes not to create on a Read node loaded with retime."""
 
     @classmethod
     def get_options(cls, *args):
@@ -219,38 +367,14 @@ class LoadEffects(_BaseEffectsLoader):
         if attach_to_read_node:
             read_node = self._find_read_node(namespace, json_f["assignTo"])
 
-        # A loaded plate already re-creates its retime on the read node.
-        # The effect JSON contains that same retime, creating it here as
-        # well would apply it twice. Opt-in: the setting lists the classes.
-        skip_classes = frozenset()
-        skipped_retime = False
-        # Each lookup scans the whole script, so it runs once per load.
-        retime_nodes = []
-        if read_node is not None and self.skip_node_classes:
-            retime_nodes = self._get_retime_nodes(read_node)
-        if retime_nodes:
-            skip_classes = frozenset(self.skip_node_classes)
-            # Only an effect that had the Read's retime on top of it was
-            # above the TimeWarp in the editor, so only that one belongs
-            # after the Read's retime nodes.
-            retime_classes = {node.Class() for node in retime_nodes}
-            nodes_order = self._reorder_nodes(json_f)
-            retime_keys = [
-                key
-                for key, entry in nodes_order.items()
-                if entry["class"] in skip_classes
-                and entry["class"] in retime_classes
-            ]
-            skipped_retime = bool(retime_keys)
-            if skipped_retime:
-                self._warn_nodes_below_retime(
-                    nodes_order, skip_classes, retime_keys[0])
+        skip_classes, skipped_retime_nodes = self._get_skip_classes(
+            json_f, read_node)
 
         self._load_effects_to_group(json_f, group_node, skip_classes)
         self._expose_knobs(group_node)
         if read_node is not None:
-            if skipped_retime:
-                self._connect_after_retime(group_node, retime_nodes)
+            if skipped_retime_nodes:
+                self._connect_after_retime(group_node, skipped_retime_nodes)
             else:
                 self._connect_read_node(group_node, read_node)
 
@@ -326,32 +450,6 @@ class LoadEffects(_BaseEffectsLoader):
             else:
                 existing.makeLink(owner.name(), knob_name)
 
-    def _get_retime_nodes(self, read_node) -> list:
-        """Return the retime nodes `LoadClip` made for the read node.
-
-        `LoadClip` marks its retime nodes with the read node's container id.
-        Unlike the imprinted `addRetime`, this also sees a plate updated to
-        a version without retime, or a retime deleted by hand.
-        """
-        id_knob_name = plugin.NukeLoader.container_id_knob
-        id_knob = read_node.knob(id_knob_name)
-        container_id = id_knob.value() if id_knob else None
-        if not container_id:
-            return []
-
-        read_name = read_node.fullName()
-        return [
-            node
-            for node in nuke.allNodes(recurseGroups=True)
-            if (
-                node.fullName() != read_name
-                and node.knob(id_knob_name) is not None
-                and node.knob(id_knob_name).value() == container_id
-                # A copy of the read node is a container of its own.
-                and not parse_container(node)
-            )
-        ]
-
     def _last_retime_node(self, retime_nodes: list):
         """Return the retime node the effect group belongs after."""
         retime_names = {node.fullName() for node in retime_nodes}
@@ -362,34 +460,6 @@ class LoadEffects(_BaseEffectsLoader):
             ):
                 return node
         return retime_nodes[-1]
-
-    def _warn_nodes_below_retime(
-            self,
-            nodes_order: dict,
-            skip_classes: Collection[str],
-            retime_key: str) -> None:
-        """Warn about the effect nodes that were below the skipped retime.
-
-        The group goes after the Read's retime as a whole, so the nodes
-        that came before the retime in the effect now run after it too,
-        and their animated knobs are read on other frames than in the
-        editor.
-        """
-        below = []
-        for key, entry in nodes_order.items():
-            if key == retime_key:
-                break
-            if entry["class"] not in skip_classes:
-                below.append((entry.get("node") or {}).get("name") or key)
-
-        if below:
-            self.log.warning(
-                "Effect nodes %s were below '%s' in the editor, they now "
-                "run after the Read's retime: their animation may be "
-                "shifted by the retime.",
-                ", ".join(below),
-                retime_key,
-            )
 
     def _connect_after_retime(self, group_node, retime_nodes: list):
         """Connect the group after the read node's retime nodes.
@@ -438,56 +508,6 @@ class LoadEffects(_BaseEffectsLoader):
                 ):
                     dependent.setInput(index, target)
 
-    def _find_read_node(self, namespace, product_name):
-        """Find the read node loaded for the effect's product.
-
-        Loaded clips are matched on the container data (`namespace` and
-        `name`), so a renamed node or a custom file path still finds the
-        right Read. Reads without container data fall back to the old
-        `"<namespace>_<product>"` path match.
-
-        Several loads of the same product cannot be told apart: the first
-        by node name is used and a warning lists the candidates.
-
-        Arguments:
-            namespace (str): namespace name to search read node for.
-            product_name (str): product name to search read node for.
-
-        Returns:
-            nuke.Node: the read node, or None when nothing was found.
-        """
-        matches = []
-        for node in nuke.allNodes(filter="Read"):
-            container = parse_container(node) or {}
-            if (
-                container.get("namespace") == namespace
-                and container.get("name") == product_name
-            ):
-                matches.append(node)
-
-        if matches:
-            matches.sort(key=lambda node: node.fullName())
-            if len(matches) > 1:
-                self.log.warning(
-                    "Several Read nodes were loaded for '%s_%s': %s. "
-                    "Using '%s'.",
-                    namespace,
-                    product_name,
-                    ", ".join(node.fullName() for node in matches),
-                    matches[0].fullName(),
-                )
-            return matches[0]
-
-        search_name = "{0}_{1}".format(namespace, product_name)
-
-        return next(
-            (
-                n for n in nuke.allNodes(filter="Read")
-                if search_name in n["file"].value()
-            ),
-            None
-        )
-
     def connect_read_node(self, group_node, namespace, product_name):
         """Find the read node and connect the group under it.
 
@@ -517,9 +537,13 @@ class LoadEffectsInputProcess(_BaseEffectsLoader):
     color = "#cc0000"
 
     def on_load(self, group_node, namespace, context, options=None):
-        # try to place it under Viewer1
         json_f = self._load_effect_json(context)
-        self._load_effects_to_group(json_f, group_node=group_node)
+        # Not attached to the Read, but the viewer shows the plate with
+        # the retime `LoadClip` made for it: skip the effect's copy too.
+        read_node = self._find_read_node(namespace, json_f["assignTo"])
+        skip_classes, _ = self._get_skip_classes(json_f, read_node)
+        self._load_effects_to_group(json_f, group_node, skip_classes)
+        # try to place it under Viewer1
         if not self.connect_active_viewer(group_node):
             nuke.delete(group_node)
             return

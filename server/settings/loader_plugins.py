@@ -98,6 +98,20 @@ class LoadEffectsModel(LoaderEnabledModel):
     )
 
 
+class LoadEffectsInputProcessModel(LoaderEnabledModel):
+    skip_node_classes: list[str] = SettingsField(
+        title="Skip Node Classes",
+        default_factory=list,
+        description=(
+            "Node classes of the effect which are not created when the "
+            "effect's plate is loaded with retime in the script, e.g. "
+            "'TimeWarp': the viewer already shows the plate with its "
+            "TimeWarp, the effect's copy would apply the retime twice. "
+            "Empty keeps every node of the effect."
+        ),
+    )
+
+
 class LoaderPluginsModel(BaseSettingsModel):
     AlembicCameraLoader: LoaderEnabledModel = SettingsField(
         default_factory=LoaderEnabledModel,
@@ -135,8 +149,8 @@ class LoaderPluginsModel(BaseSettingsModel):
         default_factory=LoadEffectsModel,
         title="Load Effects"
     )
-    LoadEffectsInputProcess: LoaderEnabledModel = SettingsField(
-        default_factory=LoaderEnabledModel,
+    LoadEffectsInputProcess: LoadEffectsInputProcessModel = SettingsField(
+        default_factory=LoadEffectsInputProcessModel,
         title="Load Effects Input Process"
     )
     LoadGizmo: LoaderEnabledModel = SettingsField(
@@ -214,7 +228,8 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
         "skip_node_classes": []
     },
     "LoadEffectsInputProcess": {
-        "enabled": True
+        "enabled": True,
+        "skip_node_classes": []
     },
     "LoadGizmo": {
         "enabled": True
