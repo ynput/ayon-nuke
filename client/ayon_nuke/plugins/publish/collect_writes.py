@@ -3,6 +3,7 @@ import os
 import pyblish.api
 from ayon_core.pipeline import publish
 from ayon_nuke import api as napi
+from ayon_nuke.api.utils import get_write_frame_range
 
 import nuke  # noqa
 
@@ -133,15 +134,7 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             return self._frame_ranges[instance_name]
 
         write_node = self._write_node_helper(instance)
-
-        # Get frame range from workfile
-        first_frame = int(nuke.root()["first_frame"].getValue())
-        last_frame = int(nuke.root()["last_frame"].getValue())
-
-        # Get frame range from write node if activated
-        if write_node["use_limit"].getValue():
-            first_frame = int(write_node["first"].getValue())
-            last_frame = int(write_node["last"].getValue())
+        first_frame, last_frame = get_write_frame_range(write_node)
 
         # add to cache
         self._frame_ranges[instance_name] = (first_frame, last_frame)
