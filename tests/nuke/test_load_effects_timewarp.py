@@ -607,3 +607,51 @@ def test_input_process_keeps_timewarp_without_the_plate(
     input_process.on_load(group, "ns", CONTEXT)
 
     assert len(_effect_timewarps(group)) == 1
+
+
+def _update_input_process(input_process, group, monkeypatch):
+    """Update on a new instance, as `NukeGroupLoader.update` does.
+
+    Returns the groups `connect_active_viewer` was called with.
+    """
+    placed = []
+    monkeypatch.setattr(
+        type(input_process),
+        "connect_active_viewer",
+        lambda self, node: placed.append(node) or True,
+    )
+    assert type(input_process)().on_update(group, "ns", CONTEXT) is group
+    return placed
+
+
+def test_input_process_update_loads_the_new_version(
+        loader, input_process, make_effect_file, new_group, monkeypatch):
+    """The update kept the nodes of the version loaded first."""
+    _, set_file = loader
+    set_file(make_effect_file([("Grade", {})]))
+    group = new_group()
+    input_process.on_load(group, "ns", CONTEXT)
+
+    set_file(make_effect_file([("Grade", {}), ("Saturation", {})]))
+    placed = _update_input_process(input_process, group, monkeypatch)
+
+    assert any(n.Class() == "Saturation" for n in group.nodes())
+    # The viewer already uses the group, it is not placed again.
+    assert not placed
+
+
+def test_input_process_update_skips_timewarp_after_setting_change(
+        loader, input_process, make_effect_file, new_group, retimed_read,
+        monkeypatch):
+    _, set_file = loader
+    monkeypatch.setattr(type(input_process), "skip_node_classes", [])
+    set_file(make_effect_file([("TimeWarp", {"lookup": 2.0})]))
+    group = new_group()
+    input_process.on_load(group, "ns", CONTEXT)
+    assert len(_effect_timewarps(group)) == 1
+
+    monkeypatch.setattr(
+        type(input_process), "skip_node_classes", ["TimeWarp"])
+    _update_input_process(input_process, group, monkeypatch)
+
+    assert not _effect_timewarps(group)

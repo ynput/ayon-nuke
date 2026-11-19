@@ -537,18 +537,22 @@ class LoadEffectsInputProcess(_BaseEffectsLoader):
     color = "#cc0000"
 
     def on_load(self, group_node, namespace, context, options=None):
-        json_f = self._load_effect_json(context)
-        # Not attached to the Read, but the viewer shows the plate with
-        # the retime `LoadClip` made for it: skip the effect's copy too.
-        read_node = self._find_read_node(namespace, json_f["assignTo"])
-        skip_classes, _ = self._get_skip_classes(json_f, read_node)
-        self._load_effects_to_group(json_f, group_node, skip_classes)
+        self._load_effect(group_node, namespace, context)
         # try to place it under Viewer1
         if not self.connect_active_viewer(group_node):
             nuke.delete(group_node)
             return
 
     def on_update(self, group_node, namespace, context):
-        # No post-process on update
-        # Only overridden to avoid behavior of LoadEffects
+        # Only the nodes are reloaded: the viewer already uses the group as
+        # its input process, placing it again would move the viewer.
+        self._load_effect(group_node, namespace, context)
         return group_node
+
+    def _load_effect(self, group_node, namespace, context):
+        json_f = self._load_effect_json(context)
+        # Not attached to the Read, but the viewer shows the plate with
+        # the retime `LoadClip` made for it: skip the effect's copy too.
+        read_node = self._find_read_node(namespace, json_f["assignTo"])
+        skip_classes, _ = self._get_skip_classes(json_f, read_node)
+        self._load_effects_to_group(json_f, group_node, skip_classes)
