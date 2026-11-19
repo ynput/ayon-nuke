@@ -487,3 +487,37 @@ def test_update_keeps_what_reads_an_unplugged_group(
 
     assert write.input(0) == group
     assert group.input(0) == _plate_timewarp()
+
+
+def test_warns_about_nodes_below_the_skipped_retime(
+        loader, make_effect_file, new_group, retimed_read):
+    """Nodes before the TimeWarp in the effect were below it in Hiero."""
+    load_effects, set_file = loader
+    set_file(make_effect_file(
+        [("Grade", {}), ("TimeWarp", {"lookup": 2.0}), ("Blur", {})]))
+    group = new_group()
+
+    _load(loader, group)
+
+    warnings = [
+        warning for warning in load_effects.log.warnings
+        if "below 'TimeWarp1'" in warning
+    ]
+    assert len(warnings) == 1
+    assert "Grade0" in warnings[0]
+    assert "Blur2" not in warnings[0]
+
+
+def test_no_warning_when_the_retime_is_first(
+        loader, make_effect_file, new_group, retimed_read):
+    load_effects, set_file = loader
+    set_file(make_effect_file(
+        [("TimeWarp", {"lookup": 2.0}), ("Grade", {})]))
+    group = new_group()
+
+    _load(loader, group)
+
+    assert not [
+        warning for warning in load_effects.log.warnings
+        if "in the editor" in warning
+    ]

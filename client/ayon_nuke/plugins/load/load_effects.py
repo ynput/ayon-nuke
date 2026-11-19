@@ -226,11 +226,17 @@ class LoadEffects(_BaseEffectsLoader):
             # above the TimeWarp in the editor, so only that one belongs
             # after the Read's retime nodes.
             retime_classes = {node.Class() for node in retime_nodes}
-            skipped_retime = any(
-                entry["class"] in retime_classes
-                for entry in self._reorder_nodes(json_f).values()
+            nodes_order = self._reorder_nodes(json_f)
+            retime_keys = [
+                key
+                for key, entry in nodes_order.items()
                 if entry["class"] in skip_classes
-            )
+                and entry["class"] in retime_classes
+            ]
+            skipped_retime = bool(retime_keys)
+            if skipped_retime:
+                self._warn_nodes_below_retime(
+                    nodes_order, skip_classes, retime_keys[0])
 
         self._load_effects_to_group(json_f, group_node, skip_classes)
         self._expose_knobs(group_node)
@@ -348,6 +354,34 @@ class LoadEffects(_BaseEffectsLoader):
             ):
                 return node
         return retime_nodes[-1]
+
+    def _warn_nodes_below_retime(
+            self,
+            nodes_order: dict,
+            skip_classes: Collection[str],
+            retime_key: str) -> None:
+        """Warn about the effect nodes that were below the skipped retime.
+
+        The group goes after the Read's retime as a whole, so the nodes
+        that came before the retime in the effect now run after it too,
+        and their animated knobs are read on other frames than in the
+        editor.
+        """
+        below = []
+        for key, entry in nodes_order.items():
+            if key == retime_key:
+                break
+            if entry["class"] not in skip_classes:
+                below.append((entry.get("node") or {}).get("name") or key)
+
+        if below:
+            self.log.warning(
+                "Effect nodes %s were below '%s' in the editor, they now "
+                "run after the Read's retime: their animation may be "
+                "shifted by the retime.",
+                ", ".join(below),
+                retime_key,
+            )
 
     def _connect_after_retime(self, group_node, retime_nodes: list):
         """Connect the group after the read node's retime nodes.
