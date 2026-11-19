@@ -10,6 +10,9 @@ from ayon_core.lib import BoolDef
 from ayon_nuke.api import parse_container, plugin
 from ayon_nuke.api.lib import link_knobs
 
+# Links of `Node.dependent` that are node inputs, not expression links.
+_INPUT_LINKS = nuke.INPUTS | nuke.HIDDEN_INPUTS
+
 
 class _BaseEffectsLoader(
     abc.ABC,
@@ -347,7 +350,7 @@ class LoadEffects(_BaseEffectsLoader):
         for node in retime_nodes:
             if not any(
                 dependent.fullName() in retime_names
-                for dependent in node.dependent()
+                for dependent in node.dependent(_INPUT_LINKS)
             ):
                 return node
         return retime_nodes[-1]
@@ -363,15 +366,46 @@ class LoadEffects(_BaseEffectsLoader):
             self._connect_read_node(group_node, read_node)
             return
 
-        last_retime = self._last_retime_node(retime_nodes)
-        group_name = group_node.fullName()
-        for dependent in last_retime.dependent():
-            if dependent.fullName() == group_name:
-                continue
-            dependent.setInput(0, group_node)
+        # Out of its place first, so it does not hide the last retime node.
+        self._detach(group_node)
+        self._insert_below(group_node, self._last_retime_node(retime_nodes))
 
-        group_node.setInput(0, last_retime)
+    def _detach(self, group_node):
+        """Take the group out of the chain it is in, keeping the chain whole.
+
+        An update may move the group, when the setting or the Read's retime
+        changed since the load: what read the group reads its input now.
+        A group without an input keeps what reads it.
+        """
+        upstream = group_node.input(0)
+        if upstream is None:
+            return
+        self._rewire_inputs(group_node, upstream)
+        group_node.setInput(0, None)
+
+    def _insert_below(self, group_node, node):
+        """Insert the group below `node`, in front of what read `node`."""
+        self._rewire_inputs(node, group_node)
+        group_node.setInput(0, node)
         group_node.autoplace()
+
+    @staticmethod
+    def _rewire_inputs(source, target):
+        """Point the inputs that read `source` at `target` instead.
+
+        Only input connections count, not expression links, and only the
+        inputs that read `source` change: a Merge that reads it on A keeps
+        its B.
+        """
+        source_name = source.fullName()
+        for dependent in source.dependent(_INPUT_LINKS):
+            for index in range(dependent.inputs()):
+                upstream = dependent.input(index)
+                if (
+                    upstream is not None
+                    and upstream.fullName() == source_name
+                ):
+                    dependent.setInput(index, target)
 
     def _find_read_node(self, namespace, product_name):
         """Find the read node loaded for the effect's product.
@@ -440,14 +474,8 @@ class LoadEffects(_BaseEffectsLoader):
         if not read_node:
             return
 
-        dep_nodes = read_node.dependent()
-
-        if len(dep_nodes) > 0:
-            for dn in dep_nodes:
-                dn.setInput(0, group_node)
-
-        group_node.setInput(0, read_node)
-        group_node.autoplace()
+        self._detach(group_node)
+        self._insert_below(group_node, read_node)
 
 
 class LoadEffectsInputProcess(_BaseEffectsLoader):

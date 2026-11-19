@@ -368,3 +368,122 @@ def test_skips_every_timewarp_of_the_effect(
     _load(loader, group)
 
     assert not _effect_timewarps(group)
+
+
+def _downstream(node):
+    """A node reading `node`, as the rest of an artist's script."""
+    down = nuke.nodes.NoOp(name="Downstream")
+    down.setInput(0, node)
+    return down
+
+
+def _chain(node):
+    """Classes from `node` up its input 0 to the top of the chain."""
+    classes = []
+    while node is not None and len(classes) < 10:
+        classes.append(node.Class())
+        node = node.input(0)
+    return classes
+
+
+def test_update_after_timewarp_added_to_setting(
+        loader, make_effect_file, new_group, retimed_read, monkeypatch):
+    """Effects loaded with the default empty setting sit under the Read."""
+    load_effects, set_file = loader
+    down = _downstream(_plate_timewarp())
+    set_file(make_effect_file(
+        [("TimeWarp", {"lookup": 2.0}), ("Grade", {})]))
+    group = new_group()
+    monkeypatch.setattr(type(load_effects), "skip_node_classes", [])
+    _load(loader, group)
+    assert _chain(down) == ["NoOp", "TimeWarp", "Group", "Read"]
+
+    monkeypatch.setattr(
+        type(load_effects), "skip_node_classes", ["TimeWarp"])
+    load_effects.on_update(group, "ns", CONTEXT)
+
+    # The plate's retime stays in the chain, the group moves after it.
+    assert _chain(down) == ["NoOp", "Group", "TimeWarp", "Read"]
+    assert not _effect_timewarps(group)
+
+
+def test_update_after_timewarp_removed_from_setting(
+        loader, make_effect_file, new_group, retimed_read, monkeypatch):
+    load_effects, set_file = loader
+    down = _downstream(_plate_timewarp())
+    set_file(make_effect_file(
+        [("TimeWarp", {"lookup": 2.0}), ("Grade", {})]))
+    group = new_group()
+    _load(loader, group)
+    assert _chain(down) == ["NoOp", "Group", "TimeWarp", "Read"]
+
+    monkeypatch.setattr(type(load_effects), "skip_node_classes", [])
+    load_effects.on_update(group, "ns", CONTEXT)
+
+    assert _chain(down) == ["NoOp", "TimeWarp", "Group", "Read"]
+    assert len(_effect_timewarps(group)) == 1
+
+
+def test_update_in_place_keeps_the_chain(
+        loader, make_effect_file, new_group, retimed_read):
+    load_effects, set_file = loader
+    down = _downstream(_plate_timewarp())
+    set_file(make_effect_file(
+        [("TimeWarp", {"lookup": 2.0}), ("Grade", {})]))
+    group = new_group()
+    _load(loader, group)
+
+    load_effects.on_update(group, "ns", CONTEXT)
+    load_effects.on_update(group, "ns", CONTEXT)
+
+    assert _chain(down) == ["NoOp", "Group", "TimeWarp", "Read"]
+
+
+def test_merge_reading_the_retime_on_a_keeps_its_b(
+        loader, make_effect_file, new_group, retimed_read):
+    load_effects, set_file = loader
+    background = nuke.nodes.Constant()
+    merge = nuke.nodes.Merge2()
+    merge.setInput(0, background)
+    merge.setInput(1, _plate_timewarp())
+    set_file(make_effect_file(
+        [("TimeWarp", {"lookup": 2.0}), ("Grade", {})]))
+    group = new_group()
+
+    _load(loader, group)
+
+    assert merge.input(0) == background
+    assert merge.input(1) == group
+
+
+def test_expression_link_is_not_rewired(
+        loader, make_effect_file, new_group, retimed_read):
+    load_effects, set_file = loader
+    linked = nuke.nodes.NoOp(name="Linked")
+    knob = nuke.Double_Knob("offset")
+    linked.addKnob(knob)
+    knob.setExpression("{}.lookup".format(_plate_timewarp().name()))
+    set_file(make_effect_file(
+        [("TimeWarp", {"lookup": 2.0}), ("Grade", {})]))
+    group = new_group()
+
+    _load(loader, group)
+
+    assert linked.input(0) is None
+    assert group.input(0) == _plate_timewarp()
+
+
+def test_update_keeps_what_reads_an_unplugged_group(
+        loader, make_effect_file, new_group, retimed_read):
+    load_effects, set_file = loader
+    set_file(make_effect_file(
+        [("TimeWarp", {"lookup": 2.0}), ("Grade", {})]))
+    group = new_group()
+    _load(loader, group)
+    write = _downstream(group)
+    group.setInput(0, None)
+
+    load_effects.on_update(group, "ns", CONTEXT)
+
+    assert write.input(0) == group
+    assert group.input(0) == _plate_timewarp()
