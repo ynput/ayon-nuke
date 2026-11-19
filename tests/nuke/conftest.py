@@ -82,6 +82,7 @@ def loader(monkeypatch):
         monkeypatch.setattr(cls, "log", log)
     # Whatever a test sets, the class attribute goes back afterwards.
     monkeypatch.setattr(LoadEffects, "exposed_knobs", [])
+    monkeypatch.setattr(LoadEffects, "skip_node_classes", [])
     return LoadEffects(), lambda path: files.update(path=path)
 
 

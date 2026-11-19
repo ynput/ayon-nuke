@@ -85,6 +85,17 @@ class LoadEffectsModel(LoaderEnabledModel):
         title="Exposed Knobs",
         default_factory=list,
     )
+    skip_node_classes: list[str] = SettingsField(
+        title="Skip Node Classes",
+        default_factory=list,
+        description=(
+            "Node classes of the effect which are not created when the "
+            "effect is attached to a Read node loaded with retime, e.g. "
+            "'TimeWarp': the plate already re-creates its TimeWarp, the "
+            "effect's copy would apply the retime twice. Empty keeps "
+            "every node of the effect."
+        ),
+    )
 
 
 class LoaderPluginsModel(BaseSettingsModel):
@@ -199,7 +210,8 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
     "LoadEffects": {
         "enabled": True,
         "attach_to_read_node": True,
-        "exposed_knobs": []
+        "exposed_knobs": [],
+        "skip_node_classes": []
     },
     "LoadEffectsInputProcess": {
         "enabled": True

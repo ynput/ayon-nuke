@@ -5,8 +5,10 @@ plate version's retime data and into the effect JSON. Loading the plate
 re-creates the TimeWarp on the read node, loading the effects added a
 second one, applying the retime twice.
 
-The loader now skips the retime nodes of the effect when it attaches to a
-read node that already has one. Effects loaded without such a read node
+The loader now skips the effect nodes whose class is in the setting
+`skip_node_classes` when it attaches to a read node that already has a
+retime. The setting is empty by default, so nothing is skipped until a
+studio lists e.g. `TimeWarp`. Effects loaded without such a read node
 still keep their own retime.
 """
 
@@ -18,6 +20,14 @@ from ayon_nuke.api import containerise
 CONTEXT = {}
 
 READ_FILE = "/tmp/ns_plateMain.####.exr"
+
+
+@pytest.fixture(autouse=True)
+def skip_timewarp(loader, monkeypatch):
+    """The setting lists TimeWarp, as for a studio that opted in."""
+    load_effects, _ = loader
+    monkeypatch.setattr(
+        type(load_effects), "skip_node_classes", ["TimeWarp"])
 
 
 @pytest.fixture
@@ -87,6 +97,34 @@ def test_skips_timewarp_when_read_has_retime(
     assert group.input(0) == retimed_read
     # The plate's retime stays the only TimeWarp in the script.
     assert len(_script_timewarps()) == 1
+
+
+def test_keeps_timewarp_when_setting_is_empty(
+        loader, make_effect_file, new_group, retimed_read, monkeypatch):
+    load_effects, set_file = loader
+    monkeypatch.setattr(type(load_effects), "skip_node_classes", [])
+    set_file(make_effect_file([("TimeWarp", {"lookup": 2.0})]))
+    group = new_group()
+
+    _load(loader, group)
+
+    # Default settings keep the effect as it was published.
+    assert len(_effect_timewarps(group)) == 1
+    assert group.input(0) == retimed_read
+
+
+def test_keeps_classes_not_in_setting(
+        loader, make_effect_file, new_group, retimed_read, monkeypatch):
+    load_effects, set_file = loader
+    monkeypatch.setattr(type(load_effects), "skip_node_classes", ["Grade"])
+    set_file(make_effect_file(
+        [("TimeWarp", {"lookup": 2.0}), ("Grade", {})]))
+    group = new_group()
+
+    _load(loader, group)
+
+    assert len(_effect_timewarps(group)) == 1
+    assert not [n for n in group.nodes() if n.Class() == "Grade"]
 
 
 def test_effect_still_connects_after_the_skipped_timewarp(

@@ -166,12 +166,12 @@ class LoadEffects(_BaseEffectsLoader):
 
     attach_to_read_node = True
 
-    retime_node_classes = frozenset({"TimeWarp", "Retime"})
-    """Node classes of a retime the loaded clip already carries."""
-
     # Loaded from settings
     exposed_knobs: list[str] = []
     """Names of knobs to expose on the group node."""
+
+    skip_node_classes: list[str] = []
+    """Node classes not to create on a Read node loaded with retime."""
 
     @classmethod
     def get_options(cls, *args):
@@ -199,12 +199,12 @@ class LoadEffects(_BaseEffectsLoader):
 
         # A loaded plate already re-creates its retime on the read node.
         # The effect JSON contains that same retime, creating it here as
-        # well would apply it twice.
+        # well would apply it twice. Opt-in: the setting lists the classes.
         skip_classes = frozenset()
-        if read_node is not None:
+        if read_node is not None and self.skip_node_classes:
             container = parse_container(read_node) or {}
             if container.get("addRetime"):
-                skip_classes = self.retime_node_classes
+                skip_classes = frozenset(self.skip_node_classes)
 
         self._load_effects_to_group(json_f, group_node, skip_classes)
         self._expose_knobs(group_node)
