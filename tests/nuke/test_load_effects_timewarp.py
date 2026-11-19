@@ -16,6 +16,7 @@ import nuke
 import pytest
 
 from ayon_nuke.api import containerise
+from ayon_nuke.api.plugin import NukeLoader
 
 CONTEXT = {}
 
@@ -58,12 +59,21 @@ def _containerise(read_node, data):
     return read_node
 
 
+def _set_container_id(node, container_id="container-id"):
+    """Add the container id `LoadClip.set_as_member` puts on its nodes."""
+    knob = nuke.String_Knob(NukeLoader.container_id_knob)
+    node.addKnob(knob)
+    knob.setValue(container_id)
+
+
 @pytest.fixture
 def retimed_read(read_node):
     """Read node as `LoadClip` leaves it after re-creating a retime."""
     _containerise(read_node, {"addRetime": True})
+    _set_container_id(read_node)
     timewarp = nuke.createNode("TimeWarp", inpanel=False)
     timewarp.setInput(0, read_node)
+    _set_container_id(timewarp)
     return read_node
 
 
@@ -183,6 +193,22 @@ def test_keeps_timewarp_when_read_version_had_no_retime(
 
     assert len(_effect_timewarps(group)) == 1
     assert group.input(0) == loaded_read
+
+
+def test_keeps_timewarp_when_read_lost_its_retime(
+        loader, make_effect_file, new_group, retimed_read):
+    load_effects, set_file = loader
+    # A plate updated to a version without retime, or a retime deleted by
+    # hand: `addRetime` stays imprinted, but the TimeWarp is gone.
+    for node in nuke.allNodes(filter="TimeWarp"):
+        nuke.delete(node)
+    set_file(make_effect_file([("TimeWarp", {"lookup": 2.0})]))
+    group = new_group()
+
+    _load(loader, group)
+
+    assert len(_effect_timewarps(group)) == 1
+    assert group.input(0) == retimed_read
 
 
 def test_keeps_timewarp_when_not_attached(

@@ -203,10 +203,12 @@ class LoadEffects(_BaseEffectsLoader):
         # The effect JSON contains that same retime, creating it here as
         # well would apply it twice. Opt-in: the setting lists the classes.
         skip_classes = frozenset()
-        if read_node is not None and self.skip_node_classes:
-            container = parse_container(read_node) or {}
-            if container.get("addRetime"):
-                skip_classes = frozenset(self.skip_node_classes)
+        if (
+            read_node is not None
+            and self.skip_node_classes
+            and self._has_retime_nodes(read_node)
+        ):
+            skip_classes = frozenset(self.skip_node_classes)
 
         self._load_effects_to_group(json_f, group_node, skip_classes)
         self._expose_knobs(group_node)
@@ -284,6 +286,32 @@ class LoadEffects(_BaseEffectsLoader):
                 link_knobs([knob_name], owner, group_node)
             else:
                 existing.makeLink(owner.name(), knob_name)
+
+    def _has_retime_nodes(self, read_node) -> bool:
+        """Whether the read node still has the retime `LoadClip` made.
+
+        `LoadClip` marks its retime nodes with the read node's container
+        id. Unlike the imprinted `addRetime`, this also sees a plate
+        updated to a version without retime, or a retime deleted by hand.
+        """
+        id_knob_name = plugin.NukeLoader.container_id_knob
+        id_knob = read_node.knob(id_knob_name)
+        container_id = id_knob.value() if id_knob else None
+        if not container_id:
+            return False
+
+        read_name = read_node.fullName()
+        for node in nuke.allNodes(recurseGroups=True):
+            knob = node.knob(id_knob_name)
+            if (
+                knob is not None
+                and knob.value() == container_id
+                and node.fullName() != read_name
+                # A copy of the read node is a container of its own.
+                and not parse_container(node)
+            ):
+                return True
+        return False
 
     def _find_read_node(self, namespace, product_name):
         """Find the read node loaded for the effect's product.
