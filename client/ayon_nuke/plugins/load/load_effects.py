@@ -376,6 +376,14 @@ class LoadEffects(_BaseEffectsLoader):
     def _find_read_node(self, namespace, product_name):
         """Find the read node loaded for the effect's product.
 
+        Loaded clips are matched on the container data (`namespace` and
+        `name`), so a renamed node or a custom file path still finds the
+        right Read. Reads without container data fall back to the old
+        `"<namespace>_<product>"` path match.
+
+        Several loads of the same product cannot be told apart: the first
+        by node name is used and a warning lists the candidates.
+
         Arguments:
             namespace (str): namespace name to search read node for.
             product_name (str): product name to search read node for.
@@ -383,6 +391,28 @@ class LoadEffects(_BaseEffectsLoader):
         Returns:
             nuke.Node: the read node, or None when nothing was found.
         """
+        matches = []
+        for node in nuke.allNodes(filter="Read"):
+            container = parse_container(node) or {}
+            if (
+                container.get("namespace") == namespace
+                and container.get("name") == product_name
+            ):
+                matches.append(node)
+
+        if matches:
+            matches.sort(key=lambda node: node.fullName())
+            if len(matches) > 1:
+                self.log.warning(
+                    "Several Read nodes were loaded for '%s_%s': %s. "
+                    "Using '%s'.",
+                    namespace,
+                    product_name,
+                    ", ".join(node.fullName() for node in matches),
+                    matches[0].fullName(),
+                )
+            return matches[0]
+
         search_name = "{0}_{1}".format(namespace, product_name)
 
         return next(

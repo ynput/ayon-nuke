@@ -43,11 +43,11 @@ def read_node():
     return nuke.nodes.Read(file=READ_FILE)
 
 
-def _containerise(read_node, data):
+def _containerise(read_node, data, name="plateMain"):
     """Imprint the container data `LoadClip` leaves on a loaded clip."""
     containerise(
         read_node,
-        name="plateMain",
+        name=name,
         namespace="ns",
         context={
             "representation": {"id": "representation-id"},
@@ -149,6 +149,59 @@ def test_effect_without_the_read_retime_stays_under_read(
 
     assert group.input(0) == retimed_read
     assert _plate_timewarp().input(0) == group
+
+
+def test_finds_read_by_container_not_file_path(
+        loader, make_effect_file, new_group, monkeypatch):
+    """The Read is found by its container data, not by the file path."""
+    load_effects, set_file = loader
+    monkeypatch.setattr(type(load_effects), "skip_node_classes", [])
+    read = nuke.nodes.Read(file="/tmp/custom.####.exr")
+    _containerise(read, {})
+    set_file(make_effect_file([("Grade", {})]))
+    group = new_group()
+
+    _load(loader, group)
+
+    assert group.input(0) == read
+
+
+def test_container_match_wins_over_path_match(
+        loader, make_effect_file, new_group, monkeypatch):
+    """A path that happens to match must not win over the loaded clip."""
+    load_effects, set_file = loader
+    monkeypatch.setattr(type(load_effects), "skip_node_classes", [])
+    decoy = nuke.nodes.Read(file="/tmp/ns_plateMain_decoy.####.exr")
+    read = nuke.nodes.Read(file="/tmp/custom.####.exr")
+    _containerise(read, {})
+    set_file(make_effect_file([("Grade", {})]))
+    group = new_group()
+
+    _load(loader, group)
+
+    assert group.input(0) == read
+    assert group.input(0) is not decoy
+
+
+def test_warns_when_several_reads_loaded_for_product(
+        loader, make_effect_file, new_group, monkeypatch):
+    """Duplicate loads cannot be told apart; warn and pick by name."""
+    load_effects, set_file = loader
+    monkeypatch.setattr(type(load_effects), "skip_node_classes", [])
+    first = nuke.nodes.Read(file="/tmp/a.####.exr")
+    _containerise(first, {})
+    second = nuke.nodes.Read(file="/tmp/b.####.exr")
+    _containerise(second, {})
+    set_file(make_effect_file([("Grade", {})]))
+    group = new_group()
+
+    _load(loader, group)
+
+    assert group.input(0) == first
+    assert any(
+        "Several Read nodes were loaded" in warning
+        for warning in load_effects.log.warnings
+    )
 
 
 def test_keeps_timewarp_when_setting_is_empty(
