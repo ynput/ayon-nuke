@@ -268,6 +268,21 @@ def test_update_keeps_the_load_choice_to_attach(
     assert group.input(0) == retimed_read
 
 
+def test_warns_when_every_node_is_skipped(
+        loader, make_effect_file, new_group, retimed_read):
+    load_effects, set_file = loader
+    set_file(make_effect_file([("TimeWarp", {"lookup": 2.0})]))
+    group = new_group()
+
+    _load(loader, group)
+
+    assert not _effect_timewarps(group)
+    assert any(
+        "All nodes of the effect are skipped" in warning
+        for warning in load_effects.log.warnings
+    )
+
+
 def test_skips_every_timewarp_of_the_effect(
         loader, make_effect_file, new_group, retimed_read):
     load_effects, set_file = loader

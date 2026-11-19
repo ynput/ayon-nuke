@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import json
+from collections.abc import Collection
 
 import nuke
 
@@ -40,13 +41,13 @@ class _BaseEffectsLoader(
             self,
             json_f: dict,
             group_node: nuke.Node,
-            skip_classes: set[str] = frozenset()) -> str:
+            skip_classes: Collection[str] = frozenset()) -> str:
         """Create the nodes of an effect JSON inside the group node
 
         Args:
             json_f (dict): The effect JSON data.
             group_node (nuke.Node): The group node to load the nodes into.
-            skip_classes (set[str]): Node classes not to create.
+            skip_classes (Collection[str]): Node classes not to create.
 
         """
 
@@ -64,7 +65,9 @@ class _BaseEffectsLoader(
         return json_f["assignTo"]
 
     def _create_nodes_order(
-            self, nodes_order: dict, skip_classes: set[str] = frozenset()):
+            self,
+            nodes_order: dict,
+            skip_classes: Collection[str] = frozenset()):
         workfile_first_frame = int(nuke.root()["first_frame"].getValue())
 
         if skip_classes:
@@ -112,10 +115,11 @@ class _BaseEffectsLoader(
 
         return pre_node
 
-    def _without_classes(self, nodes_order: dict, skip_classes: set[str]):
+    def _without_classes(
+            self, nodes_order: dict, skip_classes: Collection[str]) -> dict:
         """Return the ordered nodes without the given node classes.
 
-        Logs which nodes are dropped, so skipping a retime stays traceable.
+        Logs which nodes are dropped, so a skipped node stays traceable.
         """
         kept = {}
         for key, node_data in nodes_order.items():
@@ -125,12 +129,17 @@ class _BaseEffectsLoader(
 
             node_name = (node_data.get("node") or {}).get("name")
             self.log.info(
-                "Skipping retime node '%s' ('%s'): the clip it is "
-                "attached to already has a retime.",
-                node_name or node_data["class"],
+                "Skipping effect node '%s' (%s): its class is in the "
+                "skipped node classes.",
+                node_name or key,
                 node_data["class"],
             )
 
+        if nodes_order and not kept:
+            self.log.warning(
+                "All nodes of the effect are skipped, its group only "
+                "passes the input through."
+            )
         return kept
 
     def _reorder_nodes(self, data: dict) -> dict:
