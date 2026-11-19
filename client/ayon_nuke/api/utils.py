@@ -35,12 +35,13 @@ def get_write_frame_range(write_node: nuke.Node) -> tuple[int, int]:
     The node's own range when `use_limit` is on (AYON's render creators set
     it from the workfile), otherwise the workfile frame range.
     """
-    root = nuke.root()
-    first_frame = int(root["first_frame"].value())
-    last_frame = int(root["last_frame"].value())
     if write_node["use_limit"].value():
         first_frame = int(write_node["first"].value())
         last_frame = int(write_node["last"].value())
+    else:
+        root = nuke.root()
+        first_frame = int(root["first_frame"].value())
+        last_frame = int(root["last_frame"].value())
     return first_frame, last_frame
 
 
