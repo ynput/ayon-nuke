@@ -19,6 +19,12 @@ from ayon_nuke.api import containerise
 
 CONTEXT = {}
 
+# What `NukeGroupLoader._get_imprint_data` reads from the context.
+IMPRINT_CONTEXT = {
+    "version": {"version": 1, "attrib": {}},
+    "representation": {"id": "representation-id"},
+}
+
 READ_FILE = "/tmp/ns_plateMain.####.exr"
 
 
@@ -65,6 +71,21 @@ def retimed_read(read_node):
 def loaded_read(read_node):
     """Read node of a loaded clip whose version had no retime."""
     return _containerise(read_node, {})
+
+
+def _containerise_group(load_effects, group):
+    """Imprint the group as `NukeGroupLoader.load` does after `on_load`."""
+    containerise(
+        group,
+        name="effectMain",
+        namespace="ns",
+        context={
+            "representation": {"id": "representation-id"},
+            "project": {"name": "project"},
+        },
+        loader="LoadEffects",
+        data=load_effects._get_imprint_data(IMPRINT_CONTEXT),
+    )
 
 
 def _effect_timewarps(group):
@@ -185,6 +206,37 @@ def test_update_does_not_add_the_retime_again(
     load_effects.on_load(group, "ns", CONTEXT)
 
     load_effects.on_update(group, "ns", CONTEXT)
+
+    assert not _effect_timewarps(group)
+    assert group.input(0) == retimed_read
+
+
+def test_update_keeps_the_load_choice_not_to_attach(
+        loader, make_effect_file, new_group, retimed_read):
+    load_effects, set_file = loader
+    set_file(make_effect_file([("TimeWarp", {"lookup": 2.0})]))
+    group = new_group()
+    _load(loader, group, {"attach_to_read_node": False})
+    _containerise_group(load_effects, group)
+
+    # An update runs on a new loader instance, without load options.
+    type(load_effects)().on_update(group, "ns", CONTEXT)
+
+    assert len(_effect_timewarps(group)) == 1
+    assert group.input(0) is None
+
+
+def test_update_keeps_the_load_choice_to_attach(
+        loader, make_effect_file, new_group, retimed_read, monkeypatch):
+    load_effects, set_file = loader
+    set_file(make_effect_file([("TimeWarp", {"lookup": 2.0})]))
+    group = new_group()
+    _load(loader, group, {"attach_to_read_node": True})
+    _containerise_group(load_effects, group)
+    # The setting changed since the load.
+    monkeypatch.setattr(type(load_effects), "attach_to_read_node", False)
+
+    type(load_effects)().on_update(group, "ns", CONTEXT)
 
     assert not _effect_timewarps(group)
     assert group.input(0) == retimed_read

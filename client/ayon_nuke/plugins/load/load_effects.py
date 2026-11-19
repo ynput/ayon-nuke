@@ -190,6 +190,8 @@ class LoadEffects(_BaseEffectsLoader):
         attach_to_read_node = options.get(
             "attach_to_read_node", self.attach_to_read_node
         )
+        # Imprinted on the container, so an update attaches the same way.
+        self._attach_to_read_node = attach_to_read_node
 
         json_f = self._load_effect_json(context)
 
@@ -212,9 +214,28 @@ class LoadEffects(_BaseEffectsLoader):
             self._connect_read_node(group_node, read_node)
 
     def on_update(self, group_node, namespace, context):
-        # Do the exact same os on load
-        self.on_load(group_node, namespace, context)
+        # Do the exact same as on load, attached as the load chose. The
+        # option decides which nodes are skipped, so an update must not
+        # fall back to the setting. Containers loaded before the choice
+        # was imprinted have no knob and keep using the setting.
+        options = {}
+        container = parse_container(group_node) or {}
+        attach_to_read_node = container.get("attachToReadNode")
+        if attach_to_read_node is not None:
+            # Imprinted data is read back as a string.
+            options["attach_to_read_node"] = (
+                str(attach_to_read_node) == "True"
+            )
+        self.on_load(group_node, namespace, context, options)
         return group_node
+
+    def _get_imprint_data(self, context: dict) -> dict:
+        data = super()._get_imprint_data(context)
+        attach_to_read_node = getattr(self, "_attach_to_read_node", None)
+        if attach_to_read_node is not None:
+            # A string, so it reads back the same from any knob type.
+            data["attachToReadNode"] = str(bool(attach_to_read_node))
+        return data
 
     def _expose_knobs(self, group_node: nuke.Group) -> None:
         """Expose configured knobs from child nodes onto the group.
