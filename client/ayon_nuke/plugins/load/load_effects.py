@@ -212,17 +212,32 @@ class LoadEffects(_BaseEffectsLoader):
         # The effect JSON contains that same retime, creating it here as
         # well would apply it twice. Opt-in: the setting lists the classes.
         skip_classes = frozenset()
+        skipped_retime = False
         if (
             read_node is not None
             and self.skip_node_classes
             and self._has_retime_nodes(read_node)
         ):
             skip_classes = frozenset(self.skip_node_classes)
+            # Only an effect that had the Read's retime on top of it was
+            # above the TimeWarp in the editor, so only that one belongs
+            # after the Read's retime nodes.
+            retime_classes = {
+                node.Class() for node in self._get_retime_nodes(read_node)
+            }
+            skipped_retime = any(
+                entry["class"] in retime_classes
+                for entry in self._reorder_nodes(json_f).values()
+                if entry["class"] in skip_classes
+            )
 
         self._load_effects_to_group(json_f, group_node, skip_classes)
         self._expose_knobs(group_node)
         if read_node is not None:
-            self._connect_read_node(group_node, read_node)
+            if skipped_retime:
+                self._connect_after_retime(group_node, read_node)
+            else:
+                self._connect_read_node(group_node, read_node)
 
     def on_update(self, group_node, namespace, context):
         # Do the exact same as on load, attached as the load chose. The
@@ -296,31 +311,67 @@ class LoadEffects(_BaseEffectsLoader):
             else:
                 existing.makeLink(owner.name(), knob_name)
 
-    def _has_retime_nodes(self, read_node) -> bool:
-        """Whether the read node still has the retime `LoadClip` made.
+    def _get_retime_nodes(self, read_node) -> list:
+        """Return the retime nodes `LoadClip` made for the read node.
 
-        `LoadClip` marks its retime nodes with the read node's container
-        id. Unlike the imprinted `addRetime`, this also sees a plate
-        updated to a version without retime, or a retime deleted by hand.
+        `LoadClip` marks its retime nodes with the read node's container id.
+        Unlike the imprinted `addRetime`, this also sees a plate updated to
+        a version without retime, or a retime deleted by hand.
         """
         id_knob_name = plugin.NukeLoader.container_id_knob
         id_knob = read_node.knob(id_knob_name)
         container_id = id_knob.value() if id_knob else None
         if not container_id:
-            return False
+            return []
 
         read_name = read_node.fullName()
-        for node in nuke.allNodes(recurseGroups=True):
-            knob = node.knob(id_knob_name)
+        return [
+            node
+            for node in nuke.allNodes(recurseGroups=True)
             if (
-                knob is not None
-                and knob.value() == container_id
-                and node.fullName() != read_name
+                node.fullName() != read_name
+                and node.knob(id_knob_name) is not None
+                and node.knob(id_knob_name).value() == container_id
                 # A copy of the read node is a container of its own.
                 and not parse_container(node)
+            )
+        ]
+
+    def _has_retime_nodes(self, read_node) -> bool:
+        """Whether the read node still has the retime `LoadClip` made."""
+        return bool(self._get_retime_nodes(read_node))
+
+    def _last_retime_node(self, retime_nodes: list):
+        """Return the retime node the effect group belongs after."""
+        retime_names = {node.fullName() for node in retime_nodes}
+        for node in retime_nodes:
+            if not any(
+                dependent.fullName() in retime_names
+                for dependent in node.dependent()
             ):
-                return True
-        return False
+                return node
+        return retime_nodes[-1]
+
+    def _connect_after_retime(self, group_node, read_node):
+        """Connect the group after the read node's retime nodes.
+
+        The effect was above the TimeWarp in the editor, so it has to run
+        after the retime to keep the animated knobs on timeline frames.
+        """
+        retime_nodes = self._get_retime_nodes(read_node)
+        if not retime_nodes:
+            self._connect_read_node(group_node, read_node)
+            return
+
+        last_retime = self._last_retime_node(retime_nodes)
+        group_name = group_node.fullName()
+        for dependent in last_retime.dependent():
+            if dependent.fullName() == group_name:
+                continue
+            dependent.setInput(0, group_node)
+
+        group_node.setInput(0, last_retime)
+        group_node.autoplace()
 
     def _find_read_node(self, namespace, product_name):
         """Find the read node loaded for the effect's product.

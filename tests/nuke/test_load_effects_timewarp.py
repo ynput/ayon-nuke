@@ -106,6 +106,11 @@ def _script_timewarps():
     return nuke.allNodes(filter="TimeWarp", recurseGroups=True)
 
 
+def _plate_timewarp():
+    """The TimeWarp `LoadClip` made for the plate."""
+    return nuke.allNodes(filter="TimeWarp")[0]
+
+
 def _load(loader, group, options=None):
     load_effects, _ = loader
     if options is None:
@@ -125,9 +130,25 @@ def test_skips_timewarp_when_read_has_retime(
 
     assert not _effect_timewarps(group)
     assert any(n.Class() == "Grade" for n in group.nodes())
-    assert group.input(0) == retimed_read
+    # The effect was above the TimeWarp in the editor, so it runs after
+    # the Read's retime to keep animated knobs on timeline frames.
+    assert _plate_timewarp().input(0) == retimed_read
+    assert group.input(0) == _plate_timewarp()
     # The plate's retime stays the only TimeWarp in the script.
     assert len(_script_timewarps()) == 1
+
+
+def test_effect_without_the_read_retime_stays_under_read(
+        loader, make_effect_file, new_group, retimed_read):
+    """The setting lists TimeWarp, but the effect has none to skip."""
+    load_effects, set_file = loader
+    set_file(make_effect_file([("Grade", {})]))
+    group = new_group()
+
+    _load(loader, group)
+
+    assert group.input(0) == retimed_read
+    assert _plate_timewarp().input(0) == group
 
 
 def test_keeps_timewarp_when_setting_is_empty(
@@ -234,7 +255,8 @@ def test_update_does_not_add_the_retime_again(
     load_effects.on_update(group, "ns", CONTEXT)
 
     assert not _effect_timewarps(group)
-    assert group.input(0) == retimed_read
+    assert group.input(0) == _plate_timewarp()
+    assert _plate_timewarp().input(0) == retimed_read
 
 
 def test_update_keeps_the_load_choice_not_to_attach(
@@ -265,7 +287,7 @@ def test_update_keeps_the_load_choice_to_attach(
     type(load_effects)().on_update(group, "ns", CONTEXT)
 
     assert not _effect_timewarps(group)
-    assert group.input(0) == retimed_read
+    assert group.input(0) == _plate_timewarp()
 
 
 def test_warns_when_every_node_is_skipped(
