@@ -216,18 +216,16 @@ class LoadEffects(_BaseEffectsLoader):
         # well would apply it twice. Opt-in: the setting lists the classes.
         skip_classes = frozenset()
         skipped_retime = False
-        if (
-            read_node is not None
-            and self.skip_node_classes
-            and self._has_retime_nodes(read_node)
-        ):
+        # Each lookup scans the whole script, so it runs once per load.
+        retime_nodes = []
+        if read_node is not None and self.skip_node_classes:
+            retime_nodes = self._get_retime_nodes(read_node)
+        if retime_nodes:
             skip_classes = frozenset(self.skip_node_classes)
             # Only an effect that had the Read's retime on top of it was
             # above the TimeWarp in the editor, so only that one belongs
             # after the Read's retime nodes.
-            retime_classes = {
-                node.Class() for node in self._get_retime_nodes(read_node)
-            }
+            retime_classes = {node.Class() for node in retime_nodes}
             skipped_retime = any(
                 entry["class"] in retime_classes
                 for entry in self._reorder_nodes(json_f).values()
@@ -238,7 +236,7 @@ class LoadEffects(_BaseEffectsLoader):
         self._expose_knobs(group_node)
         if read_node is not None:
             if skipped_retime:
-                self._connect_after_retime(group_node, read_node)
+                self._connect_after_retime(group_node, retime_nodes)
             else:
                 self._connect_read_node(group_node, read_node)
 
@@ -340,10 +338,6 @@ class LoadEffects(_BaseEffectsLoader):
             )
         ]
 
-    def _has_retime_nodes(self, read_node) -> bool:
-        """Whether the read node still has the retime `LoadClip` made."""
-        return bool(self._get_retime_nodes(read_node))
-
     def _last_retime_node(self, retime_nodes: list):
         """Return the retime node the effect group belongs after."""
         retime_names = {node.fullName() for node in retime_nodes}
@@ -355,17 +349,12 @@ class LoadEffects(_BaseEffectsLoader):
                 return node
         return retime_nodes[-1]
 
-    def _connect_after_retime(self, group_node, read_node):
+    def _connect_after_retime(self, group_node, retime_nodes: list):
         """Connect the group after the read node's retime nodes.
 
         The effect was above the TimeWarp in the editor, so it has to run
         after the retime to keep the animated knobs on timeline frames.
         """
-        retime_nodes = self._get_retime_nodes(read_node)
-        if not retime_nodes:
-            self._connect_read_node(group_node, read_node)
-            return
-
         # Out of its place first, so it does not hide the last retime node.
         self._detach(group_node)
         self._insert_below(group_node, self._last_retime_node(retime_nodes))
