@@ -57,6 +57,10 @@ class _BaseEffectsLoader(
         # get correct order of nodes by positions on track and subtrack
         nodes_order = self._reorder_nodes(json_f)
 
+        # Nuke 17 disconnects the group's inputs when their Input nodes are
+        # deleted below (Nuke 16 keeps them): remember them to restore.
+        inputs = [group_node.input(i) for i in range(group_node.inputs())]
+
         # adding content to the group node
         nuke.endGroup()  # jump out of group if we happen to be in one
         with group_node:
@@ -64,6 +68,10 @@ class _BaseEffectsLoader(
             for node in group_node.nodes():
                 nuke.delete(node)
             self._create_nodes_order(nodes_order, skip_classes)
+
+        for index, node in enumerate(inputs):
+            if node is not None and group_node.input(index) is None:
+                group_node.setInput(index, node)
 
         return json_f["assignTo"]
 

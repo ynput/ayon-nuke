@@ -521,3 +521,19 @@ def test_no_warning_when_the_retime_is_first(
         warning for warning in load_effects.log.warnings
         if "in the editor" in warning
     ]
+
+
+def test_update_keeps_the_input_of_an_unattached_group(
+        loader, make_effect_file, new_group, retimed_read):
+    """Nuke 17 drops a group's input when its Input node is rebuilt."""
+    load_effects, set_file = loader
+    set_file(make_effect_file([("Grade", {})]))
+    group = new_group()
+    _load(loader, group, {"attach_to_read_node": False})
+    source = nuke.nodes.Constant()
+    group.setInput(0, source)
+    _containerise_group(load_effects, group)
+
+    type(load_effects)().on_update(group, "ns", CONTEXT)
+
+    assert group.input(0) == source
