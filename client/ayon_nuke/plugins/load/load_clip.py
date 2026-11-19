@@ -466,6 +466,11 @@ class LoadClip(plugin.NukeLoader):
         last_node = None
         source_id = self.get_container_id(parent_node)
         self.log.debug("__ source_id: {}".format(source_id))
+        # On update the loader has no container id of its own: mark the
+        # re-created retime nodes with the read node's id, so they stay
+        # its members (cleared by the next update, seen by Load Effects).
+        if source_id:
+            self.container_id = source_id
         self.log.debug("__ members: {}".format(
             self.get_members(parent_node)))
 
