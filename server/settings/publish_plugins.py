@@ -356,6 +356,15 @@ class PublishPluginsModel(BaseSettingsModel):
         title="Validate Rendered Frames",
         default_factory=OptionalPluginModel
     )
+    ValidateFrameRange: OptionalPluginModel = SettingsField(
+        title="Validate Frame Range",
+        default_factory=OptionalPluginModel,
+        description=(
+            "Validate the Write node of render and prerender instances "
+            "renders the frame range including handles of the task (or "
+            "folder) the instance publishes to."
+        )
+    )
     ValidateNukeWriteNode: OptionalPluginModel = SettingsField(
         title="Validate Nuke Write Node",
         default_factory=OptionalPluginModel
@@ -465,6 +474,11 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
     "ValidateRenderedFrames": {
         "enabled": True,
         "optional": False,  # match how it was before it was made optional
+        "active": True
+    },
+    "ValidateFrameRange": {
+        "enabled": True,
+        "optional": True,
         "active": True
     },
     "ValidateNukeWriteNode": {
