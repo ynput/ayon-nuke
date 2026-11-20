@@ -3,7 +3,6 @@ import ayon_api
 
 from ayon_core.pipeline import (
     load,
-    get_representation_path,
 )
 from ayon_nuke.api.command import undo_chunk
 from ayon_nuke.api.lib import maintained_selection
@@ -11,7 +10,7 @@ from ayon_nuke.api import (
     containerise,
     update_container,
 )
-from ayon_nuke.api import traits as nuke_traits
+from ayon_nuke.api.load_traits import LoadRepresentation
 
 
 class AlembicModelLoader(load.LoaderPlugin):
@@ -40,9 +39,9 @@ class AlembicModelLoader(load.LoaderPlugin):
         project_name = context["project"]["name"]
         version_entity = context["version"]
 
-        version_attributes = (
-            nuke_traits.get_version_attributes_with_traits(context)
-        )
+        # representation traits - legacy representation is converted
+        load_repre = LoadRepresentation.from_context(context)
+        version_attributes = load_repre.version_attributes
         first = version_attributes.get("frameStart")
         last = version_attributes.get("frameEnd")
         fps = version_attributes.get("fps") or nuke.root()["fps"].getValue()
@@ -61,7 +60,7 @@ class AlembicModelLoader(load.LoaderPlugin):
             data_imprint[k] = version_attributes[k]
 
         # getting file path
-        file = self.filepath_from_context(context).replace("\\", "/")
+        file = load_repre.get_first_file_path()
 
         with maintained_selection():
             model_node = nuke.createNode(
@@ -114,9 +113,9 @@ class AlembicModelLoader(load.LoaderPlugin):
         model_node = container["node"]
 
         # get main variables
-        version_attributes = (
-            nuke_traits.get_version_attributes_with_traits(context)
-        )
+        # representation traits - legacy representation is converted
+        load_repre = LoadRepresentation.from_context(context)
+        version_attributes = load_repre.version_attributes
         first = version_attributes.get("frameStart")
         last = version_attributes.get("frameEnd")
         fps = version_attributes.get("fps") or nuke.root()["fps"].getValue()
@@ -135,7 +134,7 @@ class AlembicModelLoader(load.LoaderPlugin):
             data_imprint[k] = version_attributes[k]
 
         # getting file path
-        file = get_representation_path(repre_entity).replace("\\", "/")
+        file = load_repre.get_first_file_path()
 
         model_node["file"].setValue(file)
         self._select_all_items(model_node)

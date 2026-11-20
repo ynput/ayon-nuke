@@ -81,18 +81,6 @@ class CollectSyncWorkfileVersionModel(BaseSettingsModel):
     )
 
 
-class CollectNukeWritesModel(BaseSettingsModel):
-    use_trait_representations: bool = SettingsField(
-        False,
-        title="Use trait representations",
-        description=(
-            "Publish trait based representations for renders processed"
-            " inside Nuke ('Local' and 'Use existing frames' targets)."
-            " Farm targets are not affected. Experimental."
-        ),
-    )
-
-
 class OptionalPluginModel(BaseSettingsModel):
     enabled: bool = SettingsField(True)
     optional: bool = SettingsField(title="Optional")
@@ -294,10 +282,6 @@ class PublishPluginsModel(BaseSettingsModel):
             section="Collectors",
         )
     )
-    CollectNukeWrites: CollectNukeWritesModel = SettingsField(
-        title="Collect Writes",
-        default_factory=CollectNukeWritesModel,
-    )
     ValidateCorrectAssetContext: OptionalPluginModel = SettingsField(
         title="Validate Correct Folder Name",
         default_factory=OptionalPluginModel,
@@ -390,9 +374,6 @@ DEFAULT_PUBLISH_PLUGIN_SETTINGS = {
             "render",
             "write"
         ]
-    },
-    "CollectNukeWrites": {
-        "use_trait_representations": False
     },
     "ValidateCorrectAssetContext": {
         "enabled": True,

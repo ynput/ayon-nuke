@@ -19,10 +19,6 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
 
     settings_category = "nuke"
 
-    # Publish trait based representations for render targets
-    #   processed inside Nuke ("local" and "frames")
-    use_trait_representations = False
-
     # cache
     _write_nodes = {}
     _frame_ranges = {}
@@ -55,9 +51,9 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
             )
             return
 
+        # Render targets processed inside Nuke publish trait representations
         instance.data[nuke_traits.INSTANCE_DATA_KEY] = (
-            self.use_trait_representations
-            and render_target in nuke_traits.TRAIT_RENDER_TARGETS
+            render_target in nuke_traits.TRAIT_RENDER_TARGETS
         )
 
         # get colorspace and add to version data

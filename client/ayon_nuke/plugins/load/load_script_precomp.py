@@ -3,14 +3,13 @@ import ayon_api
 
 from ayon_core.pipeline import (
     load,
-    get_representation_path,
 )
 from ayon_nuke.api.lib import get_avalon_knob_data
 from ayon_nuke.api import (
     containerise,
     update_container,
 )
-from ayon_nuke.api import traits as nuke_traits
+from ayon_nuke.api.load_traits import LoadRepresentation
 from ayon_nuke.api.command import undo_chunk
 
 
@@ -35,9 +34,9 @@ class LinkAsGroup(load.LoaderPlugin):
         #     log.info("key: `{}`, value: {}\n".format(k, v))
         version_entity = context["version"]
 
-        version_attributes = (
-            nuke_traits.get_version_attributes_with_traits(context)
-        )
+        # representation traits - legacy representation is converted
+        load_repre = LoadRepresentation.from_context(context)
+        version_attributes = load_repre.version_attributes
         first = version_attributes.get("frameStart")
         last = version_attributes.get("frameEnd")
         colorspace = version_attributes.get("colorSpace")
@@ -46,7 +45,7 @@ class LinkAsGroup(load.LoaderPlugin):
         if namespace is None:
             namespace = context["folder"]["name"]
 
-        file = self.filepath_from_context(context).replace("\\", "/")
+        file = load_repre.get_first_file_path()
         self.log.info("file: {}\n".format(file))
 
         data_imprint = {
@@ -125,13 +124,13 @@ class LinkAsGroup(load.LoaderPlugin):
         version_entity = context["version"]
         repre_entity = context["representation"]
 
-        root = get_representation_path(repre_entity).replace("\\", "/")
+        # representation traits - legacy representation is converted
+        load_repre = LoadRepresentation.from_context(context)
+        root = load_repre.get_first_file_path()
 
         # Get start frame from version data
 
-        version_attributes = (
-            nuke_traits.get_version_attributes_with_traits(context)
-        )
+        version_attributes = load_repre.version_attributes
         updated_dict = {
             "representation": repre_entity["id"],
             "frameEnd": version_attributes.get("frameEnd"),

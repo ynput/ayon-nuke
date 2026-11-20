@@ -44,7 +44,8 @@ class ExtractReviewData(publish.Extractor):
                     continue
                 nuke_traits.add_tag(representation, "review")
                 self.log.debug(
-                    f"Matching trait representation: {representation.name}"
+                    "Matching trait representation: %s",
+                    representation.name,
                 )
             return
 

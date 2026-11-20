@@ -3,7 +3,6 @@ import ayon_api
 
 from ayon_core.pipeline import (
     load,
-    get_representation_path,
 )
 from ayon_nuke.api import (
     containerise,
@@ -13,7 +12,7 @@ from ayon_nuke.api.command import knob_values, undo_chunk
 from ayon_nuke.api.lib import (
     maintained_selection
 )
-from ayon_nuke.api import traits as nuke_traits
+from ayon_nuke.api.load_traits import LoadRepresentation
 
 class AlembicCameraLoader(load.LoaderPlugin):
     """
@@ -38,9 +37,9 @@ class AlembicCameraLoader(load.LoaderPlugin):
         # get main variables
         version_entity = context["version"]
 
-        version_attributes = (
-            nuke_traits.get_version_attributes_with_traits(context)
-        )
+        # representation traits - legacy representation is converted
+        load_repre = LoadRepresentation.from_context(context)
+        version_attributes = load_repre.version_attributes
         first = version_attributes.get("frameStart")
         last = version_attributes.get("frameEnd")
         fps = version_attributes.get("fps") or nuke.root()["fps"].getValue()
@@ -59,7 +58,7 @@ class AlembicCameraLoader(load.LoaderPlugin):
         }
 
         # getting file path
-        file = self.filepath_from_context(context).replace("\\", "/")
+        file = load_repre.get_first_file_path()
 
         with maintained_selection():
 
@@ -118,9 +117,9 @@ class AlembicCameraLoader(load.LoaderPlugin):
         repre_entity = context["representation"]
 
         # get main variables
-        version_attributes = (
-            nuke_traits.get_version_attributes_with_traits(context)
-        )
+        # representation traits - legacy representation is converted
+        load_repre = LoadRepresentation.from_context(context)
+        version_attributes = load_repre.version_attributes
         first = version_attributes.get("frameStart")
         last = version_attributes.get("frameEnd")
         fps = version_attributes.get("fps") or nuke.root()["fps"].getValue()
@@ -137,7 +136,7 @@ class AlembicCameraLoader(load.LoaderPlugin):
         }
 
         # getting file path
-        file = get_representation_path(repre_entity).replace("\\", "/")
+        file = load_repre.get_first_file_path()
 
         camera_node = container["node"]
         with knob_values({

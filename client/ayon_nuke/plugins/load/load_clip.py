@@ -1,25 +1,12 @@
-from copy import deepcopy
-
 import nuke
 import ayon_api
 
 from ayon_core.lib import BoolDef, EnumDef
 from ayon_core.lib import Logger
-from ayon_core.pipeline import (
-    get_representation_path,
-)
-from ayon_core.pipeline.colorspace import (
-    get_imageio_file_rules_colorspace_from_filepath,
-    get_current_context_imageio_config_preset,
-)
-from ayon_nuke.api.lib import (
-    get_imageio_input_colorspace,
-    maintained_selection
-)
+from ayon_nuke.api.lib import maintained_selection
 from ayon_nuke.api import (
     containerise,
     update_container,
-    colorspace_exists_on_node
 )
 from ayon_nuke.api.command import undo_chunk
 
@@ -28,7 +15,8 @@ from ayon_core.lib.transcoding import (
     IMAGE_EXTENSIONS
 )
 from ayon_nuke.api import plugin
-from ayon_nuke.api import traits as nuke_traits
+from ayon_nuke.api.load_traits import LoadRepresentation
+from ayon_nuke.api.load_utils import set_read_colorspace
 
 
 class LoadClip(plugin.NukeLoader):
@@ -110,43 +98,23 @@ class LoadClip(plugin.NukeLoader):
         project_name = context["project"]["name"]
         repre_entity = context["representation"]
         version_entity = context["version"]
-        # frame range, handles and fps of the representation if published
-        #   with traits
-        version_attributes = (
-            nuke_traits.get_version_attributes_with_traits(context)
-        )
+        # representation traits - legacy representation is converted
+        load_repre = LoadRepresentation.from_context(context)
+        version_attributes = load_repre.version_attributes
         version_data = version_entity["data"]
-        traits_data = nuke_traits.get_load_traits_data(repre_entity)
 
         # reset container id so it is always unique for each instance
         self.reset_container_id()
 
-        # Calculate the node type before frame in path is replaced with hashes.
         node_type = options.get(
             "node_type",
             self.options_defaults["node_type"],
         )
         if node_type == "auto":
-            original_filepath = self.filepath_from_context(context)
-            node_type = nuke.tcl("node_for_sequence", original_filepath)
+            node_type = self._get_node_type(load_repre)
 
-        is_sequence = self._is_sequence(repre_entity, traits_data)
-
-        # Sequence published with traits - frame pattern is created from
-        #   frame padding of the sequence
-        filepath = None
-        if traits_data is not None:
-            filepath = nuke_traits.get_sequence_path(
-                project_name, repre_entity, traits_data
-            )
-
-        if filepath is None:
-            if is_sequence:
-                context["representation"] = (
-                    self._representation_with_hash_in_frame(repre_entity)
-                )
-            filepath = self.filepath_from_context(context)
-        filepath = filepath.replace("\\", "/")
+        # sequence has frame pattern created from its frame padding
+        filepath = load_repre.get_file_path()
         self.log.debug("_ filepath: {}".format(filepath))
 
         start_at_workfile: bool = options.get(
@@ -162,25 +130,8 @@ class LoadClip(plugin.NukeLoader):
         self.log.debug(
             "Representation id `{}` ".format(repre_id))
 
-        first, last = self._get_frame_range(version_attributes)
-
-        # If a slate is present, the frame range is 1 frame longer for movies,
-        # but file sequences it's the first frame that is 1 frame lower.
-        slate_frames = repre_entity["data"].get("slateFrames", 0)
-        if traits_data is not None:
-            slate_frames = traits_data.slate_frames
-        extension = "." + repre_entity["context"]["ext"]
-        files_count = len(repre_entity["files"])
-
-        if first is not None and last is not None:
-            if not is_sequence:
-                duration = last - first
-                first = 1
-                last = first + duration
-            if extension in VIDEO_EXTENSIONS:
-                last += slate_frames
-            elif extension in IMAGE_EXTENSIONS and files_count != 1:
-                first -= slate_frames
+        slate_frames = load_repre.slate_frames
+        first, last = self._get_frame_range(load_repre)
 
         # Fallback to folder name when namespace is None
         if namespace is None:
@@ -204,8 +155,7 @@ class LoadClip(plugin.NukeLoader):
                 read_node,
                 filepath,
                 project_name,
-                version_entity,
-                repre_entity
+                load_repre,
             )
         if set_frame_range and first is not None and last is not None:
             self._set_range_to_node(read_node, first, last)
@@ -267,51 +217,97 @@ class LoadClip(plugin.NukeLoader):
         self.update(container, context)
 
     @staticmethod
-    def _is_sequence(repre_entity, traits_data=None):
-        """Representation is a sequence of frames.
+    def _get_node_type(load_repre):
+        """Read node class for representation files.
 
         Args:
-            repre_entity (dict): Representation entity.
-            traits_data (Optional[nuke_traits.LoadTraitsData]): Data from
-                representation traits.
+            load_repre (LoadRepresentation): Loaded representation.
 
         Returns:
-            bool: Representation is a sequence.
+            str: "DeepRead" or "Read".
 
         """
-        if traits_data is not None:
-            return traits_data.is_sequence
-        return len(repre_entity["files"]) > 1
+        if load_repre.is_deep:
+            return "DeepRead"
+        filepath = load_repre.get_first_file_path()
+        return nuke.tcl("node_for_sequence", filepath)
 
-    def _representation_with_hash_in_frame(self, repre_entity):
-        """Convert frame key value to padded hash
+    @staticmethod
+    def _get_frame_range(load_repre, legacy_slate=True):
+        """Frame range for read node from representation traits.
+
+        Range of a sequence is the range of its files (with slate and
+        handles in files). Movies start at frame 1 and have the same
+        length as the file.
+
+        Representation converted from legacy data uses legacy rules - see
+        `_get_legacy_frame_range`.
 
         Args:
-            repre_entity (dict): Representation entity.
+            load_repre (LoadRepresentation): Loaded representation.
+            legacy_slate (bool): Legacy rules add slate frames to the
+                frame range (on load, not on update).
 
         Returns:
-            dict: altered representation data
+            tuple[Optional[int], Optional[int]]: First and last frame or
+                (None, None) if representation has no frame range.
 
         """
-        new_repre_entity = deepcopy(repre_entity)
-        context = new_repre_entity["context"]
+        if load_repre.is_converted:
+            return LoadClip._get_legacy_frame_range(load_repre, legacy_slate)
 
-        # Get the frame from the context and hash it
-        frame = context["frame"]
-        hashed_frame = "#" * len(str(frame))
+        frame_range = load_repre.frame_range
+        if frame_range is None:
+            return None, None
 
-        # Replace the frame with the hash in the originalBasename
-        if (
-            "{originalBasename}" in new_repre_entity["attrib"]["template"]
-        ):
-            origin_basename = context["originalBasename"]
-            context["originalBasename"] = origin_basename.replace(
-                frame, hashed_frame
-            )
+        first = frame_range.frame_start
+        last = frame_range.frame_end
+        if not load_repre.is_sequence:
+            duration = last - first
+            first = 1
+            last = first + duration
+        return first, last
 
-        # Replace the frame with the hash in the frame
-        new_repre_entity["context"]["frame"] = hashed_frame
-        return new_repre_entity
+    @staticmethod
+    def _get_legacy_frame_range(load_repre, add_slate):
+        """Frame range of representation converted from legacy data.
+
+        Same rules as before traits - version frame range with handles,
+        movie starts at 1. Slate frame is added only on load and only
+        by extension (movie end, image sequence start).
+
+        Args:
+            load_repre (LoadRepresentation): Loaded representation.
+            add_slate (bool): Add slate frames to the frame range.
+
+        Returns:
+            tuple[Optional[int], Optional[int]]: First and last frame or
+                (None, None) if version has no frame range.
+
+        """
+        frame_range = load_repre.frame_range
+        if frame_range is None:
+            return None, None
+
+        first = frame_range.content_frame_start - frame_range.handle_start
+        last = frame_range.content_frame_end + frame_range.handle_end
+
+        # legacy rules use data of the representation entity
+        repre_entity = load_repre.repre_entity
+        files_count = len(repre_entity["files"])
+        if files_count <= 1:
+            duration = last - first
+            first = 1
+            last = first + duration
+
+        if add_slate:
+            slate_frames = repre_entity["data"].get("slateFrames", 0)
+            extension = "." + repre_entity["context"]["ext"]
+            if extension in VIDEO_EXTENSIONS:
+                last += slate_frames
+            elif extension in IMAGE_EXTENSIONS and files_count != 1:
+                first -= slate_frames
+        return first, last
 
     @undo_chunk("Update Clip")
     def update(self, container, context):
@@ -327,14 +323,11 @@ class LoadClip(plugin.NukeLoader):
         version_entity = context["version"]
         repre_entity = context["representation"]
 
-        version_attributes = (
-            nuke_traits.get_version_attributes_with_traits(context)
-        )
+        # representation traits - legacy representation is converted
+        load_repre = LoadRepresentation.from_context(context)
+        version_attributes = load_repre.version_attributes
         version_data = version_entity["data"]
         version_name = version_entity["version"]
-        traits_data = nuke_traits.get_load_traits_data(repre_entity)
-
-        is_sequence = self._is_sequence(repre_entity, traits_data)
 
         read_node = container["node"]
 
@@ -343,21 +336,8 @@ class LoadClip(plugin.NukeLoader):
         undo_name = f"Update: {name} to v{version_name}"
         nuke.Undo.name(undo_name)
 
-        # Sequence published with traits - frame pattern is created from
-        #   frame padding of the sequence
-        filepath = None
-        if traits_data is not None:
-            filepath = nuke_traits.get_sequence_path(
-                project_name, repre_entity, traits_data
-            )
-
-        if filepath is None:
-            if is_sequence:
-                repre_entity = self._representation_with_hash_in_frame(
-                    repre_entity
-                )
-            filepath = get_representation_path(repre_entity)
-        filepath = filepath.replace("\\", "/")
+        # sequence has frame pattern created from its frame padding
+        filepath = load_repre.get_file_path()
         self.log.debug("_ filepath: {}".format(filepath))
 
         start_at_workfile = "start at" in read_node['frame_mode'].value()
@@ -371,14 +351,10 @@ class LoadClip(plugin.NukeLoader):
         ]
 
         repre_id = repre_entity["id"]
-        first, last = self._get_frame_range(version_attributes)
         handle_start = version_attributes.get("handleStart") or 0
         handle_end = version_attributes.get("handleEnd") or 0
 
-        if first is not None and last is not None and not is_sequence:
-            duration = last - first
-            first = 1
-            last = first + duration
+        first, last = self._get_frame_range(load_repre, legacy_slate=False)
 
         if not filepath:
             self.log.warning(
@@ -392,8 +368,7 @@ class LoadClip(plugin.NukeLoader):
                 read_node,
                 filepath,
                 project_name,
-                version_entity,
-                repre_entity
+                load_repre,
             )
         if set_frame_range and first is not None and last is not None:
             self._set_range_to_node(read_node, first, last)
@@ -402,7 +377,11 @@ class LoadClip(plugin.NukeLoader):
             last = int(read_node['last'].value())
 
         if start_at_workfile:
-            self._start_at_workfile_frame(read_node)
+            # legacy update did not offset start by slate
+            slate_frames = (
+                0 if load_repre.is_converted else load_repre.slate_frames
+            )
+            self._start_at_workfile_frame(read_node, slate_frames)
 
         updated_dict = {
             "representation": repre_entity["id"],
@@ -446,8 +425,7 @@ class LoadClip(plugin.NukeLoader):
         read_node,
         filepath,
         project_name,
-        version_entity,
-        repre_entity,
+        load_repre,
     ):
         """Set colorspace to read node.
 
@@ -457,21 +435,16 @@ class LoadClip(plugin.NukeLoader):
             read_node (nuke.Node): The nuke's read node
             filepath (str): File path.
             project_name (str): Project name.
-            version_entity (dict): Version entity.
-            repre_entity (dict): Representation entity.
+            load_repre (LoadRepresentation): Loaded representation.
 
         """
-        used_colorspace = self._get_colorspace_data(
-            project_name, version_entity, repre_entity, filepath
+        set_read_colorspace(
+            read_node,
+            project_name,
+            filepath,
+            load_repre.colorspace,
+            logger=self.log,
         )
-        if (
-            used_colorspace
-            and colorspace_exists_on_node(read_node, used_colorspace)
-        ):
-            self.log.info(f"Used colorspace: {used_colorspace}")
-            read_node["colorspace"].setValue(used_colorspace)
-        else:
-            self.log.info("Colorspace not set...")
 
     @undo_chunk("Remove Clip")
     def remove(self, container):
@@ -589,83 +562,3 @@ class LoadClip(plugin.NukeLoader):
         }
 
         return self.node_name_template.format(**name_data)
-
-    def _get_colorspace_data(
-        self, project_name, version_entity, repre_entity, filepath
-    ):
-        """Get colorspace data from version and representation documents
-
-        Args:
-            project_name (str): Project name.
-            version_entity (dict): Version entity.
-            repre_entity (dict): Representation entity.
-            filepath (str): File path.
-
-        Returns:
-            Any[str,None]: colorspace name or None
-        """
-        # Get colorspace from representation colorspaceData if colorspace is
-        # not found.
-        colorspace_data = repre_entity["data"].get("colorspaceData", {})
-        colorspace = colorspace_data.get("colorspace")
-        self.log.debug(
-            f"Colorspace from representation colorspaceData: {colorspace}"
-        )
-
-        if not colorspace:
-            # Representations published with traits.
-            traits_data = nuke_traits.get_load_traits_data(repre_entity)
-            if traits_data is not None:
-                colorspace = traits_data.colorspace
-                self.log.debug(
-                    f"Colorspace from representation traits: {colorspace}"
-                )
-
-        if not colorspace:
-            # Get backward compatible colorspace key.
-            colorspace = repre_entity["data"].get("colorspace")
-            self.log.debug(
-                f"Colorspace from representation colorspace: {colorspace}"
-            )
-
-        # Get backward compatible version data key if colorspace is not found.
-        if not colorspace:
-            colorspace = version_entity["attrib"].get("colorSpace")
-            self.log.debug(
-                f"Colorspace from version colorspace: {colorspace}"
-            )
-
-        config_data = get_current_context_imageio_config_preset()
-        # check if any filerules are not applicable
-        new_parsed_colorspace = get_imageio_file_rules_colorspace_from_filepath( # noqa
-            filepath, "nuke", project_name, config_data=config_data
-        )
-        self.log.debug(f"Colorspace new filerules: {new_parsed_colorspace}")
-
-        # colorspace from `project_settings/nuke/imageio/regexInputs`
-        old_parsed_colorspace = get_imageio_input_colorspace(filepath)
-        self.log.debug(f"Colorspace old filerules: {old_parsed_colorspace}")
-
-        return (
-            new_parsed_colorspace
-            or old_parsed_colorspace
-            or colorspace
-        )
-
-    def _get_frame_range(self, version_attributes):
-        """Get first and last frame from version attributes, including handles.
-
-        Args:
-            version_attributes (dict): version attributes
-
-        Returns:
-            tuple: first and last frame numbers
-        """
-        first = version_attributes.get("frameStart")
-        last = version_attributes.get("frameEnd")
-        if first is None or last is None:
-            return None, None
-
-        first -= version_attributes.get("handleStart") or 0
-        last += version_attributes.get("handleEnd") or 0
-        return first, last

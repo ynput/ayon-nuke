@@ -4,26 +4,20 @@ import ayon_api
 
 from ayon_core.pipeline import load
 
-from ayon_nuke.api.lib import (
-    get_imageio_input_colorspace
-)
 from ayon_nuke.api.command import undo_chunk
 
 from ayon_core.lib import NumberDef
-from ayon_core.pipeline.colorspace import (
-    get_imageio_file_rules_colorspace_from_filepath,
-    get_current_context_imageio_config_preset,
-)
 from ayon_nuke.api import (
     containerise,
     update_container,
-    colorspace_exists_on_node,
 )
 from ayon_core.lib.transcoding import (
     IMAGE_EXTENSIONS
 )
-from ayon_nuke.api import traits as nuke_traits
+from ayon_nuke.api.load_traits import LoadRepresentation
+from ayon_nuke.api.load_utils import set_read_colorspace
 
+from typing import Optional
 
 class LoadImage(load.LoaderPlugin):
     """Load still image into Nuke"""
@@ -79,9 +73,9 @@ class LoadImage(load.LoaderPlugin):
         )
 
         version_entity = context["version"]
-        version_attributes = (
-            nuke_traits.get_version_attributes_with_traits(context)
-        )
+        # representation traits - legacy representation is converted
+        load_repre = LoadRepresentation.from_context(context)
+        version_attributes = load_repre.version_attributes
         repre_entity = context["representation"]
         repre_id = repre_entity["id"]
 
@@ -94,7 +88,7 @@ class LoadImage(load.LoaderPlugin):
         if namespace is None:
             namespace = context["folder"]["name"]
 
-        filepath = self._get_filepath(context, frame_number)
+        filepath = self._get_filepath(load_repre, frame_number)
         if not filepath:
             self.log.warning(
                 "Representation id `{}` is failing to load".format(repre_id))
@@ -111,8 +105,7 @@ class LoadImage(load.LoaderPlugin):
             read_node,
             filepath,
             project_name,
-            version_entity,
-            repre_entity
+            load_repre,
         )
 
         read_node["file"].setValue(filepath)
@@ -161,8 +154,10 @@ class LoadImage(load.LoaderPlugin):
         project_name = context["project"]["name"]
         version_entity = context["version"]
         repre_entity = context["representation"]
+        # representation traits - legacy representation is converted
+        load_repre = LoadRepresentation.from_context(context)
 
-        filepath = self._get_filepath(context, frame_number)
+        filepath = self._get_filepath(load_repre, frame_number)
         if not filepath:
             repre_id = repre_entity["id"]
             self.log.warning(
@@ -177,7 +172,10 @@ class LoadImage(load.LoaderPlugin):
         last = first = int(frame_number)
 
         self.set_colorspace_to_node(
-            read_node, filepath, project_name, version_entity, repre_entity
+            read_node,
+            filepath,
+            project_name,
+            load_repre,
         )
         # Set the global in to the start frame of the sequence
         read_node["file"].setValue(filepath)
@@ -186,9 +184,7 @@ class LoadImage(load.LoaderPlugin):
         read_node["origlast"].setValue(last)
         read_node["last"].setValue(last)
 
-        version_attributes = (
-            nuke_traits.get_version_attributes_with_traits(context)
-        )
+        version_attributes = load_repre.version_attributes
         updated_dict = {
             "representation": repre_entity["id"],
             "frameStart": str(first),
@@ -218,43 +214,40 @@ class LoadImage(load.LoaderPlugin):
         assert node.Class() == "Read", "Must be Read"
         nuke.delete(node)
 
-    def _get_filepath(self, context, frame_number):
+    def _get_filepath(
+            self, load_repre: LoadRepresentation,
+            frame_number: int) -> Optional[str]:
         """Path to the image of the frame.
 
         Args:
-            context (dict): Load context.
+            load_repre (LoadRepresentation): Loaded representation.
             frame_number (int): Frame number to load from a sequence.
 
         Returns:
             Optional[str]: File path.
 
         """
-        repre_entity = context["representation"]
-        traits_data = nuke_traits.get_load_traits_data(repre_entity)
-        if traits_data is not None:
-            # Sequence published with traits - frame is formatted with
-            #   frame padding of the sequence
-            filepath = nuke_traits.get_sequence_path(
-                context["project"]["name"],
-                repre_entity,
-                traits_data,
-                frame=int(frame_number),
+        frame_range = load_repre.frame_range
+        if (
+            not load_repre.is_converted
+            and load_repre.is_sequence
+            and frame_range is not None
+            and not (
+                frame_range.frame_start
+                <= int(frame_number)
+                <= frame_range.frame_end
             )
-            if filepath is not None:
-                return filepath
-
-        filepath = self.filepath_from_context(context)
-        if not filepath:
-            return None
-        filepath = filepath.replace("\\", "/")
-
-        frame = repre_entity["context"].get("frame")
-        if frame:
-            padding = len(frame)
-            filepath = filepath.replace(
-                frame, format(int(frame_number), "0{}".format(padding))
+        ):
+            self.log.warning(
+                "Frame {frame} is out of frame range"
+                " {frame_start}-{frame_end} of representation"
+                " {representation_id}",
+                frame=frame_number,
+                frame_start=frame_range.frame_start,
+                frame_end=frame_range.frame_end,
+                representation_id=load_repre.repre_entity["id"],
             )
-        return filepath
+        return load_repre.get_file_path(frame=frame_number)
 
     def _get_node_name(self, context):
         folder_entity = context["folder"]
@@ -285,8 +278,7 @@ class LoadImage(load.LoaderPlugin):
         read_node,
         filepath,
         project_name,
-        version_entity,
-        repre_entity,
+        load_repre,
     ):
         """Set colorspace to read node.
 
@@ -296,72 +288,13 @@ class LoadImage(load.LoaderPlugin):
             read_node (nuke.Node): The nuke's read node
             filepath (str): File path.
             project_name (str): Project name.
-            version_entity (dict): Version entity.
-            repre_entity (dict): Representation entity.
+            load_repre (LoadRepresentation): Loaded representation.
 
         """
-        used_colorspace = self._get_colorspace_data(
-            project_name, version_entity, repre_entity, filepath
+        set_read_colorspace(
+            read_node,
+            project_name,
+            filepath,
+            load_repre.colorspace,
+            logger=self.log,
         )
-        if (
-            used_colorspace
-            and colorspace_exists_on_node(read_node, used_colorspace)
-        ):
-            self.log.info(f"Used colorspace: {used_colorspace}")
-            read_node["colorspace"].setValue(used_colorspace)
-        else:
-            self.log.info("Colorspace not set...")
-
-    def _get_colorspace_data(
-        self, project_name, version_entity, repre_entity, filepath
-    ):
-        """Get colorspace data from version and representation documents
-
-        Args:
-            project_name (str): Project name.
-            version_entity (dict): Version entity.
-            repre_entity (dict): Representation entity.
-            filepath (str): File path.
-
-        Returns:
-            Any[str,None]: colorspace name or None
-        """
-        # Get colorspace from representation colorspaceData if colorspace is
-        # not found.
-        colorspace_data = repre_entity["data"].get("colorspaceData", {})
-        colorspace = colorspace_data.get("colorspace")
-        self.log.debug(
-            f"Colorspace from representation colorspaceData: {colorspace}")
-
-        if not colorspace:
-            # Representations published with traits.
-            traits_data = nuke_traits.get_load_traits_data(repre_entity)
-            if traits_data is not None:
-                colorspace = traits_data.colorspace
-                self.log.debug(
-                    f"Colorspace from representation traits: {colorspace}")
-
-        if not colorspace:
-            # Get backward compatible colorspace key.
-            colorspace = repre_entity["data"].get("colorspace")
-            self.log.debug(
-                f"Colorspace from representation colorspace: {colorspace}")
-
-        # Get backward compatible version data key if colorspace is not found.
-        if not colorspace:
-            colorspace = version_entity["attrib"].get("colorSpace")
-            self.log.debug(
-                f"Colorspace from version colorspace: {colorspace}")
-
-        config_data = get_current_context_imageio_config_preset()
-        # check if any filerules are not applicable
-        new_parsed_colorspace = get_imageio_file_rules_colorspace_from_filepath(  # noqa
-            filepath, "nuke", project_name, config_data=config_data
-        )
-        self.log.debug(f"Colorspace new filerules: {new_parsed_colorspace}")
-
-        # colorspace from `project_settings/nuke/imageio/regexInputs`
-        old_parsed_colorspace = get_imageio_input_colorspace(filepath)
-        self.log.debug(f"Colorspace old filerules: {old_parsed_colorspace}")
-
-        return new_parsed_colorspace or old_parsed_colorspace or colorspace

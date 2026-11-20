@@ -6,7 +6,6 @@ import copy
 import pyblish.api
 
 from ayon_core.pipeline import publish
-from ayon_core.pipeline.traits import Slate
 from ayon_nuke.api import (
     maintained_selection,
     duplicate_node,
@@ -379,8 +378,9 @@ class ExtractSlateFrame(publish.Extractor):
         )
         if representation is None:
             self.log.info(
-                "Matching representation was not found."
-                " Representation files were not filled with slate."
+                "Representation with file '%s' was not found."
+                " Representation files were not filled with slate.",
+                first_filename,
             )
             return
 
@@ -396,9 +396,12 @@ class ExtractSlateFrame(publish.Extractor):
             )
         # integration stores it to representation data as 'slateFrames'
         #   (used by loaders), same as on legacy representations
-        if not representation.contains_trait(Slate):
-            representation.add_trait(Slate(frames=1))
-        self.log.info("Added slate frame to representation files")
+        nuke_traits.add_slate_trait(representation, frames=1)
+        self.log.info(
+            "Added slate frame '%s' to files of representation '%s'",
+            slate_filename,
+            representation.name,
+        )
 
     def add_comment_slate_node(self, instance, node):
 

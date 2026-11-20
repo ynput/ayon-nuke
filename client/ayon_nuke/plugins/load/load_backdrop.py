@@ -15,7 +15,7 @@ from ayon_nuke.api.lib import (
 )
 from ayon_nuke.api.command import undo_chunk
 from ayon_nuke.api import containerise, update_container
-from ayon_nuke.api import traits as nuke_traits
+from ayon_nuke.api.load_traits import LoadRepresentation
 
 
 class LoadBackdropNodes(load.LoaderPlugin):
@@ -55,9 +55,9 @@ class LoadBackdropNodes(load.LoaderPlugin):
         namespace = namespace or context["folder"]["name"]
         version_entity = context["version"]
 
-        version_attributes = (
-            nuke_traits.get_version_attributes_with_traits(context)
-        )
+        # representation traits - legacy representation is converted
+        load_repre = LoadRepresentation.from_context(context)
+        version_attributes = load_repre.version_attributes
         colorspace = version_attributes.get("colorSpace")
 
         object_name = "{}_{}".format(name, namespace)
@@ -74,7 +74,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
                 data_imprint[k] = version_attributes[k]
 
         # getting file path
-        file = self.filepath_from_context(context).replace("\\", "/")
+        file = load_repre.get_first_file_path()
 
         # adding nodes to node graph
         # just in case we are in group lets jump out of it
@@ -181,15 +181,15 @@ class LoadBackdropNodes(load.LoaderPlugin):
         # get corresponding node
         GN = container["node"]
 
-        file = self.filepath_from_context(context).replace("\\", "/")
+        # representation traits - legacy representation is converted
+        load_repre = LoadRepresentation.from_context(context)
+        file = load_repre.get_first_file_path()
 
         name = container["name"]
         namespace = container["namespace"]
         object_name = "{}_{}".format(name, namespace)
 
-        version_attributes = (
-            nuke_traits.get_version_attributes_with_traits(context)
-        )
+        version_attributes = load_repre.version_attributes
         colorspace = version_attributes.get("colorSpace")
 
         data_imprint = {

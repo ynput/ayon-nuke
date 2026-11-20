@@ -5,10 +5,7 @@ from ayon_core.pipeline import (
     PublishXmlValidationError,
     OptionalPyblishPluginMixin,
 )
-from ayon_core.pipeline.publish import (
-    get_errored_instances_from_context,
-    get_trait_representations,
-)
+from ayon_core.pipeline.publish import get_errored_instances_from_context
 
 from ayon_nuke.api import traits as nuke_traits
 
@@ -81,9 +78,12 @@ class ValidateRenderedFrames(
                 for repre in instance.data["representations"]
             ]
 
+        trait_representations = nuke_traits.get_trait_representations(
+            instance
+        )
         repres_files = [
             nuke_traits.get_representation_filenames(representation)
-            for representation in get_trait_representations(instance)
+            for representation in trait_representations
         ]
         # Legacy "frames" target always has a representation, even
         #   without files, so missing frames are reported.
