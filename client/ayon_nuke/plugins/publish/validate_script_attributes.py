@@ -4,7 +4,7 @@ from ayon_core.pipeline import (
     PublishXmlValidationError,
     OptionalPyblishPluginMixin
 )
-from ayon_core.pipeline.publish import RepairAction
+from ayon_core.pipeline.publish import RepairContextAction
 from ayon_nuke.api.lib import (
     WorkfileSettings
 )
@@ -12,31 +12,30 @@ from ayon_nuke.api.lib import (
 
 class ValidateScriptAttributes(
     OptionalPyblishPluginMixin,
-    pyblish.api.InstancePlugin
+    pyblish.api.ContextPlugin
 ):
-    """Validates script attributes."""
+    """Validate the Nuke script's root settings match the current task.
+
+    Checks the frame range, handles, resolution and fps set in the
+    script's Project Settings (root node) against the attributes of
+    the task you are working in. It does not check any individual node
+    or product.
+    """
 
     order = pyblish.api.ValidatorOrder + 0.1
-    families = ["workfile"]
     label = "Validate script attributes"
     hosts = ["nuke"]
     optional = True
-    actions = [RepairAction]
+    actions = [RepairContextAction]
 
     settings_category = "nuke"
 
-    def process(self, instance):
-        if not self.is_active(instance.data):
+    def process(self, context):
+        if not self.is_active(context.data):
             return
 
-        script_data = deepcopy(instance.context.data["scriptData"])
-
-        # Task may be optional for an instance
-        task_entity = instance.data.get("taskEntity")
-        if task_entity:
-            src_attributes = task_entity["attrib"]
-        else:
-            src_attributes = instance.data["folderEntity"]["attrib"]
+        script_data = deepcopy(context.data["scriptData"])
+        src_attributes = context.data["taskEntity"]["attrib"]
 
         # These attributes will be checked
         attributes = [
@@ -49,7 +48,7 @@ class ValidateScriptAttributes(
             "handleEnd"
         ]
 
-        # get only defined attributes from folder or task data
+        # get only defined attributes from task data
         check_attributes = {
             attr: src_attributes[attr]
             for attr in attributes
@@ -61,7 +60,7 @@ class ValidateScriptAttributes(
         script_data["fps"] = float("{0:.4f}".format(
             script_data["fps"]))
 
-        # Compare folder's values Nukescript X Database
+        # Compare task's values Nukescript X Database
         not_matching = []
         for attr in attributes:
             self.log.debug(
@@ -103,6 +102,5 @@ class ValidateScriptAttributes(
             )
 
     @classmethod
-    def repair(cls, instance):
-        cls.log.debug("__ repairing instance: {}".format(instance))
+    def repair(cls, context):
         WorkfileSettings().set_context_settings()

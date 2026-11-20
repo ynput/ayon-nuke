@@ -5,7 +5,8 @@
         <description>
 ## Invalid Script attributes
 
-Following script root attributes need to be fixed:
+The Nuke script's Project Settings (root node) do not match the
+attributes of the current task:
 
 {failed_attributes}
 
