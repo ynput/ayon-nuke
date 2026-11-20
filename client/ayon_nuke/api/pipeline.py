@@ -69,6 +69,7 @@ from .workfile_template_builder import (
     create_placeholder,
     update_placeholder,
     open_template,
+    show_template_builder,
 )
 from .workio import (
     open_file,
@@ -450,26 +451,42 @@ def _install_menu(project_settings: dict):
         lambda: BuildWorkfile().process()
     )
 
-    menu_template = menu.addMenu("Template Builder")
-    menu_template.addCommand(
-        "Build Workfile from template",
-        lambda: build_workfile_template()
-    )
+    # Tool to manage workfile templates was added in a later ayon-core version
+    try:
+        from ayon_core.tools.workfile_template_build import (  # noqa: F401
+            show_workfile_template_builder,
+        )
+        has_template_builder_tool = True
+    except ImportError:
+        has_template_builder_tool = False
 
-    if not ASSIST:
-        menu_template.addSeparator()
-        menu_template.addCommand(
-            "Open template",
-            lambda: open_template()
+    if has_template_builder_tool and not ASSIST:
+        menu.addCommand(
+            "Template Builder...",
+            lambda: show_template_builder()
         )
+    else:
+        # Older ayon-core versions and Nuke Assist keep the separate actions
+        menu_template = menu.addMenu("Template Builder")
         menu_template.addCommand(
-            "Create Place Holder",
-            lambda: create_placeholder()
+            "Build Workfile from template",
+            lambda: build_workfile_template()
         )
-        menu_template.addCommand(
-            "Update Place Holder",
-            lambda: update_placeholder()
-        )
+
+        if not ASSIST:
+            menu_template.addSeparator()
+            menu_template.addCommand(
+                "Open template",
+                lambda: open_template()
+            )
+            menu_template.addCommand(
+                "Create Place Holder",
+                lambda: create_placeholder()
+            )
+            menu_template.addCommand(
+                "Update Place Holder",
+                lambda: update_placeholder()
+            )
 
     menu.addCommand(
         "Push to Project",

@@ -40,6 +40,7 @@ class NukePlaceholderScriptPlugin(NukePlaceholderPlugin):
     """
     identifier = "nuke.runscript"
     label = "Run Python Script"
+    icon = {"type": "material-symbols", "name": "code"}
 
     def get_placeholder_options(self, options=None):
         options = options or {}
@@ -144,6 +145,12 @@ class NukePlaceholderScriptPlugin(NukePlaceholderPlugin):
                 self.delete_placeholder, placeholder)
             self.builder.add_on_finished_callback(
                 delete_callback, order=order + 1)
+
+    def repopulate_placeholder(self, placeholder):
+        """Re-run only the populate script of the placeholder."""
+        populate_script = placeholder.data.get("populate_script")
+        if populate_script:
+            self.run_script(placeholder, populate_script)
 
     def run_script(self, placeholder, script, event=None):
         """Run script
