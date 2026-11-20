@@ -12,8 +12,13 @@ from ayon_core.pipeline.workfile.workfile_template_builder import (
 )
 
 from .lib import (
+    get_backdrop_nodes,
+    get_extreme_positions,
     imprint,
+    node_tempfile,
+    refresh_node,
     reset_selection,
+    select_nodes,
     get_main_window,
     WorkfileSettings,
 )
@@ -162,6 +167,83 @@ class NukePlaceholderPlugin(PlaceholderPlugin):
             )
 
         return output
+
+    def _move_to_placeholder_group(self, placeholder, nodes):
+        """
+        opening the placeholder's group and copying nodes in it.
+
+        Returns :
+            nodes (list): the new list of pasted nodes
+        """
+        groups_name = placeholder.data["group_name"]
+        reset_selection()
+        select_nodes(nodes)
+        if groups_name:
+            with node_tempfile() as filepath:
+                nuke.nodeCopy(filepath)
+                for node in nuke.selectedNodes():
+                    nuke.delete(node)
+                group = nuke.toNode(groups_name)
+                group.begin()
+                nuke.nodePaste(filepath)
+                nodes = nuke.selectedNodes()
+        return nodes
+
+    def _update_nodes(self, placeholder, nodes, considered_nodes):
+        """Adjust backdrop nodes dimensions and positions.
+
+        Considering some nodes sizes.
+
+        Args:
+            nodes (list): list of nodes to update
+            considered_nodes (list): list of nodes to consider while updating
+                positions and dimensions
+        """
+
+        placeholder_node = nuke.toNode(placeholder.scene_identifier)
+
+        min_x, min_y, max_x, max_y = get_extreme_positions(considered_nodes)
+
+        width_ph = placeholder_node.screenWidth()
+        height_ph = placeholder_node.screenHeight()
+        diff_y = max_y - min_y - height_ph
+        diff_x = max_x - min_x - width_ph
+        contained_nodes = {placeholder_node}  # for backdrops
+        min_x = placeholder_node.xpos()
+        min_y = placeholder_node.ypos()
+
+        if diff_y <= 0 and diff_x <= 0:
+            return
+
+        for node in nodes:
+            refresh_node(node)
+
+            if (
+                node == placeholder_node
+                or node in considered_nodes
+            ):
+                continue
+
+            if (
+                not isinstance(node, nuke.BackdropNode)
+                or (
+                    isinstance(node, nuke.BackdropNode)
+                    and not contained_nodes <= set(get_backdrop_nodes(node))
+                )
+            ):
+                if node.xpos() >= min_x:
+                    node.setXpos(node.xpos() + diff_x)
+
+                if node.ypos() >= min_y:
+                    node.setYpos(node.ypos() + diff_y)
+
+            else:
+                width = node.screenWidth()
+                height = node.screenHeight()
+                node.knob("bdwidth").setValue(width + diff_x)
+                node.knob("bdheight").setValue(height + diff_y)
+
+            refresh_node(node)
 
 
 def trigger_on_app_launch() -> None:
