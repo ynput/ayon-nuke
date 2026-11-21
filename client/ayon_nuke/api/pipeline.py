@@ -30,6 +30,10 @@ from ayon_core.pipeline import (
     get_current_task_name,
 )
 from ayon_core.pipeline.workfile import BuildWorkfile
+from ayon_core.pipeline.workfile.task_usage import (
+    install_task_usage_tracker,
+)
+from ayon_core.tools.task_in_use import install_task_in_use_notifier
 from ayon_nuke import NUKE_ROOT_DIR
 
 # Function 'get_current_project_settings' was moved in ayon-core 1.5.1
@@ -148,6 +152,10 @@ class NukeHost(
 
         add_scripts_menu()
         add_scripts_gizmo()
+
+        install_task_in_use_notifier()
+        install_task_usage_tracker(self)
+
         launch_workfiles_app()
 
     def get_context_data(self):
