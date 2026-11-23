@@ -144,7 +144,7 @@ def test_sequence_render_writes_one_file_per_frame(frame_range, tmp_path):
 
     nuke.execute(write_node.name(), FIRST_FRAME, LAST_FRAME)
 
-    assert os.listdir(directory) == [
+    assert sorted(os.listdir(directory)) == [
         f"renderCompMovie.{frame}.exr"
         for frame in range(FIRST_FRAME, LAST_FRAME + 1)
     ]
