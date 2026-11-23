@@ -49,6 +49,7 @@ from .lib import (
     duplicate_viewer_input_process_node,
     get_filenames_without_hash,
     get_work_default_directory,
+    get_render_path_template,
     link_knobs,
     get_version_from_path,
     convert_knob_value_to_correct_type,
@@ -442,7 +443,8 @@ class NukeWriteCreator(NukeCreator):
         formatting_data.update({"ext": ext[1:]})
 
         # Retieve render template and staging directory.
-        fpath_template = self.temp_rendering_path_template
+        fpath_template = get_render_path_template(
+            self.temp_rendering_path_template, ext)
         formatting_data["work"] = get_work_default_directory(formatting_data)
         fpath = StringTemplate(fpath_template).format_strict(formatting_data)
 

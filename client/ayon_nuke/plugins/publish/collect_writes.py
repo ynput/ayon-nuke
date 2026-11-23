@@ -367,6 +367,11 @@ class CollectNukeWrites(pyblish.api.InstancePlugin,
         expected_slate_frame = first_frame - 1
         expected_slate_path = write_node["file"].evaluate(expected_slate_frame)
 
+        if expected_slate_path == write_node["file"].evaluate(first_frame):
+            # A movie has no frame token, so its slate frame is not a file
+            # of its own and the movie must not be collected twice.
+            return collected_frames
+
         if (
             os.path.exists(expected_slate_path)
             or (
