@@ -9,7 +9,7 @@ from ayon_core.pipeline import publish
 from ayon_nuke.api import (
     maintained_selection,
     duplicate_node,
-    get_view_process_node
+    duplicate_viewer_input_process_node
 )
 
 
@@ -197,7 +197,7 @@ class ExtractSlateFrame(publish.Extractor):
         if bake_viewer_process:
             if bake_viewer_input_process:
                 # get input process and connect it to baking
-                ipn = get_view_process_node()
+                ipn = duplicate_viewer_input_process_node()
                 if ipn is not None:
                     ipn.setInput(0, previous_node)
                     previous_node = ipn

@@ -2,6 +2,7 @@ import pyblish.api
 
 from ayon_core.pipeline.publish import get_errored_instances_from_context
 from ayon_nuke.api.lib import link_knobs
+from ayon_nuke.api.plugin import get_creator_class_name
 from ayon_core.pipeline.publish import (
     OptionalPyblishPluginMixin,
     PublishValidationError
@@ -26,11 +27,11 @@ class RepairExposedKnobs(pyblish.api.Action):
             # get write node from inside of group
             write_node = None
             for x in child_nodes:
-                if x.Class() == "Write":
+                if x.Class() in {"Write", "DeepWrite"}:
                     write_node = x
 
-            product_base_type = instance.data["productBaseType"]
-            plugin_name = plugin.product_base_types_mapping[product_base_type]
+            plugin_name = get_creator_class_name(instance)
+
             nuke_settings = instance.context.data["project_settings"]["nuke"]
             create_settings = nuke_settings["create"][plugin_name]
             exposed_knobs = create_settings["exposed_knobs"]
@@ -55,21 +56,17 @@ class ValidateExposedKnobs(
 
     settings_category = "nuke"
 
-    product_base_types_mapping = {
-        "render": "CreateWriteRender",
-        "prerender": "CreateWritePrerender",
-        "image": "CreateWriteImage"
-    }
 
     def process(self, instance):
         if not self.is_active(instance.data):
             return
 
-        product_base_type = instance.data["productBaseType"]
-        plugin = self.product_base_types_mapping[product_base_type]
         group_node = instance.data["transientData"]["node"]
+
+        plugin_name = get_creator_class_name(instance)
+
         nuke_settings = instance.context.data["project_settings"]["nuke"]
-        create_settings = nuke_settings["create"][plugin]
+        create_settings = nuke_settings["create"][plugin_name]
         exposed_knobs = create_settings.get("exposed_knobs", [])
         unexposed_knobs = []
         for knob in exposed_knobs:

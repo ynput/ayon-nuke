@@ -432,8 +432,8 @@ class LoadClip(plugin.NukeLoader):
 
     @undo_chunk("Remove Clip")
     def remove(self, container):
+        # The node is a Read or DeepRead node, see the node type option
         read_node = container["node"]
-        assert read_node.Class() == "Read", "Must be Read"
 
         # update undo name
         name = container.get("name") or read_node.name()
@@ -466,6 +466,11 @@ class LoadClip(plugin.NukeLoader):
         last_node = None
         source_id = self.get_container_id(parent_node)
         self.log.debug("__ source_id: {}".format(source_id))
+        # On update the loader has no container id of its own: mark the
+        # re-created retime nodes with the read node's id, so they stay
+        # its members (cleared by the next update, seen by Load Effects).
+        if source_id:
+            self.container_id = source_id
         self.log.debug("__ members: {}".format(
             self.get_members(parent_node)))
 

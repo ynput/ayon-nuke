@@ -194,7 +194,102 @@ class CreateWriteRenderModel(DefaultPluginModel):
         return validate_instance_attributes(value)
 
 
+class CreateDeepWriteRenderModel(DefaultPluginModel):
+    temp_rendering_path_template: str = SettingsField(
+        title="Temporary rendering path template"
+    )
+    default_variants: list[str] = SettingsField(
+        title="Default variants",
+        default_factory=list
+    )
+    instance_attributes: list[str] = SettingsField(
+        default_factory=list,
+        enum_resolver=instance_attributes_enum,
+        title="Instance attributes",
+        description=INSTANCE_ATTRIBUTES_DESCRIPTION,
+        conditional_enum=True,
+    )
+    conditional_reviewable: ConditionalReviewableModel = SettingsField(
+        default_factory=ConditionalReviewableModel,
+        title="Conditional Reviewable Profiles",
+        description=DISABLE_REVIEW_TOGGLE_DESCRIPTION,
+    )
+    render_target: str = SettingsField(
+        enum_resolver=render_target_enum,
+        conditional_enum=True,
+        title="Render target",
+        description=RENDER_TARGET_DESCRIPTION,
+    )
+    exposed_knobs: list[str] = SettingsField(
+        title="Write Node Exposed Knobs",
+        default_factory=list
+    )
+    prenodes: list[PrenodeModel] = SettingsField(
+        default_factory=list,
+        title="Preceding nodes",
+        description=PRENODES_LIST_DESCRIPTION
+    )
+
+    @validator("prenodes")
+    def ensure_unique_names(cls, value):
+        """Ensure name fields within the lists have unique names."""
+        ensure_unique_names(value)
+        return value
+
+    @validator("instance_attributes")
+    def validate_instance_attributes(cls, value):
+        """Ensure reviewable and conditional_reviewable are exclusive."""
+        return validate_instance_attributes(value)
+
+
 class CreateWritePrerenderModel(DefaultPluginModel):
+    temp_rendering_path_template: str = SettingsField(
+        title="Temporary rendering path template"
+    )
+    default_variants: list[str] = SettingsField(
+        title="Default variants",
+        default_factory=list
+    )
+    instance_attributes: list[str] = SettingsField(
+        default_factory=list,
+        enum_resolver=instance_attributes_enum,
+        title="Instance attributes",
+        description = INSTANCE_ATTRIBUTES_DESCRIPTION
+    )
+    conditional_reviewable: ConditionalReviewableModel = SettingsField(
+        default_factory=ConditionalReviewableModel,
+        title="Conditional Reviewable Profiles",
+        description=DISABLE_REVIEW_TOGGLE_DESCRIPTION,
+        conditional_enum=True,
+    )
+    render_target: str = SettingsField(
+        enum_resolver=render_target_enum,
+        conditional_enum=True,
+        title="Render target",
+        description=RENDER_TARGET_DESCRIPTION,
+    )
+    exposed_knobs: list[str] = SettingsField(
+        title="Write Node Exposed Knobs", default_factory=list
+    )
+    prenodes: list[PrenodeModel] = SettingsField(
+        default_factory=list,
+        title="Preceding nodes",
+        description=PRENODES_LIST_DESCRIPTION,
+    )
+
+    @validator("prenodes")
+    def ensure_unique_names(cls, value):
+        """Ensure name fields within the lists have unique names."""
+        ensure_unique_names(value)
+        return value
+
+    @validator("instance_attributes")
+    def validate_instance_attributes(cls, value):
+        """Ensure reviewable and conditional_reviewable are exclusive."""
+        return validate_instance_attributes(value)
+
+
+class CreateDeepWritePrerenderModel(DefaultPluginModel):
     temp_rendering_path_template: str = SettingsField(
         title="Temporary rendering path template"
     )
@@ -304,9 +399,17 @@ class CreatorPluginsSettings(BaseSettingsModel):
         default_factory=CreateWriteRenderModel,
         title="Render (write)"
     )
+    CreateDeepWriteRender: CreateDeepWriteRenderModel = SettingsField(
+        default_factory=CreateDeepWriteRenderModel,
+        title="Render (deep write)"
+    )
     CreateWritePrerender: CreateWritePrerenderModel = SettingsField(
         default_factory=CreateWritePrerenderModel,
         title="Prerender (write)"
+    )
+    CreateDeepWritePrerender: CreateDeepWritePrerenderModel = SettingsField(
+        default_factory=CreateDeepWritePrerenderModel,
+        title="Prerender (deep write)"
     )
     CreateWriteImage: CreateWriteImageModel = SettingsField(
         default_factory=CreateWriteImageModel,
@@ -382,6 +485,38 @@ DEFAULT_CREATE_SETTINGS = {
             }
         ]
     },
+    "CreateDeepWriteRender": {
+        "enabled": True,
+        "order": 100,
+        "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}",  # noqa: E501
+        "default_variants": [
+            "DeepMain",
+        ],
+        "instance_attributes": [
+            "farm_rendering"
+        ],
+        "render_target": "local",
+        "exposed_knobs": [],
+        "prenodes": [
+            {
+                "name": "DeepReformat01",
+                "nodeclass": "DeepReformat",
+                "dependent": "",
+                "knobs": [
+                    {
+                        "type": "text",
+                        "name": "resize",
+                        "text": "none"
+                    },
+                    {
+                        "type": "boolean",
+                        "name": "black_outside",
+                        "boolean": True
+                    }
+                ]
+            }
+        ]
+    },
     "CreateWritePrerender": {
         "enabled": True,
         "order": 100,
@@ -401,6 +536,21 @@ DEFAULT_CREATE_SETTINGS = {
         "render_target": "local",
         "exposed_knobs": [],
         "prenodes": []
+    },
+    "CreateDeepWritePrerender": {
+        "enabled": True,
+        "order": 100,
+        "temp_rendering_path_template": "{work}/renders/nuke/{product[name]}/{product[name]}.{frame}.{ext}",  # noqa: E501
+        "default_variants": [
+            "DeepMain",
+        ],
+        "instance_attributes": [
+            "farm_rendering",
+            "use_range_limit"
+        ],
+        "render_target": "local",
+        "exposed_knobs": [],
+        "prenodes": [],
     },
     "CreateWriteImage": {
         "enabled": True,

@@ -4,7 +4,6 @@ from .workio import (
     save_file,
     open_file,
     current_file,
-    work_root,
 )
 from .command import (
     viewer_update_and_undo_stop
@@ -37,6 +36,7 @@ from .lib import (
     maintained_selection,
     reset_selection,
     select_nodes,
+    duplicate_viewer_input_process_node,
     get_view_process_node,
     duplicate_node,
     convert_knob_value_to_correct_type,
@@ -62,7 +62,6 @@ __all__ = (
     "save_file",
     "open_file",
     "current_file",
-    "work_root",
 
     "viewer_update_and_undo_stop",
 
@@ -89,6 +88,7 @@ __all__ = (
     "maintained_selection",
     "reset_selection",
     "select_nodes",
+    "duplicate_viewer_input_process_node",
     "get_view_process_node",
     "duplicate_node",
     "convert_knob_value_to_correct_type",

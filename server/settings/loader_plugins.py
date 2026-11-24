@@ -76,6 +76,42 @@ class LoadClipModel(LoaderEnabledModel):
     )
 
 
+class LoadEffectsModel(LoaderEnabledModel):
+    attach_to_read_node: bool = SettingsField(
+        title="Attach to Read Node",
+        default=True,
+    )
+    exposed_knobs: list[str] = SettingsField(
+        title="Exposed Knobs",
+        default_factory=list,
+    )
+    skip_node_classes: list[str] = SettingsField(
+        title="Skip Node Classes",
+        default_factory=list,
+        description=(
+            "Node classes of the effect which are not created when the "
+            "effect is attached to a Read node loaded with retime, e.g. "
+            "'TimeWarp': the plate already re-creates its TimeWarp, the "
+            "effect's copy would apply the retime twice. Empty keeps "
+            "every node of the effect."
+        ),
+    )
+
+
+class LoadEffectsInputProcessModel(LoaderEnabledModel):
+    skip_node_classes: list[str] = SettingsField(
+        title="Skip Node Classes",
+        default_factory=list,
+        description=(
+            "Node classes of the effect which are not created when the "
+            "effect's plate is loaded with retime in the script, e.g. "
+            "'TimeWarp': the viewer already shows the plate with its "
+            "TimeWarp, the effect's copy would apply the retime twice. "
+            "Empty keeps every node of the effect."
+        ),
+    )
+
+
 class LoaderPluginsModel(BaseSettingsModel):
     AlembicCameraLoader: LoaderEnabledModel = SettingsField(
         default_factory=LoaderEnabledModel,
@@ -109,12 +145,12 @@ class LoaderPluginsModel(BaseSettingsModel):
         default_factory=LoadClipModel,
         title="Load Clip"
     )
-    LoadEffects: LoaderEnabledModel = SettingsField(
-        default_factory=LoaderEnabledModel,
+    LoadEffects: LoadEffectsModel = SettingsField(
+        default_factory=LoadEffectsModel,
         title="Load Effects"
     )
-    LoadEffectsInputProcess: LoaderEnabledModel = SettingsField(
-        default_factory=LoaderEnabledModel,
+    LoadEffectsInputProcess: LoadEffectsInputProcessModel = SettingsField(
+        default_factory=LoadEffectsInputProcessModel,
         title="Load Effects Input Process"
     )
     LoadGizmo: LoaderEnabledModel = SettingsField(
@@ -186,10 +222,14 @@ DEFAULT_LOADER_PLUGINS_SETTINGS = {
         }
     },
     "LoadEffects": {
-        "enabled": True
+        "enabled": True,
+        "attach_to_read_node": True,
+        "exposed_knobs": [],
+        "skip_node_classes": []
     },
     "LoadEffectsInputProcess": {
-        "enabled": True
+        "enabled": True,
+        "skip_node_classes": []
     },
     "LoadGizmo": {
         "enabled": True

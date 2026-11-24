@@ -4,6 +4,7 @@ import nuke
 
 from ayon_core.pipeline import registered_host
 from ayon_core.pipeline.workfile.workfile_template_builder import (
+    TemplateProfileNotFound,
     TemplateLoadFailed,
     AbstractTemplateBuilder,
     PlaceholderPlugin,
@@ -52,6 +53,8 @@ class NukeTemplateBuilder(AbstractTemplateBuilder):
 
 
 class NukePlaceholderPlugin(PlaceholderPlugin):
+    skip_discovery = True
+
     node_color = 4278190335
 
     item_class = PlaceholderItem
@@ -178,6 +181,10 @@ def trigger_on_new_file() -> None:
 def build_workfile_template():
     builder = NukeTemplateBuilder(registered_host())
     preset = builder.get_template_preset()
+    if not preset.profile:
+        raise TemplateProfileNotFound(
+            "No matching profile found for current context."
+        )
     if not preset.has_valid_path():
         raise TemplateLoadFailed(f"Invalid template path: {preset.path}")
     builder.build_template(preset=preset)
