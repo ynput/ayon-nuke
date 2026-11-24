@@ -7,6 +7,7 @@ from ayon_nuke.api.lib import (
     set_node_knobs_from_settings,
     get_nuke_imageio_settings,
     get_current_project_settings,
+    get_render_path_template,
 )
 
 
@@ -125,7 +126,9 @@ class WriteNodeKnobSettingPanel(nukescripts.PythonPanel):
                 "frame": "#" * frame_padding,
                 "ext": ext
             }
-            file_path = temp_rendering_path_template.format(**data)
+            file_path = get_render_path_template(
+                temp_rendering_path_template, ext
+            ).format(**data)
             file_path = file_path.replace("\\", "/")
             write_node["file"].setValue(file_path)
             set_node_knobs_from_settings(write_node, knobs)
