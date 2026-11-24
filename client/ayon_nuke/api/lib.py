@@ -84,6 +84,18 @@ JSON_PREFIX = "JSON:::"
 ROOT_DATA_KNOB = "publish_context"
 INSTANCE_DATA_KNOB = "publish_instance"
 
+#: Extensions Nuke writes as one file for the whole frame range.
+#: Not `ayon_core`'s `VIDEO_EXTENSIONS`: that also holds `.yuv`, which Nuke
+#: writes as an image sequence, one file per frame.
+MOVIE_EXTENSIONS = {
+    # QuickTime and ffmpeg writer containers
+    ".mov", ".mp4", ".m4v", ".mkv", ".webm", ".avi",
+    # MXF writer
+    ".mxf",
+    # GIF writer
+    ".gif",
+}
+
 
 class DeprecatedWarning(DeprecationWarning):
     pass
@@ -1137,6 +1149,41 @@ def has_tcl_expressions(text: str) -> bool:
     return "[" in text or "$" in text
 
 
+def get_render_path_template(template: str, ext: str) -> str:
+    """Return the render path template suited to the file type.
+
+    A movie holds all frames in one file, so the frame token is not part of
+    its path (`render.####.mov` writes `render.1001.mov`). An image sequence
+    keeps the token, one file per frame.
+
+    Args:
+        template (str): Render path template, e.g. the
+            `temp_rendering_path_template` setting.
+        ext (str): Extension of the render, with or without a leading dot.
+
+    Returns:
+        str: The template without the frame token for a movie, unchanged
+            otherwise.
+    """
+    if ".{}".format(ext.lower().lstrip(".")) not in MOVIE_EXTENSIONS:
+        return template
+
+    # Drop the frame token together with one of the separators around it, so
+    # `.{product}.{frame}.{ext}` becomes `.{product}.{ext}` and not `..`.
+    for pattern, replacement in (
+        (r"\.\{frame\}\.", "."),
+        (r"[_-]\{frame\}\.", "."),
+        (r"\.\{frame\}[_-]", "."),
+        (r"[_-]\{frame\}[_-]", "."),
+        (r"\{frame\}[._-]", ""),
+        (r"[._-]\{frame\}", ""),
+        (r"\{frame\}", ""),
+    ):
+        if re.search(pattern, template):
+            return re.sub(pattern, replacement, template, count=1)
+    return template
+
+
 def get_work_default_directory(data):
     """Helping function for formatting of anatomy paths
 
@@ -1411,7 +1458,8 @@ def create_write_node(
 
     # build file path to workfiles
     data["work"] = get_work_default_directory(data)
-    fpath = StringTemplate(data["fpath_template"]).format_strict(data)
+    fpath_template = get_render_path_template(data["fpath_template"], ext)
+    fpath = StringTemplate(fpath_template).format_strict(data)
     if has_tcl_expressions(fpath):
         fpath = nuke.tcl("subst", fpath)
 
