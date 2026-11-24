@@ -66,7 +66,7 @@ class ValidateExposedKnobs(
         plugin_name = get_creator_class_name(instance)
 
         nuke_settings = instance.context.data["project_settings"]["nuke"]
-        create_settings = nuke_settings["create"][plugin_name]
+        create_settings = nuke_settings["create"].get(plugin_name) or {}
         exposed_knobs = create_settings.get("exposed_knobs", [])
         unexposed_knobs = []
         for knob in exposed_knobs:
