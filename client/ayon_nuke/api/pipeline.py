@@ -465,6 +465,15 @@ def _install_menu(project_settings: dict):
             "Template Builder...",
             lambda: show_template_builder()
         )
+        menu.addSeparator()
+        menu.addCommand(
+            "Build Workfile from template",
+            lambda: build_workfile_template()
+        )
+        menu.addCommand(
+            "Open template",
+            lambda: open_template()
+        )
     else:
         # Older ayon-core versions and Nuke Assist keep the separate actions
         menu_template = menu.addMenu("Template Builder")
