@@ -1048,12 +1048,18 @@ class ExporterReview(object):
             )
 
     def get_file_info(self):
+        self._file_tail = ""
         if self.collection:
             # get path
             self.fname = os.path.basename(
                 self.collection.format("{head}{padding}{tail}")
             )
             self.fhead = self.collection.format("{head}")
+            filename_no_ext = os.path.splitext(self.fname)[0]
+            after_head = filename_no_ext[len(self.fhead):]
+            frame_token = re.match(r"(?:#+|%0?\d*d)(.*)", after_head)
+            if frame_token:
+                self._file_tail = frame_token.group(1)
 
             # get first and last frame
             self.first_frame = min(self.collection.indexes)
@@ -1066,7 +1072,14 @@ class ExporterReview(object):
 
         else:
             self.fname = os.path.basename(self.path_in)
-            self.fhead = os.path.splitext(self.fname)[0] + "."
+            filename_no_ext = os.path.splitext(self.fname)[0]
+            frame_token = re.search(r"(#+|%0?\d*d)", filename_no_ext)
+            self.fhead = (
+                filename_no_ext[:frame_token.start()]
+                if frame_token else filename_no_ext + "."
+            )
+            if frame_token:
+                self._file_tail = filename_no_ext[frame_token.end():]
             self.first_frame = self.instance.data["frameStartHandle"]
             self.last_frame = self.instance.data["frameEndHandle"]
 
@@ -1120,7 +1133,7 @@ class ExporterReview(object):
         if ".{}".format(self.ext) not in VIDEO_EXTENSIONS:
             filenames = get_filenames_without_hash(
                 self.file, self.first_frame, self.last_frame)
-            repre["files"] = filenames
+            repre["files"] = filenames or self.file
 
         if self.publish_on_farm:
             repre["tags"].append("publish_on_farm")
@@ -1227,7 +1240,8 @@ class ExporterReviewLut(ExporterReview):
 
         self.log.info("File info was set...")
 
-        self.file = self.fhead + self.name + ".{}".format(self.ext)
+        self.file = "{}{}{}.{}".format(
+            self.fhead, self.name, self._file_tail, self.ext)
         self.path = os.path.join(
             self.staging_dir, self.file).replace("\\", "/")
 
@@ -1340,19 +1354,47 @@ class ExporterReviewMov(ExporterReview):
         self.log.info("File info was set...")
 
         if ".{}".format(self.ext) in VIDEO_EXTENSIONS:
-            self.file = "{}{}.{}".format(
-                self.fhead, self.name, self.ext)
+            self.file = "{}{}{}.{}".format(
+                self.fhead, self.name, self._file_tail, self.ext)
         else:
             # Output is image (or image sequence)
-            # When the file is an image it's possible it
-            # has extra information after the `fhead` that
-            # we want to preserve, e.g. like frame numbers
-            # or frames hashes like `####`
+            # Keep extra information after the `fhead`, such as the
+            # collection's frame padding, in the intermediate filename.
             filename_no_ext = os.path.splitext(
-                os.path.basename(self.path_in))[0]
+                os.path.basename(self.fname))[0]
             after_head = filename_no_ext[len(self.fhead):]
-            self.file = "{}{}.{}.{}".format(
-                self.fhead, self.name, after_head, self.ext)
+            source_filename_no_ext = os.path.splitext(
+                os.path.basename(self.path_in))[0]
+            source_frame_token = re.search(
+                r"(#+|%0?\d*d)", source_filename_no_ext
+            )
+            if (
+                source_frame_token
+                and source_filename_no_ext[:source_frame_token.start()]
+                == self.fhead
+            ):
+                after_head = (
+                    source_frame_token.group()
+                    + source_filename_no_ext[source_frame_token.end():]
+                )
+            if not after_head and self.first_frame != self.last_frame:
+                frame_padding = max(
+                    len(str(abs(int(self.first_frame)))),
+                    len(str(abs(int(self.last_frame)))),
+                    1,
+                )
+                after_head = "#" * frame_padding
+            after_head = re.sub(
+                r"%0?(\d*)d",
+                lambda match: "#" * int(match.group(1) or 1),
+                after_head,
+            )
+            if after_head:
+                self.file = "{}{}.{}.{}".format(
+                    self.fhead, self.name, after_head, self.ext)
+            else:
+                self.file = "{}{}.{}".format(
+                    self.fhead, self.name, self.ext)
         self.path = os.path.join(
             self.staging_dir, self.file).replace("\\", "/")
 

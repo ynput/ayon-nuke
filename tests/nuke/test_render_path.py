@@ -5,13 +5,16 @@ token, even when the render path template has one. An image sequence keeps
 the token, one file per frame (#440, YN-1299).
 """
 
+import logging
 import os
 
+import clique
 import nuke
 import pytest
 
 from ayon_core.lib import StringTemplate
 from ayon_nuke.api import lib
+from ayon_nuke.api.plugin import ExporterReviewLut, ExporterReviewMov
 
 FIRST_FRAME = 1001
 LAST_FRAME = 1003
@@ -146,5 +149,176 @@ def test_sequence_render_writes_one_file_per_frame(frame_range, tmp_path):
 
     assert sorted(os.listdir(directory)) == [
         f"renderCompMovie.{frame}.exr"
+        for frame in range(FIRST_FRAME, LAST_FRAME + 1)
+    ]
+
+
+def test_intermediate_image_sequence_preserves_frame_token(tmp_path):
+    source_files = [
+        f"renderCompMovie.{frame}.exr"
+        for frame in range(FIRST_FRAME, LAST_FRAME + 1)
+    ]
+    collections, remainder = clique.assemble(source_files)
+
+    assert not remainder
+    assert len(collections) == 1
+
+    class Extractor:
+        log = logging.getLogger(__name__)
+        viewer_lut_raw = False
+
+    class Context:
+        data = {}
+
+    class Instance:
+        context = Context()
+        data = {
+            "path": str(tmp_path / source_files[0]),
+            "stagingDir": str(tmp_path),
+            "collection": collections[0],
+            "colorspace": "linear",
+            "color_channels": "rgba",
+            "anatomyData": {},
+            "frameStartHandle": FIRST_FRAME,
+            "frameEndHandle": LAST_FRAME,
+        }
+
+    exporter = ExporterReviewMov(
+        Extractor,
+        Instance,
+        name="png",
+        write_knobs={"custom": [], "file_type": "png"},
+    )
+
+    assert exporter.file == "renderCompMovie.png.#.png"
+    assert lib.get_filenames_without_hash(
+        exporter.file, FIRST_FRAME, LAST_FRAME
+    ) == [
+        f"renderCompMovie.png.{frame}.png"
+        for frame in range(FIRST_FRAME, LAST_FRAME + 1)
+    ]
+    exporter.get_representation_data()
+    assert exporter.data["representations"][0]["files"] == [
+        f"renderCompMovie.png.{frame}.png"
+        for frame in range(FIRST_FRAME, LAST_FRAME + 1)
+    ]
+
+
+def test_intermediate_image_sequence_generates_token_without_source_token(
+    tmp_path,
+):
+    class Extractor:
+        log = logging.getLogger(__name__)
+        viewer_lut_raw = False
+
+    class Context:
+        data = {}
+
+    class Instance:
+        context = Context()
+        data = {
+            "path": str(tmp_path / "renderCompMovie.mov"),
+            "stagingDir": str(tmp_path),
+            "colorspace": "linear",
+            "color_channels": "rgba",
+            "anatomyData": {},
+            "frameStartHandle": FIRST_FRAME,
+            "frameEndHandle": LAST_FRAME,
+        }
+
+    exporter = ExporterReviewMov(
+        Extractor,
+        Instance,
+        name="png",
+        write_knobs={"custom": [], "file_type": "png"},
+    )
+
+    assert exporter.file == "renderCompMovie.png.####.png"
+    assert lib.get_filenames_without_hash(
+        exporter.file, FIRST_FRAME, LAST_FRAME
+    ) == [
+        f"renderCompMovie.png.{frame}.png"
+        for frame in range(FIRST_FRAME, LAST_FRAME + 1)
+    ]
+    exporter.get_representation_data()
+    assert exporter.data["representations"][0]["files"] == [
+        f"renderCompMovie.png.{frame}.png"
+        for frame in range(FIRST_FRAME, LAST_FRAME + 1)
+    ]
+
+
+def test_intermediate_movie_preserves_suffix_after_frame_token(tmp_path):
+    class Extractor:
+        log = logging.getLogger(__name__)
+        viewer_lut_raw = False
+
+    class Context:
+        data = {}
+
+    class Instance:
+        context = Context()
+        data = {
+            "path": str(tmp_path / "renderCompMovie.####.left.exr"),
+            "stagingDir": str(tmp_path),
+            "colorspace": "linear",
+            "color_channels": "rgba",
+            "anatomyData": {},
+            "frameStartHandle": FIRST_FRAME,
+            "frameEndHandle": LAST_FRAME,
+        }
+
+    exporter = ExporterReviewMov(
+        Extractor,
+        Instance,
+        name="review",
+        write_knobs={"custom": [], "file_type": "mov"},
+    )
+
+    assert exporter.file == "renderCompMovie.review.left.mov"
+
+    lut_exporter = ExporterReviewLut(
+        Extractor,
+        Instance,
+        name="lut",
+        ext="cube",
+    )
+
+    assert lut_exporter.file == "renderCompMovie.lut.left.cube"
+
+
+def test_intermediate_image_sequence_parses_printf_token_without_collection(
+    tmp_path,
+):
+    class Extractor:
+        log = logging.getLogger(__name__)
+        viewer_lut_raw = False
+
+    class Context:
+        data = {}
+
+    class Instance:
+        context = Context()
+        data = {
+            "path": str(tmp_path / "renderCompMovie.%04d.exr"),
+            "stagingDir": str(tmp_path),
+            "colorspace": "linear",
+            "color_channels": "rgba",
+            "anatomyData": {},
+            "frameStartHandle": FIRST_FRAME,
+            "frameEndHandle": LAST_FRAME,
+        }
+
+    exporter = ExporterReviewMov(
+        Extractor,
+        Instance,
+        name="png",
+        write_knobs={"custom": [], "file_type": "png"},
+    )
+
+    assert exporter.file == "renderCompMovie.png.####.png"
+    assert lib.get_filenames_without_hash(
+        exporter.file, FIRST_FRAME, LAST_FRAME
+    ) == [
+        f"renderCompMovie.png.{frame}.png"
         for frame in range(FIRST_FRAME, LAST_FRAME + 1)
     ]
