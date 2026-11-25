@@ -51,6 +51,10 @@ class NukeTemplateBuilder(AbstractTemplateBuilder):
 
         return True
 
+    def get_selected_placeholder_identifiers(self):
+        """Return selected nodes so the tool can follow Nuke selection."""
+        return [node.fullName() for node in nuke.selectedNodes()]
+
 
 class NukePlaceholderPlugin(PlaceholderPlugin):
     skip_discovery = True
