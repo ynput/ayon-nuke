@@ -370,7 +370,13 @@ class PublishPluginsModel(BaseSettingsModel):
     )
     ValidateScriptAttributes: OptionalPluginModel = SettingsField(
         title="Validate workfile attributes",
-        default_factory=OptionalPluginModel
+        default_factory=OptionalPluginModel,
+        description=(
+            "Validates the Nuke script's root settings (frame range, "
+            "handles, resolution and fps) match the current task's "
+            "attributes. Runs on every publish, regardless of which "
+            "products are published."
+        )
     )
     ExtractReviewData: ExtractReviewDataModel = SettingsField(
         title="Extract Review Data",
