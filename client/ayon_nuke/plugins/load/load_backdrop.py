@@ -11,7 +11,8 @@ from ayon_nuke.api.lib import (
     reset_selection,
     select_nodes,
     get_avalon_knob_data,
-    set_avalon_knob_data
+    set_avalon_knob_data,
+    sanitize_node_name,
 )
 from ayon_nuke.api.command import undo_chunk
 from ayon_nuke.api import containerise, update_container
@@ -278,7 +279,7 @@ class LoadBackdropNodes(load.LoaderPlugin):
         bdn["bdwidth"].setValue(bdwidth)
         bdn["bdheight"].setValue(bdheight)
 
-        bdn.setName(object_name)
+        bdn.setName(sanitize_node_name(object_name))
         bdn["label"].setValue(
             f"Version tracked frame: \n`{object_name}`\n\n"
             "PLEASE DO NOT REMOVE OR MOVE \nANYTHING FROM THIS FRAME!"

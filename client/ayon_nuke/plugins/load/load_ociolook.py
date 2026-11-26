@@ -13,6 +13,7 @@ from ayon_nuke.api import (
     update_container,
 )
 from ayon_nuke.api.command import undo_chunk
+from ayon_nuke.api.lib import sanitize_node_name
 
 
 class LoadOcioLookNodes(load.LoaderPlugin):
@@ -62,7 +63,7 @@ class LoadOcioLookNodes(load.LoaderPlugin):
         group_node = self._create_group_node(
             filepath, json_f["data"])
         # renaming group node
-        group_node.setName(f"{name}_{namespace}")
+        group_node.setName(sanitize_node_name(f"{name}_{namespace}"))
 
         self._node_version_color(
             context["project"]["name"],

@@ -6,7 +6,7 @@ from ayon_core.pipeline import (
     get_representation_path,
 )
 from ayon_nuke.api.command import undo_chunk
-from ayon_nuke.api.lib import maintained_selection
+from ayon_nuke.api.lib import maintained_selection, sanitize_node_name
 from ayon_nuke.api import (
     containerise,
     update_container,
@@ -45,7 +45,7 @@ class AlembicModelLoader(load.LoaderPlugin):
         fps = version_attributes.get("fps") or nuke.root()["fps"].getValue()
 
         namespace = namespace or context["folder"]["name"]
-        object_name = "{}_{}".format(name, namespace)
+        object_name = sanitize_node_name(f"{name}_{namespace}")
 
         # prepare data for imprinting
         data_imprint = {

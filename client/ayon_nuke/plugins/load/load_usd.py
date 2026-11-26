@@ -2,7 +2,7 @@ import nuke
 import ayon_api
 
 from ayon_core.pipeline import load
-from ayon_nuke.api.lib import maintained_selection
+from ayon_nuke.api.lib import maintained_selection, sanitize_node_name
 from ayon_nuke.api import (
     containerise,
     update_container,
@@ -32,7 +32,7 @@ class GeoImportLoader(load.LoaderPlugin):
     @undo_chunk("Load GeoImport")
     def load(self, context, name, namespace, data):
         namespace = namespace or context["folder"]["name"]
-        object_name = "{}_{}".format(name, namespace)
+        object_name = sanitize_node_name(f"{name}_{namespace}")
 
         filepath = self.filepath_from_context(context).replace("\\", "/")
 
