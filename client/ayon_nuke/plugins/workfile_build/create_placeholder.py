@@ -30,6 +30,7 @@ class NukePlaceholderCreatePlugin(
 ):
     identifier = "nuke.create"
     label = "Nuke create"
+    icon = {"type": "material-symbols", "name": "add"}
 
     item_class = CreatePlaceholderItem
 
