@@ -7,7 +7,7 @@ from ayon_nuke.api import (
     update_container,
 )
 from ayon_nuke.api.command import undo_chunk
-from ayon_nuke.api.lib import maintained_selection
+from ayon_nuke.api.lib import maintained_selection, sanitize_node_name
 
 from pxr import Usd, UsdGeom
 
@@ -40,7 +40,7 @@ class UsdCameraLoader(load.LoaderPlugin):
         fps = version_attributes.get("fps") or nuke.root()["fps"].getValue()
 
         namespace: str = namespace or context["folder"]["name"]
-        object_name: str = "{}_{}".format(name, namespace)
+        object_name: str = sanitize_node_name(f"{name}_{namespace}")
 
         file = self.filepath_from_context(context).replace("\\", "/")
 

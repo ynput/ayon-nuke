@@ -5,7 +5,8 @@ import ayon_api
 from ayon_core.pipeline import load
 
 from ayon_nuke.api.lib import (
-    get_imageio_input_colorspace
+    get_imageio_input_colorspace,
+    sanitize_node_name,
 )
 from ayon_nuke.api.command import undo_chunk
 
@@ -257,7 +258,7 @@ class LoadImage(load.LoaderPlugin):
             "class_name": self.__class__.__name__
         }
 
-        return self.node_name_template.format(**name_data)
+        return sanitize_node_name(self.node_name_template.format(**name_data))
 
     def set_colorspace_to_node(
         self,

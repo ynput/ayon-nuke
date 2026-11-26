@@ -5,6 +5,7 @@ import importlib
 from collections import OrderedDict, defaultdict
 
 import pyblish.api
+from qtpy import QtCore
 
 from ayon_core.host import (
     ApplicationInformation,
@@ -233,7 +234,16 @@ def add_nuke_callbacks(project_settings: dict = None):
 
 
 def on_root_create() -> None:
-    """Callback function for on root node create."""
+    """Callback function for on root node create.
+
+    The logic is deferred until Nuke finished creating the root, because
+    Nuke 17.1v3 applies the Root format defaults to the startup script only
+    after the Root onCreate callbacks ran, overriding what was set there.
+    """
+    QtCore.QTimer.singleShot(0, _on_root_create)
+
+
+def _on_root_create() -> None:
     # adding favorites to file browser
     workfile_settings = WorkfileSettings()
     workfile_settings.set_favorites()

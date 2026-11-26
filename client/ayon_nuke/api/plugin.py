@@ -49,9 +49,11 @@ from .lib import (
     duplicate_viewer_input_process_node,
     get_filenames_without_hash,
     get_work_default_directory,
+    get_render_path_template,
     link_knobs,
     get_version_from_path,
     convert_knob_value_to_correct_type,
+    sanitize_node_name,
 )
 from .pipeline import (
     list_instances,
@@ -234,7 +236,7 @@ class NukeCreator(Creator):
 
         try:
             instance_node = self.create_instance_node(
-                product_name,
+                sanitize_node_name(product_name),
                 node_type=instance_data.pop("node_type", None),
                 node_selection=node_selection,
             )
@@ -298,7 +300,7 @@ class NukeCreator(Creator):
             # update instance node name if product name changed
             if "productName" in changes.changed_keys:
                 instance_node.setName(
-                    changes["productName"].new_value
+                    sanitize_node_name(changes["productName"].new_value)
                 )
 
             set_node_data(
@@ -442,7 +444,8 @@ class NukeWriteCreator(NukeCreator):
         formatting_data.update({"ext": ext[1:]})
 
         # Retieve render template and staging directory.
-        fpath_template = self.temp_rendering_path_template
+        fpath_template = get_render_path_template(
+            self.temp_rendering_path_template, ext)
         formatting_data["work"] = get_work_default_directory(formatting_data)
         fpath = StringTemplate(fpath_template).format_strict(formatting_data)
 
@@ -873,7 +876,7 @@ class NukeGroupLoader(LoaderPlugin):
         """
 
         namespace = namespace or context["folder"]["name"]
-        object_name = "{}_{}".format(name, namespace)
+        object_name = sanitize_node_name(f"{name}_{namespace}")
 
         group_node = self._create_group(object_name, context)
         self._call_on_load(group_node, namespace, context, options)
