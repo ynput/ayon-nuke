@@ -4,6 +4,7 @@ from ayon_nuke.api import (
     NukeCreatorError,
     set_node_data
 )
+from ayon_nuke.api.lib import sanitize_node_name
 from ayon_core.pipeline import (
     CreatedInstance
 )
@@ -32,7 +33,7 @@ class CreateSource(NukeCreator):
     ):
         read_node["tile_color"].setValue(
             int(self.node_color, 16))
-        read_node.setName(node_name)
+        read_node.setName(sanitize_node_name(node_name))
 
         return read_node
 

@@ -5,7 +5,7 @@ from ayon_core.pipeline import (
     load,
     get_representation_path,
 )
-from ayon_nuke.api.lib import get_avalon_knob_data
+from ayon_nuke.api.lib import get_avalon_knob_data, sanitize_node_name
 from ayon_nuke.api import (
     containerise,
     update_container,
@@ -76,7 +76,7 @@ class LinkAsGroup(load.LoaderPlugin):
         # Set colorspace defined in version data
         self.log.info("colorspace: {}\n".format(colorspace))
 
-        P.setName(f"{name}_{namespace}")
+        P.setName(sanitize_node_name(f"{name}_{namespace}"))
         P["useOutput"].setValue(True)
 
         with P:

@@ -53,6 +53,7 @@ from .lib import (
     link_knobs,
     get_version_from_path,
     convert_knob_value_to_correct_type,
+    sanitize_node_name,
 )
 from .pipeline import (
     list_instances,
@@ -235,7 +236,7 @@ class NukeCreator(Creator):
 
         try:
             instance_node = self.create_instance_node(
-                product_name,
+                sanitize_node_name(product_name),
                 node_type=instance_data.pop("node_type", None),
                 node_selection=node_selection,
             )
@@ -299,7 +300,7 @@ class NukeCreator(Creator):
             # update instance node name if product name changed
             if "productName" in changes.changed_keys:
                 instance_node.setName(
-                    changes["productName"].new_value
+                    sanitize_node_name(changes["productName"].new_value)
                 )
 
             set_node_data(
@@ -875,7 +876,7 @@ class NukeGroupLoader(LoaderPlugin):
         """
 
         namespace = namespace or context["folder"]["name"]
-        object_name = "{}_{}".format(name, namespace)
+        object_name = sanitize_node_name(f"{name}_{namespace}")
 
         group_node = self._create_group(object_name, context)
         self._call_on_load(group_node, namespace, context, options)

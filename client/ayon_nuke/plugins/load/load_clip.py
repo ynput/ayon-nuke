@@ -14,7 +14,8 @@ from ayon_core.pipeline.colorspace import (
 )
 from ayon_nuke.api.lib import (
     get_imageio_input_colorspace,
-    maintained_selection
+    maintained_selection,
+    sanitize_node_name,
 )
 from ayon_nuke.api import (
     containerise,
@@ -550,7 +551,7 @@ class LoadClip(plugin.NukeLoader):
             "class_name": self.__class__.__name__
         }
 
-        return self.node_name_template.format(**name_data)
+        return sanitize_node_name(self.node_name_template.format(**name_data))
 
     def _get_colorspace_data(
         self, project_name, version_entity, repre_entity, filepath
