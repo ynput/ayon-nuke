@@ -626,6 +626,25 @@ def read_avalon_data(node):
     return data
 
 
+def sanitize_node_name(name: str) -> str:
+    """Return `name` as a valid Nuke node name.
+
+    Nuke node names can only have letters, digits and underscores and can't
+    start with a digit. Other characters, like the `.` and `-` that folder
+    and product names may have, become underscores.
+
+    Examples:
+        >>> sanitize_node_name("renderMain_sh010.v2")
+        'renderMain_sh010_v2'
+        >>> sanitize_node_name("010_plate")
+        '_010_plate'
+    """
+    name = re.sub(r"[^A-Za-z0-9_]", "_", name)
+    if name[:1].isdigit():
+        name = f"_{name}"
+    return name
+
+
 def get_node_path(path, padding=4):
     """Get filename for the Nuke write with padded number as '#'
 

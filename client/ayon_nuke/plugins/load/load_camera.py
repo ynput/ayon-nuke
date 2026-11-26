@@ -11,7 +11,8 @@ from ayon_nuke.api import (
 )
 from ayon_nuke.api.command import knob_values, undo_chunk
 from ayon_nuke.api.lib import (
-    maintained_selection
+    maintained_selection,
+    sanitize_node_name,
 )
 
 class AlembicCameraLoader(load.LoaderPlugin):
@@ -43,7 +44,7 @@ class AlembicCameraLoader(load.LoaderPlugin):
         fps = version_attributes.get("fps") or nuke.root()["fps"].getValue()
 
         namespace = namespace or context["folder"]["name"]
-        object_name = "{}_{}".format(name, namespace)
+        object_name = sanitize_node_name(f"{name}_{namespace}")
 
         # prepare data for imprinting
         # add additional metadata from the version to imprint to metadata knob
