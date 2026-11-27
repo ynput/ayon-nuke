@@ -112,6 +112,10 @@ def workfile(monkeypatch):
     monkeypatch.setattr(nuke, "message", lambda text: messages.append(text))
     log = Recorder()
     monkeypatch.setattr(lib, "log", log)
+    # a new Nuke session: nothing shown to the artist yet
+    monkeypatch.setattr(
+        lib.WorkfileSettings, "_reported_native_ocio_configs", set()
+    )
 
     imageio = copy.deepcopy(_default_imageio_settings())
     settings = object.__new__(lib.WorkfileSettings)
@@ -147,6 +151,42 @@ def test_missing_native_config_is_reported(workfile):
     assert _menu_names("OCIO_config") == configs
     assert {knob: root[knob].value() for knob in LUT_KNOBS} == luts
     assert {knob: _menu_names(knob) for knob in LUT_KNOBS} == lut_menus
+
+
+def test_missing_native_config_message_once_per_session(workfile):
+    """It runs on every script open, the log keeps each time."""
+    settings, imageio, report = workfile
+    imageio["workfile"]["native_ocio_config"] = MISSING_CONFIG
+
+    settings.set_colorspace()
+    settings.set_colorspace()
+
+    assert len(report.messages) == 1
+    errors = [error for error in report.log.errors if MISSING_CONFIG in error]
+    assert len(errors) == 2
+
+
+def test_colorspace_label_is_not_accepted(workfile):
+    """Nuke appends a menu item's label, it is not a value."""
+    settings, imageio, report = workfile
+    config = _shipped_studio_config()
+    imageio["workfile"]["native_ocio_config"] = config
+    imageio["workfile"].update(ROLE_COLORSPACES)
+    settings.set_colorspace()
+    # ex: "scene_linear (ACEScg)" of "scene_linear\tscene_linear (ACEScg)"
+    label = next(
+        item.split("\t")[1]
+        for item in nuke.root()["workingSpaceLUT"].values()
+        if item.startswith("scene_linear\t")
+    )
+    imageio["workfile"]["working_space"] = label
+
+    settings.set_colorspace()
+
+    assert label not in _menu_names("workingSpaceLUT")
+    assert nuke.root()["workingSpaceLUT"].value() == "scene_linear"
+    assert len(report.log.warnings) == 1
+    assert label in report.log.warnings[0]
 
 
 def test_default_native_config_on_this_nuke(workfile):
