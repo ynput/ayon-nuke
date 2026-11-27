@@ -98,10 +98,16 @@ def get_knob_menu_names(knob):
     """
     names = set()
     for item in knob.values():
-        # the item's value, kept whole as a display/view may have a comma
-        names.add(item.split("\t")[0])
-        # the colorspace aliases, ex: "ACEScg\t...\tACES - ACEScg,lin_ap1"
-        names.update(name for name in re.split(r"[\t,]+", item) if name)
+        # "<name>\t<label>" or, with OCIO v2 configs,
+        # "<name>\t<menu path>\t<description>\t<alias>,<alias>";
+        # Nuke does not accept the label or menu path as a value
+        fields = item.split("\t")
+        names.add(fields[0])
+        if len(fields) > 3:
+            names.update(
+                alias.strip() for alias in fields[3].split(",")
+                if alias.strip()
+            )
     return names
 
 
