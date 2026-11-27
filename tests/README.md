@@ -20,7 +20,7 @@ What the runner needs:
 
 - **Nuke**: `--app` (an executable, `.app` bundle or install folder),
   `AYON_NUKE_EXECUTABLE`, or the newest Nuke 14 to 17 in the usual install
-  folder. Tested with Nuke 15.2, 16.1 and 17.0.
+  folder. Tested with Nuke 15.2, 16.1, 17.0 and 17.1.
 - **ayon-core**: `--core`, `AYON_CORE_ROOT`, the launcher's ayon-core
   (`ayon run`), or an `ayon-core` checkout next to this repository (or next
   to a parent folder, for worktrees).
