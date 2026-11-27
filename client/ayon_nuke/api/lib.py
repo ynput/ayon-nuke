@@ -68,6 +68,7 @@ from .utils import get_node_outputs
 from .colorspace import (
     get_formatted_display_and_view,
     create_viewer_profile_string,
+    get_knob_menu_names,
 )
 
 log = Logger.get_logger(__name__)
@@ -2039,13 +2040,23 @@ class WorkfileSettings(object):
 
         if not config_data:
             # no ocio config found and no custom path used
+            native_config_available = native_ocio_config in (
+                get_knob_menu_names(self._root_node["OCIO_config"])
+            )
+            if color_management == "OCIO" and not native_config_available:
+                # leave the script as it is, the workfile colorspaces
+                # belong to the missing config
+                self._report_missing_native_ocio_config(native_ocio_config)
+                return
+
             if self._root_node["colorManagement"].value() \
                         not in color_management:
                 self._root_node["colorManagement"].setValue(color_management)
 
-            # second set ocio version
-            if self._root_node["OCIO_config"].value() \
-                        not in native_ocio_config:
+            # second set ocio version, the Nuke workflow does not use it
+            if native_config_available and \
+                    self._root_node["OCIO_config"].value() \
+                    not in native_ocio_config:
                 self._root_node["OCIO_config"].setValue(native_ocio_config)
 
         else:
@@ -2091,6 +2102,7 @@ class WorkfileSettings(object):
         )
 
         # then set the rest
+        missing_values = []
         for knob, value_ in workfile_settings_output.items():
             # skip unfilled ocio config path
             # it will be dict in value
@@ -2099,7 +2111,52 @@ class WorkfileSettings(object):
             # skip empty values
             if not value_:
                 continue
-            self._root_node[knob].setValue(str(value_))
+            value_ = str(value_)
+            # Nuke would append a value missing in the current config to
+            # the menu with only a console warning
+            if value_ not in get_knob_menu_names(self._root_node[knob]):
+                missing_values.append(f"{knob}: '{value_}'")
+                continue
+            self._root_node[knob].setValue(value_)
+
+        if missing_values:
+            log.warning(
+                "Workfile colorspace settings not found in the current OCIO"
+                " config, kept the current values of: {}".format(
+                    ", ".join(missing_values)
+                )
+            )
+
+    def _report_missing_native_ocio_config(self, native_ocio_config):
+        """Tell the artist the native OCIO config is not in this Nuke.
+
+        Nuke would append a missing config to the `OCIO_config` menu with
+        only a console warning and keep using `nuke-default`, e.g.
+        `aces_1.2` which Nuke 17 does not ship anymore.
+
+        Args:
+            native_ocio_config (str): native OCIO config name from settings
+        """
+        configs = [
+            item.split("\t")[0]
+            for item in self._root_node["OCIO_config"].values()
+        ]
+        message = (
+            "Native OCIO config '{config}' set in AYON settings is not"
+            " available in Nuke {version}, the workfile colorspace was not"
+            " set.\n\n"
+            "Configs in this Nuke: {configs}.\n\n"
+            "Choose one of them in"
+            " `ayon+settings://nuke/imageio/workfile/native_ocio_config`,"
+            " with workfile colorspaces from that config, or use the global"
+            " OCIO config (`ayon+settings://core/imageio`)."
+        ).format(
+            config=native_ocio_config,
+            version=nuke.NUKE_VERSION_STRING,
+            configs=", ".join(configs),
+        )
+        log.error(message)
+        nuke.message(message)
 
     def _get_monitor_settings(self, viewer_lut, monitor_lut):
         """Get monitor settings from viewer and monitor lut

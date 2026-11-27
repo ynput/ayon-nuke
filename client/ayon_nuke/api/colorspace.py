@@ -83,6 +83,28 @@ def get_colorspace_list(colorspace_knob, node=None, consider_aliases=True):
     return _COLORSPACES_CACHE[identifier_key]
 
 
+def get_knob_menu_names(knob):
+    """Get the names an enumeration knob accepts, aliases included.
+
+    The menu is read from the knob each time, not cached, because it
+    changes with the OCIO config of the script. Nuke appends a value which
+    is not in the menu to it, with only a console warning.
+
+    Args:
+        knob (nuke.Knob): nuke enumeration knob, e.g. root's `OCIO_config`
+
+    Returns:
+        set[str]: names and aliases of the menu items
+    """
+    names = set()
+    for item in knob.values():
+        # the item's value, kept whole as a display/view may have a comma
+        names.add(item.split("\t")[0])
+        # the colorspace aliases, ex: "ACEScg\t...\tACES - ACEScg,lin_ap1"
+        names.update(name for name in re.split(r"[\t,]+", item) if name)
+    return names
+
+
 def colorspace_exists_on_node(node, colorspace_name):
     """Check if colorspace exists on node
 
