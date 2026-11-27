@@ -1903,6 +1903,9 @@ class WorkfileSettings(object):
 
     """
 
+    # missing native OCIO configs already shown to the artist this session
+    _reported_native_ocio_configs = set()
+
     def __init__(
             self,
             root_node=None,
@@ -2132,7 +2135,9 @@ class WorkfileSettings(object):
 
         Nuke would append a missing config to the `OCIO_config` menu with
         only a console warning and keep using `nuke-default`, e.g.
-        `aces_1.2` which Nuke 17 does not ship anymore.
+        `aces_1.2` which Nuke 17 does not ship anymore. The message is
+        shown once per session, as this runs on every script open; the
+        error is logged each time.
 
         Args:
             native_ocio_config (str): native OCIO config name from settings
@@ -2156,7 +2161,10 @@ class WorkfileSettings(object):
             configs=", ".join(configs),
         )
         log.error(message)
-        nuke.message(message)
+        reported = WorkfileSettings._reported_native_ocio_configs
+        if native_ocio_config not in reported:
+            reported.add(native_ocio_config)
+            nuke.message(message)
 
     def _get_monitor_settings(self, viewer_lut, monitor_lut):
         """Get monitor settings from viewer and monitor lut
